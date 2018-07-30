@@ -30,9 +30,17 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_StepSizePrimaryRaySlider(),
 	m_StepSizePrimaryRaySpinner(),
 	m_StepSizeSecondaryRaySlider(),
-	m_StepSizeSecondaryRaySpinner()
+	m_StepSizeSecondaryRaySpinner(),
+	m_AlgorithmType()
 {
 	setLayout(&m_MainLayout);
+
+	m_MainLayout.addWidget(new QLabel("Algorithm Type"), 1, 0);
+
+	m_AlgorithmType.addItem("Single Scattering", 0);
+	m_AlgorithmType.addItem("Multiple Scattering", 1);
+	m_AlgorithmType.addItem("Pre-Random", 2);
+	m_MainLayout.addWidget(&m_AlgorithmType, 1, 1, 1, 2);
 
 	m_MainLayout.addWidget(new QLabel("Density Scale"), 2, 0);
 
@@ -107,6 +115,8 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	QObject::connect(&m_ShadingType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetShadingType(int)));
 	QObject::connect(&gStatus, SIGNAL(RenderBegin()), this, SLOT(OnRenderBegin()));
 	QObject::connect(&gTransferFunction, SIGNAL(Changed()), this, SLOT(OnTransferFunctionChanged()));
+
+	QObject::connect(&m_AlgorithmType, SIGNAL(currentIndexChanged(int)), this, SLOT(onSetAlgorithmType(int)));
 }
 
 void QAppearanceSettingsWidget::OnRenderBegin(void)
@@ -132,6 +142,11 @@ void QAppearanceSettingsWidget::OnSetShadingType(int Index)
 	m_GradientFactorLabel.setEnabled(Index == 2);
 	m_GradientFactorSlider.setEnabled(Index == 2);
 	m_GradientFactorSpinner.setEnabled(Index == 2);
+}
+
+void QAppearanceSettingsWidget::onSetAlgorithmType(int Index)
+{
+	gTransferFunction.SetAlgorithmType(Index);
 }
 
 void QAppearanceSettingsWidget::OnSetGradientFactor(double GradientFactor)

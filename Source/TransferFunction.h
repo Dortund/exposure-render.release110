@@ -49,6 +49,8 @@ public:
 	void						ReadXML(QDomElement& Parent);
 	QDomElement					WriteXML(QDomDocument& DOM, QDomElement& Parent);
 	static QTransferFunction	Default(void);
+	int							GetAlgorithmType(void) const;
+	void						SetAlgorithmType(const int& AlgorithmType);
 
 private slots:
 	void	OnNodeChanged(QNode* pNode);
@@ -63,6 +65,7 @@ private:
 	float		m_DensityScale;
 	int			m_ShadingType;
 	float		m_GradientFactor;
+	int			m_AlgorithmType;
 
 	friend class QNode;
 };

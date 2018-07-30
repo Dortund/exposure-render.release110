@@ -277,7 +277,8 @@ void QRenderThread::run()
 
 			BindRenderCanvasView(SceneCopy.m_Camera.m_Film.m_Resolution);
 
-  			Render(0, SceneCopy, RenderImage, BlurImage, PostProcessImage, DenoiseImage);
+			//Render(0, SceneCopy, RenderImage, BlurImage, PostProcessImage, DenoiseImage);
+  			Render(SceneCopy.m_AlgorithmType, SceneCopy, RenderImage, BlurImage, PostProcessImage, DenoiseImage);
 		
 			gScene.SetNoIterations(gScene.GetNoIterations() + 1);
 
@@ -537,6 +538,7 @@ void QRenderThread::OnUpdateTransferFunction(void)
 	gScene.m_DensityScale	= TransferFunction.GetDensityScale();
 	gScene.m_ShadingType	= TransferFunction.GetShadingType();
 	gScene.m_GradientFactor	= TransferFunction.GetGradientFactor();
+	gScene.m_AlgorithmType	= TransferFunction.GetAlgorithmType();
 
 	gScene.m_DirtyFlags.SetFlag(TransferFunctionDirty);
 

@@ -34,7 +34,8 @@ CScene::CScene(void) :
 	m_StepSizeFactorShadow(3.0f),
 	m_GradientDelta(4.0f),
 	m_GradientFactor(4.0f),
-	m_GradMagMean(1.0f)
+	m_GradMagMean(1.0f),
+	m_AlgorithmType(0)
 {
 }
 
@@ -64,6 +65,7 @@ HOD CScene& CScene::operator=(const CScene& Other)
 	m_GradientMagnitudeRange	= Other.m_GradientMagnitudeRange;
 	m_GradientFactor			= Other.m_GradientFactor;
 	m_GradMagMean				= Other.m_GradMagMean;
+	m_AlgorithmType				= Other.m_AlgorithmType;
 
 	return *this;
 }

@@ -29,7 +29,8 @@ QTransferFunction::QTransferFunction(QObject* pParent, const QString& Name) :
 	m_pSelectedNode(NULL),
 	m_DensityScale(5.0f),
 	m_ShadingType(1),
-	m_GradientFactor(0.0f)
+	m_GradientFactor(0.0f),
+	m_AlgorithmType(0)
 {
 }
 
@@ -54,6 +55,7 @@ QTransferFunction& QTransferFunction::operator = (const QTransferFunction& Other
 	m_DensityScale		= Other.m_DensityScale;
 	m_ShadingType		= Other.m_ShadingType;
 	m_GradientFactor	= Other.m_GradientFactor;
+	m_AlgorithmType		= Other.m_AlgorithmType;
 
 	// Update node's range
 	UpdateNodeRanges();
@@ -320,6 +322,21 @@ void QTransferFunction::SetGradientFactor(const float& GradientFactor)
 	emit Changed();
 }
 
+int QTransferFunction::GetAlgorithmType(void) const
+{
+	return m_AlgorithmType;
+}
+
+void QTransferFunction::SetAlgorithmType(const int& AlgorithmType)
+{
+	if (AlgorithmType == m_AlgorithmType)
+		return;
+
+	m_AlgorithmType = AlgorithmType;
+
+	emit Changed();
+}
+
 void QTransferFunction::ReadXML(QDomElement& Parent)
 {
 	QPresetXML::ReadXML(Parent);
@@ -346,6 +363,7 @@ void QTransferFunction::ReadXML(QDomElement& Parent)
 	m_DensityScale		= Parent.firstChildElement("DensityScale").attribute("Value").toFloat();
 	m_ShadingType		= Parent.firstChildElement("ShadingType").attribute("Value").toInt();
 	m_GradientFactor	= Parent.firstChildElement("GradientFactor").attribute("Value").toFloat();
+	m_AlgorithmType		= Parent.firstChildElement("AlgorithmType").attribute("Value").toFloat();
 
 	blockSignals(false);
 

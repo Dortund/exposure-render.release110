@@ -28,6 +28,7 @@ public slots:
 	void OnSetGradientFactor(double GradientFactor);
 	void OnSetStepSizePrimaryRay(const double& StepSizePrimaryRay);
 	void OnSetStepSizeSecondaryRay(const double& StepSizeSecondaryRay);
+	void onSetAlgorithmType(int index);
 
 private:
 	QGridLayout		m_MainLayout;
@@ -41,4 +42,5 @@ private:
 	QDoubleSpinner	m_StepSizePrimaryRaySpinner;
 	QDoubleSlider	m_StepSizeSecondaryRaySlider;
 	QDoubleSpinner	m_StepSizeSecondaryRaySpinner;
+	QComboBox		m_AlgorithmType;
 };

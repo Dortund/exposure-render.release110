@@ -20,7 +20,8 @@
 #define KRNL_MS_BLOCK_H		8
 #define KRNL_MS_BLOCK_SIZE	KRNL_MS_BLOCK_W * KRNL_MS_BLOCK_H
 
-KERNEL void KrnlMultipleScattering(CScene* pScene, int* pSeeds)
+//KERNEL void KrnlMultipleScattering(CScene* pScene, int* pSeeds)
+KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 {
 	const int X		= (blockIdx.x * blockDim.x) + threadIdx.x;
 	const int Y		= (blockIdx.y * blockDim.y) + threadIdx.y;
@@ -29,7 +30,8 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, int* pSeeds)
 	if (X >= gFilmWidth || Y >= gFilmHeight || PID >= gFilmNoPixels)
 		return;
 	
-	CRNG RNG(&pSeeds[2 * PID], &pSeeds[2 * PID + 1]);
+	//CRNG RNG(&pSeeds[2 * PID], &pSeeds[2 * PID + 1]);
+	CRNG RNG(pView->m_RandomSeeds1.GetPtr(X, Y), pView->m_RandomSeeds2.GetPtr(X, Y));
 
 	CColorXyz Lv = SPEC_BLACK, Li = SPEC_BLACK, Tr = SPEC_WHITE;
 
@@ -53,15 +55,17 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, int* pSeeds)
 			if (NearestLight(pScene, CRay(Re.m_O, Re.m_D, 0.0f, (Pe - Re.m_O).Length()), Li, Pl, pLight))
 			{
 				float4 ColorXYZA = make_float4(Lv.c[0], Lv.c[1], Lv.c[2], 0.0f);
-//				surf2Dwrite(ColorXYZA, gSurfRunningEstimateXyza, X * sizeof(float4), Y);
+				//				surf2Dwrite(ColorXYZA, gSurfRunningEstimateXyza, X * sizeof(float4), Y);
 				return;
 			}
-		 
+
 			const float D = GetNormalizedIntensity(Pe);
 
 			Lv += Tr * GetEmission(D).ToXYZ();
 
-			Lv += Tr * 0.5f * UniformSampleOneLight(pScene, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
+
+			//Lv += Tr * 0.5f * UniformSampleOneLight(pScene, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
+			Lv += Tr * 0.5f * UniformSampleOneLight(pScene, CVolumeShader::Brdf, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
 		}
 		else
 		{
@@ -85,12 +89,14 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, int* pSeeds)
 //	surf2Dwrite(ColorXYZA, gSurfRunningEstimateXyza, X * sizeof(float4), Y);
 }
 
-void MultipleScattering(CScene* pScene, CScene* pDevScene, int* pSeeds)
+//void MultipleScattering(CScene* pScene, CScene* pDevScene, int* pSeeds)
+void MultipleScattering(CScene* pScene, CScene* pDevScene, CCudaView* pView)
 {
 	const dim3 KernelBlock(KRNL_MS_BLOCK_W, KRNL_MS_BLOCK_H);
 	const dim3 KernelGrid((int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResX() / (float)KernelBlock.x), (int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResY() / (float)KernelBlock.y));
 	
-	KrnlMultipleScattering<<<KernelGrid, KernelBlock>>>(pDevScene, pSeeds);
+	//KrnlMultipleScattering<<<KernelGrid, KernelBlock>>>(pDevScene, pSeeds);
+	KrnlMultipleScattering<<<KernelGrid, KernelBlock>>>(pDevScene, pView);
 	cudaThreadSynchronize();
 	HandleCudaKernelError(cudaGetLastError(), "Multiple Scattering");
 }

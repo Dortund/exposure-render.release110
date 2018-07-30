@@ -81,6 +81,7 @@ public:
 	float				m_GradientDelta;
 	float				m_GradientFactor;
 	float				m_GradMagMean;
+	int					m_AlgorithmType;
 
 	HOD int GetNoIterations(void) const					{ return m_NoIterations;			}
 	HOD void SetNoIterations(const int& NoIterations)	{ m_NoIterations = NoIterations;	}

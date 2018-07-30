@@ -76,6 +76,7 @@ CD float		gInvNoIterations;
 #include "Estimate.cuh"
 #include "Utilities.cuh"
 #include "SingleScattering.cuh"
+#include "MultipleScattering.cuh"
 #include "NearestIntersection.cuh"
 #include "SpecularBloom.cuh"
 #include "ToneMap.cuh"
@@ -435,7 +436,14 @@ void Render(const int& Type, CScene& Scene, CTiming& RenderImage, CTiming& BlurI
 
 		case 1:
 		{
-//			MultipleScattering(&Scene, pDevScene);
+			//MultipleScattering(&Scene, pDevScene);
+			//MultipleScattering(&Scene, pDevScene, pDevView);
+			break;
+		}
+
+		case 2:
+		{
+			//Log("Selected Unimplemented pre-random method");
 			break;
 		}
 	}
