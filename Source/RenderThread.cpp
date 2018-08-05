@@ -278,7 +278,8 @@ void QRenderThread::run()
 			BindRenderCanvasView(SceneCopy.m_Camera.m_Film.m_Resolution);
 
 			//Render(0, SceneCopy, RenderImage, BlurImage, PostProcessImage, DenoiseImage);
-  			Render(SceneCopy.m_AlgorithmType, SceneCopy, RenderImage, BlurImage, PostProcessImage, DenoiseImage);
+  			//Render(SceneCopy.m_AlgorithmType, SceneCopy, RenderImage, BlurImage, PostProcessImage, DenoiseImage);
+			Render(SceneCopy.m_AlgorithmType, SceneCopy, RenderImage, BlurImage, PostProcessImage, DenoiseImage, SceneCopy.m_PostProcessingSteps);
 		
 			gScene.SetNoIterations(gScene.GetNoIterations() + 1);
 
@@ -293,6 +294,8 @@ void QRenderThread::run()
  			gStatus.SetStatisticChanged("Performance", "No. Iterations", QString::number(SceneCopy.GetNoIterations()), "Iterations");
 
 			HandleCudaError(cudaMemcpy(m_pRenderImage, GetDisplayEstimate(), SceneCopy.m_Camera.m_Film.m_Resolution.GetNoElements() * sizeof(CColorRgbLdr), cudaMemcpyDeviceToHost));
+			//some random test
+			//HandleCudaError(cudaMemcpy(m_pRenderImage, GetFrameDisplayEstimate(), SceneCopy.m_Camera.m_Film.m_Resolution.GetNoElements() * sizeof(CColorRgbLdr), cudaMemcpyDeviceToHost));
 
 			gFrameBuffer.Set((unsigned char*)m_pRenderImage, SceneCopy.m_Camera.m_Film.GetWidth(), SceneCopy.m_Camera.m_Film.GetHeight());
 

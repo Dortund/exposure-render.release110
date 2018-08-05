@@ -29,6 +29,10 @@ public slots:
 	void OnSetStepSizePrimaryRay(const double& StepSizePrimaryRay);
 	void OnSetStepSizeSecondaryRay(const double& StepSizeSecondaryRay);
 	void onSetAlgorithmType(int index);
+	void OnDoBlurChanged(int doBlur);
+	void OnDoEstimateChanged(int doEstimate);
+	void OnDoToneMapChanged(int doToneMap);
+	void OnDoDenoiseChanged(int doDenoise);
 
 private:
 	QGridLayout		m_MainLayout;
@@ -43,4 +47,8 @@ private:
 	QDoubleSlider	m_StepSizeSecondaryRaySlider;
 	QDoubleSpinner	m_StepSizeSecondaryRaySpinner;
 	QComboBox		m_AlgorithmType;
+	QCheckBox		m_DoBlur;
+	QCheckBox		m_DoEstimate;
+	QCheckBox		m_DoToneMap;
+	QCheckBox		m_DoDenoise;
 };

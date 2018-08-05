@@ -31,7 +31,11 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_StepSizePrimaryRaySpinner(),
 	m_StepSizeSecondaryRaySlider(),
 	m_StepSizeSecondaryRaySpinner(),
-	m_AlgorithmType()
+	m_AlgorithmType(),
+	m_DoBlur(),
+	m_DoEstimate(),
+	m_DoToneMap(),
+	m_DoDenoise()
 {
 	setLayout(&m_MainLayout);
 
@@ -41,6 +45,8 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_AlgorithmType.addItem("Multiple Scattering", 1);
 	m_AlgorithmType.addItem("Pre-Random", 2);
 	m_MainLayout.addWidget(&m_AlgorithmType, 1, 1, 1, 2);
+
+	QObject::connect(&m_AlgorithmType, SIGNAL(currentIndexChanged(int)), this, SLOT(onSetAlgorithmType(int)));
 
 	m_MainLayout.addWidget(new QLabel("Density Scale"), 2, 0);
 
@@ -116,7 +122,36 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	QObject::connect(&gStatus, SIGNAL(RenderBegin()), this, SLOT(OnRenderBegin()));
 	QObject::connect(&gTransferFunction, SIGNAL(Changed()), this, SLOT(OnTransferFunctionChanged()));
 
-	QObject::connect(&m_AlgorithmType, SIGNAL(currentIndexChanged(int)), this, SLOT(onSetAlgorithmType(int)));
+	m_MainLayout.addWidget(new QLabel("Blur"), 7, 0);
+
+	m_DoBlur.setChecked(true);
+	m_MainLayout.addWidget(&m_DoBlur, 7, 1);
+
+	QObject::connect(&m_DoBlur, SIGNAL(stateChanged(int)), this, SLOT(OnDoBlurChanged(int)));
+
+
+	m_MainLayout.addWidget(new QLabel("Esitmate"), 8, 0);
+
+	m_DoEstimate.setChecked(true);
+	m_MainLayout.addWidget(&m_DoEstimate, 8, 1);
+
+	QObject::connect(&m_DoEstimate, SIGNAL(stateChanged(int)), this, SLOT(OnDoEstimateChanged(int)));
+
+	// TODO atm we always do tonemap. remove related code or make optional
+	//m_MainLayout.addWidget(new QLabel("ToneMap"), 9, 0);
+
+	m_DoToneMap.setChecked(true);
+	//m_MainLayout.addWidget(&m_DoToneMap, 9, 1);
+
+	QObject::connect(&m_DoToneMap, SIGNAL(stateChanged(int)), this, SLOT(OnDoToneMapChanged(int)));
+
+
+	m_MainLayout.addWidget(new QLabel("Denoise"), 10, 0);
+
+	m_DoDenoise.setChecked(true);
+	m_MainLayout.addWidget(&m_DoDenoise, 10, 1);
+
+	QObject::connect(&m_DoDenoise, SIGNAL(stateChanged(int)), this, SLOT(OnDoDenoiseChanged(int)));
 }
 
 void QAppearanceSettingsWidget::OnRenderBegin(void)
@@ -173,4 +208,24 @@ void QAppearanceSettingsWidget::OnTransferFunctionChanged(void)
 	m_ShadingType.setCurrentIndex(gTransferFunction.GetShadingType());
 	m_GradientFactorSlider.setValue(gTransferFunction.GetGradientFactor(), true);
 	m_GradientFactorSpinner.setValue(gTransferFunction.GetGradientFactor(), true);
+}
+
+void QAppearanceSettingsWidget::OnDoBlurChanged(int doBlur) {
+	gScene.m_PostProcessingSteps ^= 1;
+	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
+}
+
+void QAppearanceSettingsWidget::OnDoEstimateChanged(int doEstimate) {
+	gScene.m_PostProcessingSteps ^= 2;
+	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
+}
+
+void QAppearanceSettingsWidget::OnDoToneMapChanged(int doToneMap) {
+	gScene.m_PostProcessingSteps ^= 4;
+	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
+}
+
+void QAppearanceSettingsWidget::OnDoDenoiseChanged(int doDenoise) {
+	gScene.m_PostProcessingSteps ^= 8;
+	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
 }

@@ -97,3 +97,26 @@ void Denoise(CScene* pScene, CScene* pDevScene, CCudaView* pDevView)
 	cudaThreadSynchronize();
 	HandleCudaKernelError(cudaGetLastError(), "Noise Reduction");
 }
+
+KERNEL void KrnlDenoiseCopy(CCudaView* pView)
+{
+	const int X = blockIdx.x * blockDim.x + threadIdx.x;
+	const int Y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if (X >= gFilmWidth || Y >= gFilmHeight)
+		return;
+
+	CColorRgbaLdr colour = pView->m_EstimateRgbaLdr.Get(X, Y);
+	
+	pView->m_DisplayEstimateRgbLdr.Set(CColorRgbLdr(colour.r, colour.g, colour.b), X, Y);
+}
+
+void DenoiseCopy(CScene* pScene, CScene* pDevScene, CCudaView* pDevView)
+{
+	const dim3 KernelBlock(KRNL_DENOISE_BLOCK_W, KRNL_DENOISE_BLOCK_H);
+	const dim3 KernelGrid((int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResX() / (float)KernelBlock.x), (int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResY() / (float)KernelBlock.y));
+
+	KrnlDenoiseCopy<<<KernelGrid, KernelBlock>>>(pDevView);
+	cudaThreadSynchronize();
+	HandleCudaKernelError(cudaGetLastError(), "Noise Reduction");
+}

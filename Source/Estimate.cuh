@@ -39,3 +39,24 @@ void Estimate(CScene* pScene, CScene* pDevScene, CCudaView* pDevView)
 	cudaThreadSynchronize();
 	HandleCudaKernelError(cudaGetLastError(), "Compute Estimate");
 }
+
+KERNEL void KrnlEstimateCopy(CCudaView* pView)
+{
+	const int X = blockIdx.x * blockDim.x + threadIdx.x;
+	const int Y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if (X >= gFilmWidth || Y >= gFilmHeight)
+		return;
+
+	pView->m_RunningEstimateXyza.Set(pView->m_FrameEstimateXyza.Get(X, Y), X, Y);
+}
+
+void EstimateCopy(CScene* pScene, CScene* pDevScene, CCudaView* pDevView)
+{
+	const dim3 KernelBlock(KRNL_ESTIMATE_BLOCK_W, KRNL_ESTIMATE_BLOCK_H);
+	const dim3 KernelGrid((int)ceilf((float)pScene->m_Camera.m_Film.GetWidth() / (float)KernelBlock.x), (int)ceilf((float)pScene->m_Camera.m_Film.GetHeight() / (float)KernelBlock.y));
+
+	KrnlEstimateCopy<<<KernelGrid, KernelBlock>>>(pDevView);
+	cudaThreadSynchronize();
+	HandleCudaKernelError(cudaGetLastError(), "Compute Estimate");
+}

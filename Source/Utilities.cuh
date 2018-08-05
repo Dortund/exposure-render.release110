@@ -71,6 +71,7 @@ DEV float GradientMagnitude(const Vec3f& P)
 	return ((float)SHRT_MAX * tex3D(gTexGradientMagnitude, P.x * gInvAaBbMax.x, P.y * gInvAaBbMax.y, P.z * gInvAaBbMax.z));
 }
 
+// TODO is called NearestLight, but seems to take the last of all lights in the list it had a hit with
 DEV bool NearestLight(CScene* pScene, CRay R, CColorXyz& LightColor, Vec3f& Pl, CLight*& pLight, float* pPdf = NULL)
 {
 	bool Hit = false;
@@ -81,8 +82,13 @@ DEV bool NearestLight(CScene* pScene, CRay R, CColorXyz& LightColor, Vec3f& Pl, 
 
 	float Pdf = 0.0f;
 
+	// Loop over all the lights in the scene
 	for (int i = 0; i < pScene->m_Lighting.m_NoLights; i++)
 	{
+		// Tries to intersect a light with the ray
+		// T = distance, gets filled during the call
+		// LightColor = light color, gets filled during the call
+		// Pdf = probability density function, a float so just chance I guess..., get filled during the call
 		if (pScene->m_Lighting.m_Lights[i].Intersect(RayCopy, T, LightColor, NULL, &Pdf))
 		{
 			Pl		= R(T);
@@ -97,6 +103,9 @@ DEV bool NearestLight(CScene* pScene, CRay R, CColorXyz& LightColor, Vec3f& Pl, 
 	return Hit;
 }
 
+/// <summary>
+/// Checks of the ray intersects with the boundingbox of the volume and fills minT and maxT with the correct values
+/// </summary>
 DEV bool IntersectBox(const CRay& R, float* pNearT, float* pFarT)
 {
 	const Vec3f InvR		= Vec3f(1.0f, 1.0f, 1.0f) / R.m_D;

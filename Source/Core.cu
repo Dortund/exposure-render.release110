@@ -172,6 +172,11 @@ unsigned char* GetDisplayEstimate(void)
 	return (unsigned char*)gRenderCanvasView.m_DisplayEstimateRgbLdr.GetPtr(0, 0);
 }
 
+unsigned char* GetFrameDisplayEstimate(void)
+{
+	return (unsigned char*)gRenderCanvasView.m_FrameEstimateXyza.GetPtr(0, 0);
+}
+
 void BindTransferFunctionOpacity(CTransferFunction& TransferFunctionOpacity)
 {
 	gTexOpacity.normalized		= true;
@@ -406,7 +411,7 @@ void BindConstants(CScene* pScene)
 	HandleCudaError(cudaMemcpyToSymbol(gInvNoIterations, &InvNoIterations, sizeof(float)));
 }
 
-void Render(const int& Type, CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& PostProcessImage, CTiming& DenoiseImage)
+void Render(const int& Type, CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& PostProcessImage, CTiming& DenoiseImage, uint8_t& PostProcessingSteps)
 {
 	CScene* pDevScene = NULL;
 
@@ -451,17 +456,37 @@ void Render(const int& Type, CScene& Scene, CTiming& RenderImage, CTiming& BlurI
 	RenderImage.AddDuration(TmrRender.ElapsedTime());
 	
  	CCudaTimer TmrBlur;
-	Blur(&Scene, pDevScene, pDevView);
+	if (PostProcessingSteps & 1) {
+		Blur(&Scene, pDevScene, pDevView);
+	}
 	BlurImage.AddDuration(TmrBlur.ElapsedTime());
 
 	CCudaTimer TmrPostProcess;
-	Estimate(&Scene, pDevScene, pDevView);
+	if (PostProcessingSteps & 2) {
+		Estimate(&Scene, pDevScene, pDevView);
+	}
+	else {
+		EstimateCopy(&Scene, pDevScene, pDevView);
+		//pDevView->m_RunningEstimateXyza = pDevView->m_FrameEstimateXyza;
+	}
 	PostProcessImage.AddDuration(TmrPostProcess.ElapsedTime());
 
+	// TODO remove commented code
+	//if (PostProcessingSteps & 4) {
 	ToneMap(&Scene, pDevScene, pDevView);
+	//}
+	//else {
+	//	pDevView->m_EstimateRgbaLdr = pDevView->m_RunningEstimateXyza;
+	//}
 
 	CCudaTimer TmrDenoise;
-	Denoise(&Scene, pDevScene, pDevView);
+	if (PostProcessingSteps & 8) {
+		Denoise(&Scene, pDevScene, pDevView);
+	}
+	else {
+		//pDevView->m_DisplayEstimateRgbLdr = pDevView->m_EstimateRgbaLdr;
+		DenoiseCopy(&Scene, pDevScene, pDevView);
+	}
 	DenoiseImage.AddDuration(TmrDenoise.ElapsedTime());
 	
 

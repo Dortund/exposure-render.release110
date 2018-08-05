@@ -1072,6 +1072,9 @@ public:
 	}
 
 	// ToDo: Add description
+	/// <summary>
+	/// Return point t distance along the ray
+	/// </summary>
 	HOD Vec3f operator()(float t) const
 	{
 		return m_O + Normalize(m_D) * t;
