@@ -18,7 +18,9 @@
 class CTiming
 {
 public:
-	CTiming(void) {};
+	CTiming(void) :
+		m_NoDurations(0)
+	{};
 
 	HO CTiming(const char* pName)
 	{
