@@ -33,6 +33,7 @@ public slots:
 	void OnDoEstimateChanged(int doEstimate);
 	void OnDoToneMapChanged(int doToneMap);
 	void OnDoDenoiseChanged(int doDenoise);
+	void onDoOffsetChanged(int doOffset);
 
 private:
 	QGridLayout		m_MainLayout;
@@ -51,4 +52,5 @@ private:
 	QCheckBox		m_DoEstimate;
 	QCheckBox		m_DoToneMap;
 	QCheckBox		m_DoDenoise;
+	QCheckBox		m_DoOffset;
 };

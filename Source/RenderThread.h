@@ -89,5 +89,7 @@ extern QRenderThread* gpRenderThread;
 void StartRenderThread(QString& FileName);
 void KillRenderThread(void);
 
+void InitPreCalculated(void);
+
 extern QMutex gSceneMutex;
 extern int gCurrentDeviceID;

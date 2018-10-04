@@ -14,8 +14,9 @@
 #pragma once
 
 #include "Transport.cuh"
+#include <curand_kernel.h>
 
-KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView)
+KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView, curandState* pStates)
 {
 	// Get X and Y position in the block grid.
 	const int X		= blockIdx.x * blockDim.x + threadIdx.x;
@@ -27,6 +28,12 @@ KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView)
 	
 	// Create RNG using 2 random seeds
 	CRNG RNG(pView->m_RandomSeeds1.GetPtr(X, Y), pView->m_RandomSeeds2.GetPtr(X, Y));
+	int stateId = Y * gFilmWidth + X;
+	curandState localState = pStates[stateId];
+
+	//curandState state;
+	//curand_init((int) pView->m_RandomSeeds1.GetPtr(X, Y), 1, 0, &state);
+	//float r = curand_uniform(&state);
 
 	// Define base colours
 	// Lv = final colour
@@ -38,7 +45,8 @@ KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView)
 	
 	// Define the pixel
 	// UV = current pixel in grid + ?random offset?
-	const Vec2f UV = Vec2f(X, Y) + RNG.Get2();
+	const Vec2f UV = (pScene->m_PostProcessingSteps & 16) ? Vec2f(X, Y) + RNG.Get2() : Vec2f(X, Y);
+	//const Vec2f UV = (pScene->m_PostProcessingSteps & 16) ? Vec2f(X, Y) + Vec2f(curand_uniform(&localState), curand_uniform(&localState)) : Vec2f(X, Y);
 
 	// Set the ray's origin and destination
 	// re.m_O is the position of the camera
@@ -61,6 +69,7 @@ KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView)
 	CLight* pLight = NULL;
 	
 	// Find a suitable scattering point. If not return false. Position is stored in Pe
+	//if (SampleDistanceRM(Re, localState, Pe))
 	if (SampleDistanceRM(Re, RNG, Pe))
 	{
 		// Retrieves information about a light it had a hit with
@@ -72,6 +81,7 @@ KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView)
 			// Set the current estimated colour of the pixel. Seems to always be 'SPEC_BLACK' from this position in the code.
 			// And return on the function call
 			pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
+			pStates[stateId] = localState;
 			return;
 		}
 		
@@ -121,14 +131,18 @@ KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView)
 	}
 
 	pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
+	//float r = curand_uniform(&localState);
+	//pView->m_FrameEstimateXyza.Set(CColorXyza(r, r, r), X, Y);
+
+	pStates[stateId] = localState;
 }
 
-void SingleScattering(CScene* pScene, CScene* pDevScene, CCudaView* pView)
+void SingleScattering(CScene* pScene, CScene* pDevScene, CCudaView* pView, curandState* pStates)
 {
 	const dim3 KernelBlock(KRNL_SS_BLOCK_W, KRNL_SS_BLOCK_H);
 	const dim3 KernelGrid((int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResX() / (float)KernelBlock.x), (int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResY() / (float)KernelBlock.y));
-	
-	KrnlSingleScattering<<<KernelGrid, KernelBlock>>>(pDevScene, pView);
+	// Some weird block distortion in a 17x21 grid at 400x500 pixels, scales with the amount of pixels
+	KrnlSingleScattering<<<KernelGrid, KernelBlock>>>(pDevScene, pView, pStates);
 	cudaThreadSynchronize();
 	HandleCudaKernelError(cudaGetLastError(), "Single Scattering");
-}
+}	

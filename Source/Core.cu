@@ -80,10 +80,18 @@ CD float		gInvNoIterations;
 #include "NearestIntersection.cuh"
 #include "SpecularBloom.cuh"
 #include "ToneMap.cuh"
+#include "PreCalculatedScattering.cuh"
+#include <iostream>
 
 CCudaModel	gModel;
 CCudaView	gRenderCanvasView;
 CCudaView	gNavigatorView;
+
+// pre-calculated
+int m_nrPoints = -1;
+Vec3f* m_DevPoints = NULL;
+CColorXyza* m_DevColours = NULL;
+float* m_DevConnections = NULL;
 
 void BindDensityBuffer(short* pBuffer, cudaExtent Extent)
 {
@@ -411,7 +419,7 @@ void BindConstants(CScene* pScene)
 	HandleCudaError(cudaMemcpyToSymbol(gInvNoIterations, &InvNoIterations, sizeof(float)));
 }
 
-void Render(const int& Type, CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& PostProcessImage, CTiming& DenoiseImage, uint8_t& PostProcessingSteps)
+void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& PostProcessImage, CTiming& DenoiseImage, curandState* pStates)
 {
 	CScene* pDevScene = NULL;
 
@@ -431,11 +439,11 @@ void Render(const int& Type, CScene& Scene, CTiming& RenderImage, CTiming& BlurI
 	
 	CCudaTimer TmrRender;
 	
-	switch (Type)
+	switch (Scene.m_AlgorithmType)
 	{
 		case 0:
 		{
-			SingleScattering(&Scene, pDevScene, pDevView);
+			SingleScattering(&Scene, pDevScene, pDevView, pStates);
 			break;
 		}
 
@@ -448,7 +456,55 @@ void Render(const int& Type, CScene& Scene, CTiming& RenderImage, CTiming& BlurI
 
 		case 2:
 		{
-			//Log("Selected Unimplemented pre-random method");
+			
+			PreCalculatedScattering(&Scene, pDevScene, pDevView, m_DevPoints, m_nrPoints, m_DevConnections, m_DevColours);
+
+
+
+			//int SizePoints = Scene.m_Camera.m_Film.m_Resolution.GetResX() * Scene.m_Camera.m_Film.m_Resolution.GetResY() * sizeof(Vec3f);
+			//Vec3f* pDevPoints;
+			//HandleCudaError(cudaMalloc(&pDevPoints, SizePoints));
+
+			//getScatterInfo(&Scene, pDevScene, pDevView, pDevPoints, pStates);
+
+			//Vec3f* pPoints;
+			//pPoints = (Vec3f *)malloc(SizePoints);
+			//HandleCudaError(cudaMemcpy(pPoints, pDevPoints, SizePoints, cudaMemcpyDeviceToHost));
+
+			//int nrBins = 100;
+			//float binSize = 1.f / nrBins;
+			//int* bins;
+			//bins = (int*)malloc(nrBins * sizeof(int));
+			//for (int i = 0; i < nrBins; i++)
+			//	bins[i] = 0;
+			//int samples = 0;
+			//float min = 10.f;
+			//float max = -10.f;
+
+			//for (int i = 0; i < Scene.m_Camera.m_Film.m_Resolution.GetResX() * Scene.m_Camera.m_Film.m_Resolution.GetResY(); i++) {
+			//	//std::cout << "i: " << i << ", p: " << pPoints[i].x << endl;// ", " << pPoints[i].y << ", " << pPoints[i].z << endl;
+
+			//	float sample = pPoints[i].x;
+			//	int binId = sample / binSize;
+			//	if (binId < nrBins) {
+			//		bins[binId] = bins[binId] + 1;
+			//		samples++;
+			//		min = Fminf(sample, min);
+			//		max = Fmaxf(sample, max);
+			//	}
+			//}
+
+			//for (int i = 0; i < nrBins; i++) {
+			//	std::cout << (i * binSize) << ": " << bins[i] << endl;
+			//}
+
+			//std::cout << "Samples: " << samples << endl;
+			//std::cout << "Min: " << min << endl;
+			//std::cout << "Max: " << max << endl;
+
+			//char x;
+			//std::cin >> x;
+
 			break;
 		}
 	}
@@ -456,13 +512,13 @@ void Render(const int& Type, CScene& Scene, CTiming& RenderImage, CTiming& BlurI
 	RenderImage.AddDuration(TmrRender.ElapsedTime());
 	
  	CCudaTimer TmrBlur;
-	if (PostProcessingSteps & 1) {
+	if (Scene.m_PostProcessingSteps & 1) {
 		Blur(&Scene, pDevScene, pDevView);
 	}
 	BlurImage.AddDuration(TmrBlur.ElapsedTime());
 
 	CCudaTimer TmrPostProcess;
-	if (PostProcessingSteps & 2) {
+	if (Scene.m_PostProcessingSteps & 2) {
 		Estimate(&Scene, pDevScene, pDevView);
 	}
 	else {
@@ -480,7 +536,7 @@ void Render(const int& Type, CScene& Scene, CTiming& RenderImage, CTiming& BlurI
 	//}
 
 	CCudaTimer TmrDenoise;
-	if (PostProcessingSteps & 8) {
+	if (Scene.m_PostProcessingSteps & 8) {
 		Denoise(&Scene, pDevScene, pDevView);
 	}
 	else {
@@ -492,4 +548,159 @@ void Render(const int& Type, CScene& Scene, CTiming& RenderImage, CTiming& BlurI
 
 	HandleCudaError(cudaFree(pDevScene));
 	HandleCudaError(cudaFree(pDevView));
+}
+
+void InitPreCalculatedCore(CScene& Scene) {
+
+	if (m_DevPoints != NULL)
+		HandleCudaError(cudaFree(m_DevPoints));
+	if (m_DevColours != NULL)
+		HandleCudaError(cudaFree(m_DevColours));
+	if (m_DevConnections != NULL)
+		HandleCudaError(cudaFree(m_DevConnections));
+
+	CScene* pDevScene = NULL;
+	HandleCudaError(cudaMalloc(&pDevScene, sizeof(CScene)));
+	HandleCudaError(cudaMemcpy(pDevScene, &Scene, sizeof(CScene), cudaMemcpyHostToDevice));
+
+	int nrPoints = Scene.m_Resolution.GetNoElements() / 1000;
+	int PointPerState = 10;
+	int nrThreads = (nrPoints + (PointPerState - 1)) / PointPerState;
+
+	int SizePoints = nrPoints * sizeof(Vec3f);
+
+	
+
+	Vec3f* pDevPoints;
+	HandleCudaError(cudaMalloc(&pDevPoints, SizePoints));
+
+	int StateSize = nrThreads * sizeof(curandState);
+
+	curandState* pDevStates;
+	HandleCudaError(cudaMalloc(&pDevStates, StateSize));
+
+	int SeedSize = nrThreads * sizeof(int);
+
+	int* Seeds;
+	Seeds = (int *)malloc(SeedSize);
+	random_ints(Seeds, nrThreads);
+
+	int* pDevSeeds;
+	HandleCudaError(cudaMalloc(&pDevSeeds, SeedSize));
+	HandleCudaError(cudaMemcpy(pDevSeeds, Seeds, SeedSize, cudaMemcpyHostToDevice));
+
+	SetupStates(pDevStates, pDevSeeds, nrThreads);
+
+	GeneratePoints(pDevScene, pDevStates, pDevPoints, nrThreads, PointPerState, nrPoints);
+
+	Vec3f* pPoints;
+	pPoints = (Vec3f *)malloc(SizePoints);
+	HandleCudaError(cudaMemcpy(pPoints, pDevPoints, SizePoints, cudaMemcpyDeviceToHost));
+
+	//for (int i = 0; i < nrPoints; i++) {
+		//std::cout << pPoints[i].x << ", " << pPoints[i].y << ", " << pPoints[i].z << endl;
+	//}
+
+	//HandleCudaError(cudaFree(pDevScene));
+	//HandleCudaError(cudaFree(pDevPoints));
+	
+	HandleCudaError(cudaFree(pDevStates));
+	HandleCudaError(cudaFree(pDevSeeds));
+	free(Seeds);
+
+	// generate points
+
+	int seedSizeRNG = nrPoints * sizeof(unsigned int);
+	unsigned int* pSeedsCRNG = (unsigned int*)malloc(seedSizeRNG);
+
+	// Set  seeds1
+	for (int i = 0; i < nrPoints; i++)
+		pSeedsCRNG[i] = rand();
+
+	unsigned int* pDevSeeds1CRNG;
+	HandleCudaError(cudaMalloc(&pDevSeeds1CRNG, seedSizeRNG));
+	HandleCudaError(cudaMemcpy(pDevSeeds1CRNG, pSeedsCRNG, seedSizeRNG, cudaMemcpyHostToDevice));
+
+	// Set seeds2
+	for (int i = 0; i < nrPoints; i++)
+		pSeedsCRNG[i] = rand();
+
+	unsigned int* pDevSeeds2CRNG;
+	HandleCudaError(cudaMalloc(&pDevSeeds2CRNG, seedSizeRNG));
+	HandleCudaError(cudaMemcpy(pDevSeeds2CRNG, pSeedsCRNG, seedSizeRNG, cudaMemcpyHostToDevice));
+
+	free(pSeedsCRNG);
+
+	//std::vector<float> sample = std::vector<float>(nrPoints);
+	//std::vector<float>* pDevConnections;
+	//HandleCudaError(cudaMalloc(&pDevConnections, nrPoints * sizeof(sample)));
+	float* pDevConnections;
+	HandleCudaError(cudaMalloc(&pDevConnections, nrPoints * nrPoints * sizeof(float)));
+
+	CColorXyza* pDevPointColours;
+	HandleCudaError(cudaMalloc(&pDevPointColours, nrPoints * sizeof(CColorXyza)));
+
+
+	makeConnections(pDevScene, pDevPoints, nrPoints, pDevSeeds1CRNG, pDevSeeds2CRNG, pDevConnections, pDevPointColours);
+
+	/*CColorXyza* pPointColours;
+	pPointColours = (CColorXyza*)malloc(nrPoints * sizeof(CColorXyza));
+	HandleCudaError(cudaMemcpy(pPointColours, pDevPointColours, nrPoints * sizeof(CColorXyza), cudaMemcpyDeviceToHost));*/
+
+	/*float* pConnections;
+	pConnections = (float*)malloc(nrPoints * nrPoints * sizeof(float));
+	HandleCudaError(cudaMemcpy(pConnections, pDevConnections, nrPoints * nrPoints * sizeof(float), cudaMemcpyDeviceToHost));*/
+
+
+	// Store data
+	m_nrPoints = nrPoints;
+	m_DevPoints = pDevPoints;
+	m_DevColours = pDevPointColours;
+	m_DevConnections = pDevConnections;
+
+	//HandleCudaError(cudaFree(pDevConnections));
+	//HandleCudaError(cudaFree(pDevPointColours));
+
+
+	HandleCudaError(cudaFree(pDevSeeds1CRNG));
+	HandleCudaError(cudaFree(pDevSeeds2CRNG));
+	
+	HandleCudaError(cudaFree(pDevScene));
+	//HandleCudaError(cudaFree(pDevPoints));
+}
+
+/// <summary>
+/// Initializes N curandstates
+/// </summary>
+/// <param name="N">Number of required states</param>
+curandState* InitStates(int N) {
+	int StateSize = N * sizeof(curandState);
+
+	curandState* pDevStates;
+	HandleCudaError(cudaMalloc(&pDevStates, StateSize));
+
+	int SeedSize = N * sizeof(int);
+	
+	int* pSeeds;
+	pSeeds = (int *)malloc(SeedSize);
+	random_ints(pSeeds, N);
+
+	int* pDevSeeds;
+	HandleCudaError(cudaMalloc(&pDevSeeds, SeedSize));
+	HandleCudaError(cudaMemcpy(pDevSeeds, pSeeds, SeedSize, cudaMemcpyHostToDevice));
+
+	//SetupStates(pDevStates, pDevSeeds, N);
+	SetupStatesSingleSeed(pDevStates, rand() , N);
+
+	HandleCudaError(cudaFree(pDevSeeds));
+	free(pSeeds);
+
+	return pDevStates;
+}
+
+void random_ints(int* a, int N)
+{
+	int i;
+	for (i = 0; i < N; ++i)
+		a[i] = rand();
 }

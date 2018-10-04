@@ -565,6 +565,7 @@ SOURCE_GROUP("Core" FILES ${CoreSources})
 SET(CudaSources
 	SingleScattering.cuh
 	MultipleScattering.cuh
+	PreCalculatedScattering.cuh
 	Blur.cuh
 	Utilities.cuh
 	Core.cuh

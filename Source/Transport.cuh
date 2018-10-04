@@ -37,7 +37,7 @@ DEV CColorXyz EstimateDirectLight(CScene* pScene, const CVolumeShader::EType& Ty
 	F = Shader.F(Wo, Wi); 
 
 	ShaderPdf = Shader.Pdf(Wo, Wi);
-
+	
 	if (!Li.IsBlack() && ShaderPdf > 0.0f && LightPdf > 0.0f && !FreePathRM(Rl, RNG))
 	{
 		const float WeightMIS = PowerHeuristic(1.0f, LightPdf, 1.0f, ShaderPdf);
@@ -48,7 +48,7 @@ DEV CColorXyz EstimateDirectLight(CScene* pScene, const CVolumeShader::EType& Ty
 		if (Type == CVolumeShader::Phase)
 			Ld += F * Li * WeightMIS / LightPdf;
 	}
-
+	
 	F = Shader.SampleF(Wo, Wi, ShaderPdf, LS.m_BsdfSample);
 
 	if (!F.IsBlack() && ShaderPdf > 0.0f)
@@ -75,18 +75,19 @@ DEV CColorXyz EstimateDirectLight(CScene* pScene, const CVolumeShader::EType& Ty
 
 DEV CColorXyz UniformSampleOneLight(CScene* pScene, const CVolumeShader::EType& Type, const float& Density, const Vec3f& Wo, const Vec3f& Pe, const Vec3f& N, CRNG& RNG, const bool& Brdf)
 {
+	
 	const int NumLights = pScene->m_Lighting.m_NoLights;
 
  	if (NumLights == 0)
  		return SPEC_BLACK;
 
 	CLightingSample LS;
-
+	
 	LS.LargeStep(RNG);
 
 	const int WhichLight = (int)floorf(LS.m_LightNum * (float)NumLights);
 
 	CLight& Light = pScene->m_Lighting.m_Lights[WhichLight];
-
+	
 	return (float)NumLights * EstimateDirectLight(pScene, Type, Density, Light, LS, Wo, Pe, N, RNG);
 }

@@ -115,4 +115,5 @@ public:
 	CCudaBuffer2D<CColorRgbLdr, false>	m_DisplayEstimateRgbLdr;
 	CCudaRandomBuffer2D					m_RandomSeeds1;
 	CCudaRandomBuffer2D					m_RandomSeeds2;
+	//curandState							m_CurandStates;
 };

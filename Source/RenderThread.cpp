@@ -46,6 +46,8 @@ QMutex gSceneMutex;
 
 int gCurrentDeviceID = 0;
 
+curandState* pDevStates = nullptr;
+
 QFrameBuffer::QFrameBuffer(void) :
 	m_pPixels(NULL),
 	m_Width(0),
@@ -246,6 +248,14 @@ void QRenderThread::run()
 
 				SceneCopy.SetNoIterations(0);
 
+
+				///temp
+				if (pDevStates != nullptr)
+					HandleCudaError(cudaFree(pDevStates));
+
+				pDevStates = InitStates(SceneCopy.m_Camera.m_Film.m_Resolution.GetNoElements());
+				///temp
+
 				Log("Render canvas resized to: " + QString::number(SceneCopy.m_Camera.m_Film.m_Resolution.GetResX()) + " x " + QString::number(SceneCopy.m_Camera.m_Film.m_Resolution.GetResY()) + " pixels", "application-resize");
 			}
 
@@ -279,7 +289,7 @@ void QRenderThread::run()
 
 			//Render(0, SceneCopy, RenderImage, BlurImage, PostProcessImage, DenoiseImage);
   			//Render(SceneCopy.m_AlgorithmType, SceneCopy, RenderImage, BlurImage, PostProcessImage, DenoiseImage);
-			Render(SceneCopy.m_AlgorithmType, SceneCopy, RenderImage, BlurImage, PostProcessImage, DenoiseImage, SceneCopy.m_PostProcessingSteps);
+			Render(SceneCopy, RenderImage, BlurImage, PostProcessImage, DenoiseImage, pDevStates);
 		
 			gScene.SetNoIterations(gScene.GetNoIterations() + 1);
 
@@ -543,6 +553,10 @@ void QRenderThread::OnUpdateTransferFunction(void)
 	gScene.m_GradientFactor	= TransferFunction.GetGradientFactor();
 	gScene.m_AlgorithmType	= TransferFunction.GetAlgorithmType();
 
+	if (gScene.m_AlgorithmType == 2) {
+		InitPreCalculated();
+	}
+
 	gScene.m_DirtyFlags.SetFlag(TransferFunctionDirty);
 
 	/*
@@ -562,6 +576,46 @@ void QRenderThread::OnUpdateTransferFunction(void)
 
 	fclose (pFile);
 	*/
+
+	//if (gscene.m_algorithmtype == 2) {
+	//	std::random_device rd;
+
+	//	//
+	//	// engines 
+	//	//
+	//	std::mt19937 e2(rd());
+	//	//std::knuth_b e2(rd());
+	//	//std::default_random_engine e2(rd()) ;
+
+	//	//
+	//	// distribtuions
+	//	//
+	//	std::uniform_real_distribution<> dist(0, 10);
+	//	//std::normal_distribution<> dist(2, 2);
+	//	//std::student_t_distribution<> dist(5);
+	//	//std::poisson_distribution<> dist(2);
+	//	//std::extreme_value_distribution<> dist(0,2);
+
+	//	int n = gscene.m_resolution.getnoelements() / 100;
+
+	//	std::cout << "n = " << n << std::endl;
+
+	//	for (int i = 0; i < n; i++) {
+	//		//int x = rand() % (gscene.m_resolution.getresx() - 1);
+	//		//int y = rand() % (gscene.m_resolution.getresy() - 1);
+	//		//int z = rand() % (gscene.m_resolution.getresz() - 1);
+	//		float x = dist(e2) * gscene.m_boundingbox.lengthx();
+	//		float y = dist(e2) * gscene.m_boundingbox.lengthy();
+	//		float z = dist(e2) * gscene.m_boundingbox.lengthz();
+
+	//		std::cout << i << "-- x: " << x << ", y: " << y << ", z:" << z << std::endl;
+	//	}
+	//}
+}
+
+void InitPreCalculated(void) {
+	CScene SceneCopy = gScene;
+	InitPreCalculatedCore(SceneCopy);
 }
 
 void QRenderThread::OnUpdateCamera(void)

@@ -35,7 +35,8 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_DoBlur(),
 	m_DoEstimate(),
 	m_DoToneMap(),
-	m_DoDenoise()
+	m_DoDenoise(),
+	m_DoOffset()
 {
 	setLayout(&m_MainLayout);
 
@@ -122,18 +123,25 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	QObject::connect(&gStatus, SIGNAL(RenderBegin()), this, SLOT(OnRenderBegin()));
 	QObject::connect(&gTransferFunction, SIGNAL(Changed()), this, SLOT(OnTransferFunctionChanged()));
 
-	m_MainLayout.addWidget(new QLabel("Blur"), 7, 0);
+	m_MainLayout.addWidget(new QLabel("Random Offset"), 7, 0);
+
+	m_DoOffset.setChecked(true);
+	m_MainLayout.addWidget(&m_DoOffset, 7, 1);
+
+	QObject::connect(&m_DoOffset, SIGNAL(stateChanged(int)), this, SLOT(onDoOffsetChanged(int)));
+
+	m_MainLayout.addWidget(new QLabel("Blur"), 8, 0);
 
 	m_DoBlur.setChecked(true);
-	m_MainLayout.addWidget(&m_DoBlur, 7, 1);
+	m_MainLayout.addWidget(&m_DoBlur, 8, 1);
 
 	QObject::connect(&m_DoBlur, SIGNAL(stateChanged(int)), this, SLOT(OnDoBlurChanged(int)));
 
 
-	m_MainLayout.addWidget(new QLabel("Esitmate"), 8, 0);
+	m_MainLayout.addWidget(new QLabel("Esitmate"), 9, 0);
 
 	m_DoEstimate.setChecked(true);
-	m_MainLayout.addWidget(&m_DoEstimate, 8, 1);
+	m_MainLayout.addWidget(&m_DoEstimate, 9, 1);
 
 	QObject::connect(&m_DoEstimate, SIGNAL(stateChanged(int)), this, SLOT(OnDoEstimateChanged(int)));
 
@@ -227,5 +235,10 @@ void QAppearanceSettingsWidget::OnDoToneMapChanged(int doToneMap) {
 
 void QAppearanceSettingsWidget::OnDoDenoiseChanged(int doDenoise) {
 	gScene.m_PostProcessingSteps ^= 8;
+	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
+}
+
+void QAppearanceSettingsWidget::onDoOffsetChanged(int doOffset) {
+	gScene.m_PostProcessingSteps ^= 16;
 	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
 }

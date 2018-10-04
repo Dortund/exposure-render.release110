@@ -16,6 +16,7 @@
 #include "Geometry.h"
 #include "Timing.h"
 #include "Scene.h"
+#include <curand_kernel.h>
 
 class CScene;
 class CVariance;
@@ -40,4 +41,7 @@ extern "C" void UnbindTransferFunctionSpecular(void);
 extern "C" void UnbindTransferFunctionRoughness(void);
 extern "C" void UnbindTransferFunctionEmission(void);
 extern "C" void BindConstants(CScene* pScene);
-extern "C" void Render(const int& Type, CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& PostProcessImage, CTiming& DenoiseImage, uint8_t& PostProcessingSteps);
+extern "C" void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& PostProcessImage, CTiming& DenoiseImage, curandState* pDevStates);
+extern "C" void InitPreCalculatedCore(CScene& Scene);
+extern "C" curandState* InitStates(int N);
+extern "C" void random_ints(int* a, int N);

@@ -184,3 +184,24 @@ public:
 		free(pSeeds);
 	}
 };
+/*
+class CCudaCurandBuffer2D : public CCudaBuffer2D<curandState, false>
+{
+public:
+	void Resize(const CResolution2D& Resolution)
+	{
+		CCudaBuffer2D::Resize(Resolution);
+
+		curandState* states = (curandState*)malloc(GetSize());
+
+		memset(states, 0, GetSize());
+
+		for (int i = 0; i < GetNoElements(); i++) {
+			//curand_init(rand(), i, 0, &states[i]);
+		}
+
+		//HandleCudaError(cudaMemcpy(m_pData, states, GetSize(), cudaMemcpyHostToDevice));
+
+		free(states);
+	}
+};*/
