@@ -59,9 +59,9 @@ DEV inline Vec3f NormalizedGradient(const Vec3f& P)
 {
 	Vec3f Gradient;
 
-	Gradient.x = (GetNormalizedIntensity(P + ToVec3f(gGradientDeltaX)) - GetNormalizedIntensity(P - ToVec3f(gGradientDeltaX))) * gInvGradientDelta;
-	Gradient.y = (GetNormalizedIntensity(P + ToVec3f(gGradientDeltaY)) - GetNormalizedIntensity(P - ToVec3f(gGradientDeltaY))) * gInvGradientDelta;
-	Gradient.z = (GetNormalizedIntensity(P + ToVec3f(gGradientDeltaZ)) - GetNormalizedIntensity(P - ToVec3f(gGradientDeltaZ))) * gInvGradientDelta;
+	Gradient.x = (GetOpacity(GetNormalizedIntensity(P + ToVec3f(gGradientDeltaX))) - GetOpacity(GetNormalizedIntensity(P - ToVec3f(gGradientDeltaX)))) * gInvGradientDelta;
+	Gradient.y = (GetOpacity(GetNormalizedIntensity(P + ToVec3f(gGradientDeltaY))) - GetOpacity(GetNormalizedIntensity(P - ToVec3f(gGradientDeltaY)))) * gInvGradientDelta;
+	Gradient.z = (GetOpacity(GetNormalizedIntensity(P + ToVec3f(gGradientDeltaZ))) - GetOpacity(GetNormalizedIntensity(P - ToVec3f(gGradientDeltaZ)))) * gInvGradientDelta;
 
 	return Normalize(Gradient);
 }
@@ -128,4 +128,26 @@ DEV CColorXyza CumulativeMovingAverage(const CColorXyza& A, const CColorXyza& Ax
 //		return CColorXyza(0.0f);
 
 	 return A + ((Ax - A) / max((float)N, 1.0f));
+}
+
+HOD int Index3To1(int x, int y, int z, int sizeX, int sizeY, int sizeZ) {
+	return z * sizeX * sizeY + y * sizeX + x;
+}
+
+HOD int Index3To1(int x, int y, int z, CResolution3D resolution) {
+	return Index3To1(x, y, z, resolution.GetResX(), resolution.GetResY(), resolution.GetResZ());
+}
+
+HOD int Index3To1(Vec3i p, CResolution3D resolution) {
+	return Index3To1(p.x, p.y, p.z, resolution.GetResX(), resolution.GetResY(), resolution.GetResZ());
+}
+
+HOD Vec3i Inedex1To3(int i, int sizeX, int sizeY, int sizeZ) {
+	Vec3i result;
+	int XY = (sizeX * sizeY);
+	result.z = i / XY;
+	int remainder = i - XY * result.z;
+	result.y = remainder / sizeX;
+	result.x = remainder % sizeX;
+	return result;
 }

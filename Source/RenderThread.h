@@ -52,6 +52,7 @@ public:
 	void run();
 
 	bool			Load(QString& FileName);
+	void			InitPreCalculated(void);
 
 	QString			GetFileName(void) const						{	return m_FileName;		}
 	void			SetFileName(const QString& FileName)		{	m_FileName = FileName;	}
@@ -88,8 +89,6 @@ extern QRenderThread* gpRenderThread;
 
 void StartRenderThread(QString& FileName);
 void KillRenderThread(void);
-
-void InitPreCalculated(void);
 
 extern QMutex gSceneMutex;
 extern int gCurrentDeviceID;

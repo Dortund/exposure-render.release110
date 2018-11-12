@@ -16,7 +16,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include "Transport.cuh"
 #include <curand_kernel.h>
 
-KERNEL void KrnlPreCalculatedScattering(CScene* pScene, CCudaView* pView, Vec3f* pPoints, int nrPoints, float* pDevConnections, CColorXyza* pDevPointColour)
+#define OPACITY_BLOCK_DIM	8
+
+KERNEL void KrnlPreCalculatedScattering(CScene* pScene, CCudaView* pView, Vec3f* pPoints, int nrPoints, float* pDevConnections, CColorXyza* pDevPointColour, Vec3f* pResults)
 {
 	// Get X and Y position in the block grid.
 	const int X = blockIdx.x * blockDim.x + threadIdx.x;
@@ -33,7 +35,7 @@ KERNEL void KrnlPreCalculatedScattering(CScene* pScene, CCudaView* pView, Vec3f*
 	// Lv = final colour
 	// Li = colour of currently selected light, gets filled during certain calls
 	//CColorXyz Lv = SPEC_BLACK,
-	CColorXyz Li = SPEC_BLACK;
+	CColorXyz Li = SPEC_CYAN;// SPEC_BLACK;
 	CColorXyza Lv = CColorXyza(0, 1, 0);
 
 	// Declare the ray
@@ -49,6 +51,20 @@ KERNEL void KrnlPreCalculatedScattering(CScene* pScene, CCudaView* pView, Vec3f*
 	// If the aperture of the camere is greater than 0, the RNG factor helps add some blur to the background
 	pScene->m_Camera.GenerateRay(UV, RNG.Get2(), Re.m_O, Re.m_D);
 
+	//CRay Re2;
+	//CRay Re3;
+	//CRay Re4;
+	//const Vec2f UV2 = Vec2f(X, Y + 10);
+	//const Vec2f UV3 = Vec2f(X + 10, Y);
+	//const Vec2f UV4 = Vec2f(X + 10, Y+10);
+	//pScene->m_Camera.GenerateRay(UV2, RNG.Get2(), Re2.m_O, Re2.m_D);
+	//pScene->m_Camera.GenerateRay(UV3, RNG.Get2(), Re3.m_O, Re3.m_D);
+	//pScene->m_Camera.GenerateRay(UV4, RNG.Get2(), Re4.m_O, Re4.m_D);
+
+	//pResults[Y * gFilmWidth + X] = Vec3f((Re2.m_D - Re.m_D).Length(), (Re3.m_D - Re.m_D).Length(), (Re4.m_D - Re.m_D).Length());
+	//pResults[Y * gFilmWidth + X] = Re.m_D;
+	//return;
+
 	// Set Woodcock info?????????
 	// m_MinT = ??
 	// m_MaxT = ??
@@ -63,50 +79,66 @@ KERNEL void KrnlPreCalculatedScattering(CScene* pScene, CCudaView* pView, Vec3f*
 	// Declare ???????
 	CLight* pLight = NULL;
 
-	
-	int closest = -1;
-	float dist = 999999999; // some large number
-	float threshold = 0.7;
-	float minD = 99999999999999;
-	for (int i = 0; i < nrPoints; i++) {
-
-		if (pDevPointColour[i].IsBlack())
-			continue;
-
-		Vec3f point = pPoints[i];
-		Vec3f aMinP = Re.m_O - point;
-		float length = aMinP.Dot(Re.m_D);
-		float d = (length * Re.m_D).Length();
-
-		//float d = point.Dot(Re.m_D);
-
-		minD = Fminf(minD, d);
-
-		if (d < threshold) {
-			//float ap = point.Dot(Re.m_D);
-			//float aa = Re.m_D.Dot(Re.m_D);
-			//Vec3f result = (ap / aa) * Re.m_D;
-			//float distFromCamera = result.Length();
-			float distFromCamera = length;
-			if (distFromCamera < dist) {
-				closest = i;
-				dist = distFromCamera;
-			}
-		}
-
-	}
-
-	if (closest > 0 && closest < nrPoints)
-		Lv = pDevPointColour[closest];
-
-	if (closest == -1) {
-		//Lv = CColorXyza(minD, minD, minD);
-
+	// Check if we hit the boundingbox
+	float MinT = 0;
+	float MaxT = 0;
+	if (!IntersectBox(Re, &MinT, &MaxT)) {
 		if (NearestLight(pScene, CRay(Re.m_O, Re.m_D, 0.0f, INF_MAX), Li, Pl, pLight))
 			Lv = CColorXyza(Li.c[0], Li.c[1], Li.c[2]);
+		else
+			Lv = CColorXyza(0, 0, 1);
+	}
+	else {
+
+		int closest = -1;
+		float dist = 999999999; // some large number
+		float threshold = 0.001;
+		float minD = 99999999999999;
+		for (int i = 0; i < nrPoints; i++) {
+			//if (X == 32 && Y == 32)
+			//	pResults[i] = pPoints[i];
+			if (pDevPointColour[i].IsBlack())
+				continue;
+
+			Vec3f point = pPoints[i];
+			Vec3f aMinP = point - Re.m_O;
+			float length = aMinP.Dot(Re.m_D);
+			Vec3f pointOnLine = (length * Re.m_D) + Re.m_O;
+			float d = (point - pointOnLine).Length();
+
+			//pResults[Y * gFilmWidth + X] = Vec3f(d, -1,-1);
+
+			minD = Fminf(minD, d);
+
+			if (d < threshold) {
+				float distFromCamera = length;
+				if (distFromCamera > 0 && distFromCamera < dist) {
+					closest = i;
+					dist = distFromCamera;
+					//pResults[Y * gFilmWidth + X] = Vec3f(i, d, length);
+					//pResults[Y * gFilmWidth + X] = point;
+				}
+			}
+
+		}
+
+		if (closest >= 0 && closest < nrPoints) {
+			Lv = pDevPointColour[closest];
+			//Lv = CColorXyza(0, 0, 1);
+		}
+
+		if (closest == -1) {
+			//Lv = CColorXyza(minD, minD, minD);
+
+			if (NearestLight(pScene, CRay(Re.m_O, Re.m_D, 0.0f, INF_MAX), Li, Pl, pLight))
+				Lv = CColorXyza(Li.c[0], Li.c[1], Li.c[2]);
+			else
+				Lv = CColorXyza(1, 1, 0);
+		}
 	}
 
 	pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
+	//pView->m_FrameEstimateXyza.Set(CColorXyza(RNG.Get1(), RNG.Get1(), RNG.Get1()), X, Y);
 
 	//pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
 	//int t = Y * gFilmWidth + X;
@@ -116,12 +148,12 @@ KERNEL void KrnlPreCalculatedScattering(CScene* pScene, CCudaView* pView, Vec3f*
 	//	pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
 }
 
-void PreCalculatedScattering(CScene* pScene, CScene* pDevScene, CCudaView* pView, Vec3f* pPoints, int nrPoints, float* pDevConnections, CColorXyza* pDevPointColour)
+void PreCalculatedScattering(CScene* pScene, CScene* pDevScene, CCudaView* pView, Vec3f* pPoints, int nrPoints, float* pDevConnections, CColorXyza* pDevPointColour, Vec3f* pDevResults)
 {
 	const dim3 KernelBlock(KRNL_SS_BLOCK_W, KRNL_SS_BLOCK_H);
 	const dim3 KernelGrid((int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResX() / (float)KernelBlock.x), (int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResY() / (float)KernelBlock.y));
 
-	KrnlPreCalculatedScattering<<<KernelGrid, KernelBlock>>>(pDevScene, pView, pPoints, nrPoints, pDevConnections, pDevPointColour);
+	KrnlPreCalculatedScattering << <KernelGrid, KernelBlock >> > (pDevScene, pView, pPoints, nrPoints, pDevConnections, pDevPointColour, pDevResults);
 	cudaThreadSynchronize();
 	HandleCudaKernelError(cudaGetLastError(), "Pre-calculated Scattering");
 }
@@ -139,11 +171,12 @@ KERNEL void krnlGeneratePoints(CScene* scene, curandState* states, Vec3f* points
 
 	Vec3f base = Vec3f(scene->m_BoundingBox.LengthX(), scene->m_BoundingBox.LengthY(), scene->m_BoundingBox.LengthZ());
 	for (int i = 0; i < pointsPerState; i++) {
-		float r = curand_uniform(&localState);
+		//float r = curand_uniform(&localState);
 		int idPoint = id * pointsPerState + i;
 		
 		if (idPoint < nrPoints) {
-			points[idPoint] = Vec3f(base) *r;
+			//points[idPoint] = Vec3f(base) *r;
+			points[idPoint] = Vec3f(base.x * curand_uniform(&localState), base.y * curand_uniform(&localState), base.z * curand_uniform(&localState));
 		}
 	}
 
@@ -251,7 +284,7 @@ KERNEL void krnlMakeConnections(CScene* pScene, Vec3f* pPoints, int nrPoints, un
 
 		pDevPointColour[id] = CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]);
 	}
-	
+	return;
 	// calculate throughput to other points
 	if (X < nrPoints && Y < nrPoints && Y > X)
 	{
@@ -308,13 +341,13 @@ KERNEL void KrnlGetScatterInfo(CScene* pScene, CCudaView* pView, Vec3f* pPoints,
 	curandState localState = pStates[stateId];
 
 	//float r = curand_uniform(&localState);
-	float r = RNG.Get1();
-	pView->m_FrameEstimateXyza.Set(CColorXyza(r, r, r), X, Y);
-	pPoints[stateId] = Vec3f(r, r, r);
+	//float r = RNG.Get1();
+	//pView->m_FrameEstimateXyza.Set(CColorXyza(r, r, r), X, Y);
+	//pPoints[stateId] = Vec3f(r, r, r);
 
-	pStates[stateId] = localState;
+	//pStates[stateId] = localState;
 
-	return;
+	//return;
 
 
 
@@ -351,9 +384,9 @@ KERNEL void KrnlGetScatterInfo(CScene* pScene, CCudaView* pView, Vec3f* pPoints,
 	// Find a suitable scattering point. If not return false. Position is stored in Pe
 	if (SampleDistanceRM(Re, RNG, Pe))
 	{
-		//pPoints[Y * gFilmWidth + X] = Pe;
+		pPoints[Y * gFilmWidth + X] = Pe;
 	}
-	pPoints[Y * gFilmWidth + X] = RNG.Get3();
+	//pPoints[Y * gFilmWidth + X] = RNG.Get3();
 }
 
 void getScatterInfo(CScene* pScene, CScene* pDevScene, CCudaView* pView, Vec3f* pPoints, curandState* pStates) {
@@ -363,4 +396,73 @@ void getScatterInfo(CScene* pScene, CScene* pDevScene, CCudaView* pView, Vec3f* 
 	KrnlGetScatterInfo <<<KernelGrid, KernelBlock>>>(pDevScene, pView, pPoints, pStates);
 	cudaThreadSynchronize();
 	HandleCudaKernelError(cudaGetLastError(), "Single Scattering Point Info");
+}
+
+KERNEL void KrnlCreateOpacityGradientTexture(CResolution3D Resolution, float4* pDevOpacityGradient1D, float* pDevOpacityGradientMagnitude1D) {
+	const int X = blockIdx.x * blockDim.x + threadIdx.x;
+	const int Y = blockIdx.y * blockDim.y + threadIdx.y;
+	const int Z = blockIdx.z * blockDim.z + threadIdx.z;
+
+	if (X >= Resolution.GetResX() || Y >= Resolution.GetResY() || Z >= Resolution.GetResZ())
+		return;
+
+	__shared__ float opacityStored[OPACITY_BLOCK_DIM + 2][OPACITY_BLOCK_DIM + 2][OPACITY_BLOCK_DIM + 2];
+
+	Vec3f realPos = gGradientDelta * Vec3f(X, Y, Z);
+
+	// Position in shared memory
+	int memoryX = threadIdx.x + 1;
+	int memoryY = threadIdx.y + 1;
+	int memoryZ = threadIdx.z + 1;
+
+	opacityStored[memoryX][memoryY][memoryZ] = GetOpacity(GetNormalizedIntensity(realPos));
+
+	// Get the extra points for the x edges
+	if (memoryX == 1) {
+		opacityStored[0][memoryY][memoryZ] = GetOpacity(GetNormalizedIntensity(realPos - ToVec3f(gGradientDeltaX)));
+	}
+	else if (memoryX == blockDim.x) {
+		opacityStored[memoryX + 1][memoryY][memoryZ] = GetOpacity(GetNormalizedIntensity(realPos + ToVec3f(gGradientDeltaX)));
+	}
+
+	// Get the extra points for the y edges
+	if (memoryY == 1) {
+		opacityStored[memoryX][0][memoryZ] = GetOpacity(GetNormalizedIntensity(realPos - ToVec3f(gGradientDeltaY)));
+	}
+	else if (memoryY == blockDim.y) {
+		opacityStored[memoryX][memoryY + 1][memoryZ] = GetOpacity(GetNormalizedIntensity(realPos + ToVec3f(gGradientDeltaY)));
+	}
+
+	// Get the extra points for the z edges
+	if (memoryZ == 1) {
+		opacityStored[memoryX][memoryY][0] = GetOpacity(GetNormalizedIntensity(realPos - ToVec3f(gGradientDeltaZ)));
+	}
+	else if (memoryZ == blockDim.z) {
+		opacityStored[memoryX][memoryY][memoryZ + 1] = GetOpacity(GetNormalizedIntensity(realPos + ToVec3f(gGradientDeltaZ)));
+	}
+
+	// Sync all threads to ensure memory is filled
+	__syncthreads();
+
+	// Calculate the gradient
+	float4 gradient;
+	gradient.x = opacityStored[memoryX + 1][memoryY][memoryZ] - opacityStored[memoryX - 1][memoryY][memoryZ];
+	gradient.y = opacityStored[memoryX][memoryY + 1][memoryZ] - opacityStored[memoryX][memoryY - 1][memoryZ];
+	gradient.z = opacityStored[memoryX][memoryY][memoryZ + 1] - opacityStored[memoryX][memoryY][memoryZ - 1];
+
+	// Write the gradient to the 1D array
+	pDevOpacityGradient1D[Index3To1(X, Y, Z, Resolution)] = gradient;
+	pDevOpacityGradientMagnitude1D[Index3To1(X, Y, Z, Resolution)] = Vec3f(gradient.x, gradient.y, gradient.z).Length();
+}
+
+void GetOpacityGradientTexture(CResolution3D resolution, float4* pDevOpacityGradient1D, float* pDevOpacityGradientMagnitude1D) {
+	//const dim3 KernelBlock(512, 512, 512);
+	//const dim3 KernelGrid((int)ceilf((float)Resolution.GetResX() / (float)KernelBlock.x), (int)ceilf((float)Resolution.GetResY() / (float)KernelBlock.y), (int)ceilf((float)Resolution.GetResZ() / (float)KernelBlock.z));
+
+	const dim3 KernelBlock((int)ceilf((float)resolution.GetResX() / (float)OPACITY_BLOCK_DIM), (int)ceilf((float)resolution.GetResY() / (float)OPACITY_BLOCK_DIM), (int)ceilf((float)resolution.GetResZ() / (float)OPACITY_BLOCK_DIM));
+	const dim3 KernelGrid(OPACITY_BLOCK_DIM, OPACITY_BLOCK_DIM, OPACITY_BLOCK_DIM);
+	
+	KrnlCreateOpacityGradientTexture<<<KernelBlock, KernelGrid>>>(resolution, pDevOpacityGradient1D, pDevOpacityGradientMagnitude1D);
+	cudaThreadSynchronize();
+	HandleCudaKernelError(cudaGetLastError(), "Opacity Gradient Creation");
 }

@@ -22,6 +22,8 @@ texture<float4, cudaTextureType1D, cudaReadModeElementType>			gTexSpecular;
 texture<float, cudaTextureType1D, cudaReadModeElementType>			gTexRoughness;
 texture<float4, cudaTextureType1D, cudaReadModeElementType>			gTexEmission;
 texture<uchar4, cudaTextureType2D, cudaReadModeNormalizedFloat>		gTexRunningEstimateRgba;
+texture<float4, cudaTextureType3D, cudaReadModeElementType>			gTexOpacityGradient;
+texture<float, cudaTextureType3D, cudaReadModeNormalizedFloat>		gTexOpacityMagnitudeNormalized;
 
 cudaArray* gpDensityArray				= NULL;
 cudaArray* gpGradientMagnitudeArray		= NULL;
@@ -456,62 +458,100 @@ void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& Po
 
 		case 2:
 		{
+			//int SizeResults = Scene.m_Camera.m_Film.m_Resolution.GetResX() * Scene.m_Camera.m_Film.m_Resolution.GetResY() * sizeof(Vec3f);
+			//int SizeResults = m_nrPoints * sizeof(Vec3f);
+			Vec3f* pDevResults = NULL;
+			//HandleCudaError(cudaMalloc(&pDevResults, SizeResults));
+
+
+			PreCalculatedScattering(&Scene, pDevScene, pDevView, m_DevPoints, m_nrPoints, m_DevConnections, m_DevColours , pDevResults);
 			
-			PreCalculatedScattering(&Scene, pDevScene, pDevView, m_DevPoints, m_nrPoints, m_DevConnections, m_DevColours);
+			/*size_t free = -1;
+			size_t total = -1;
+			HandleCudaError(cudaMemGetInfo(&free, &total));
+			cout << (free / (sizeof(Vec3f) + sizeof(CColorXyza))) << ", " << total << endl;*/
+
+			/*Vec3f* pResults;
+			pResults = (Vec3f *)malloc(SizeResults);
+			HandleCudaError(cudaMemcpy(pResults, pDevResults, SizeResults, cudaMemcpyDeviceToHost));
+			
+			int xWidth = Scene.m_Camera.m_Film.m_Resolution.GetResX();
+			for (int i = 0; i < Scene.m_Camera.m_Film.m_Resolution.GetResX() * Scene.m_Camera.m_Film.m_Resolution.GetResY(); i++) {
+				int x = xWidth != 0 ? i % xWidth : -1;
+				int y = xWidth != 0 ? i / xWidth : -1;
+				std::cout << "i: " << i << ", X: " << x << ", Y: " << y << ", p: " << pResults[i].x << ", " << pResults[i].y << ", " << pResults[i].z << endl;
+			}
+			char x;
+			std::cin >> x;
+
+			free(pResults);*/
+			//HandleCudaError(cudaFree(pDevResults));
+			
 
 
 
-			//int SizePoints = Scene.m_Camera.m_Film.m_Resolution.GetResX() * Scene.m_Camera.m_Film.m_Resolution.GetResY() * sizeof(Vec3f);
-			//Vec3f* pDevPoints;
-			//HandleCudaError(cudaMalloc(&pDevPoints, SizePoints));
 
-			//getScatterInfo(&Scene, pDevScene, pDevView, pDevPoints, pStates);
+/*int SizePoints = Scene.m_Camera.m_Film.m_Resolution.GetResX() * Scene.m_Camera.m_Film.m_Resolution.GetResY() * sizeof(Vec3f);
+Vec3f* pDevPoints;
+HandleCudaError(cudaMalloc(&pDevPoints, SizePoints));
 
-			//Vec3f* pPoints;
-			//pPoints = (Vec3f *)malloc(SizePoints);
-			//HandleCudaError(cudaMemcpy(pPoints, pDevPoints, SizePoints, cudaMemcpyDeviceToHost));
+getScatterInfo(&Scene, pDevScene, pDevView, pDevPoints, pStates);
 
-			//int nrBins = 100;
-			//float binSize = 1.f / nrBins;
-			//int* bins;
-			//bins = (int*)malloc(nrBins * sizeof(int));
-			//for (int i = 0; i < nrBins; i++)
-			//	bins[i] = 0;
-			//int samples = 0;
-			//float min = 10.f;
-			//float max = -10.f;
+Vec3f* pPoints;
+pPoints = (Vec3f *)malloc(SizePoints);
+HandleCudaError(cudaMemcpy(pPoints, pDevPoints, SizePoints, cudaMemcpyDeviceToHost));
+*/
+//int nrBins = 100;
+//float binSize = 1.f / nrBins;
+//int* bins;
+//bins = (int*)malloc(nrBins * sizeof(int));
+//for (int i = 0; i < nrBins; i++)
+//	bins[i] = 0;
+//int samples = 0;
+//float min = 10.f;
+//float max = -10.f;
 
-			//for (int i = 0; i < Scene.m_Camera.m_Film.m_Resolution.GetResX() * Scene.m_Camera.m_Film.m_Resolution.GetResY(); i++) {
-			//	//std::cout << "i: " << i << ", p: " << pPoints[i].x << endl;// ", " << pPoints[i].y << ", " << pPoints[i].z << endl;
+////for (int i = 0; i < Scene.m_Camera.m_Film.m_Resolution.GetResX() * Scene.m_Camera.m_Film.m_Resolution.GetResY(); i++) {
+//for (int i = 0; i <m_nrPoints; i++) {
+//	//std::cout << "i: " << i << ", p: " << pResults[i].x << ", " << pResults[i].y << ", " << pResults[i].z << endl;
 
-			//	float sample = pPoints[i].x;
-			//	int binId = sample / binSize;
-			//	if (binId < nrBins) {
-			//		bins[binId] = bins[binId] + 1;
-			//		samples++;
-			//		min = Fminf(sample, min);
-			//		max = Fmaxf(sample, max);
-			//	}
-			//}
+//	float sample = pResults[i].x;
+//	int binId = sample / binSize;
+//	if (binId < nrBins) {
+//		if (binId < 0 || binId >= nrBins)
+//			continue;
+//		bins[binId] = bins[binId] + 1;
+//		samples++;
+//		min = Fminf(sample, min);
+//		max = Fmaxf(sample, max);
+//	}
+//}
 
-			//for (int i = 0; i < nrBins; i++) {
-			//	std::cout << (i * binSize) << ": " << bins[i] << endl;
-			//}
+//for (int i = 0; i < nrBins; i++) {
+//	std::cout << (i * binSize) << ": " << bins[i] << endl;
+//}
 
-			//std::cout << "Samples: " << samples << endl;
-			//std::cout << "Min: " << min << endl;
-			//std::cout << "Max: " << max << endl;
+//std::cout << "Samples: " << samples << endl;
+//std::cout << "Min: " << min << endl;
+//std::cout << "Max: " << max << endl;
+//
+//
 
-			//char x;
-			//std::cin >> x;
+//char x;
+//std::cin >> x;
 
+break;
+		}
+
+		case 3: {
+			SingleScattering(&Scene, pDevScene, pDevView, pStates);
 			break;
 		}
 	}
 
 	RenderImage.AddDuration(TmrRender.ElapsedTime());
-	
- 	CCudaTimer TmrBlur;
+
+	CCudaTimer TmrBlur;
 	if (Scene.m_PostProcessingSteps & 1) {
 		Blur(&Scene, pDevScene, pDevView);
 	}
@@ -544,14 +584,233 @@ void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& Po
 		DenoiseCopy(&Scene, pDevScene, pDevView);
 	}
 	DenoiseImage.AddDuration(TmrDenoise.ElapsedTime());
-	
+
 
 	HandleCudaError(cudaFree(pDevScene));
 	HandleCudaError(cudaFree(pDevView));
 }
 
-void InitPreCalculatedCore(CScene& Scene) {
+void InitOpacityGradient(CScene& Scene) {
+	cudaExtent Extent;
+	Extent.width = Scene.m_Resolution[0];
+	Extent.height = Scene.m_Resolution[1];
+	Extent.depth = Scene.m_Resolution[2];
 
+	int sizeOpacityGradient = Scene.m_Resolution.GetNoElements() * sizeof(float4);
+	int sizeOpacityGradientMagnitude = Scene.m_Resolution.GetNoElements() * sizeof(float);
+
+	float4* pDevOpacityGradient;
+	HandleCudaError(cudaMalloc(&pDevOpacityGradient, sizeOpacityGradient));
+
+	float* pDevOpacityGradientMagnitude1D;
+	HandleCudaError(cudaMalloc(&pDevOpacityGradientMagnitude1D, sizeOpacityGradientMagnitude));
+
+	GetOpacityGradientTexture(Scene.m_Resolution, pDevOpacityGradient, pDevOpacityGradientMagnitude1D);
+	
+	float4* pOpacityGradient1D;
+	pOpacityGradient1D = (float4 *)malloc(sizeOpacityGradient);
+	HandleCudaError(cudaMemcpy(pOpacityGradient1D, pDevOpacityGradient, sizeOpacityGradient, cudaMemcpyDeviceToHost));
+
+	float* pOpacityGradientMagnitude1D;
+	pOpacityGradientMagnitude1D = (float*)malloc(sizeOpacityGradientMagnitude);
+	HandleCudaError(cudaMemcpy(pOpacityGradientMagnitude1D, pDevOpacityGradientMagnitude1D, sizeOpacityGradientMagnitude, cudaMemcpyDeviceToHost));
+
+	// Normalize the magnitudes
+	/*float max = -1;
+	float min = std::numeric_limits<float>::max();
+	for (int i = 0; i < Scene.m_Resolution.GetNoElements(); i++) {
+		max = Fmaxf(max, pOpacityGradientMagnitude1D[i]);
+		min = Fminf(min, pOpacityGradientMagnitude1D[i]);
+	}
+	for (int i = 0; i < Scene.m_Resolution.GetNoElements(); i++) {
+		pOpacityGradientMagnitude1D[i] = pOpacityGradientMagnitude1D[i] / max;
+	}*/
+	
+	// Transfer the 1D Gradient array to a 3D texture
+	cudaChannelFormatDesc ChannelDesc = cudaCreateChannelDesc<float4>();
+	cudaArray* pCuOpacityGradient = NULL;
+	HandleCudaError(cudaMalloc3DArray(&pCuOpacityGradient, &ChannelDesc, Extent));
+
+	cudaMemcpy3DParms CopyParamsGradient = { 0 };
+
+	CopyParamsGradient.srcPtr = make_cudaPitchedPtr(pOpacityGradient1D, Extent.width * sizeof(float4), Extent.width, Extent.height);
+	CopyParamsGradient.dstArray = pCuOpacityGradient;
+	CopyParamsGradient.extent = Extent;
+	CopyParamsGradient.kind = cudaMemcpyHostToDevice;
+
+	HandleCudaError(cudaMemcpy3D(&CopyParamsGradient));
+
+	gTexOpacityGradient.normalized = false;
+	gTexOpacityGradient.filterMode = cudaFilterModeLinear;
+	gTexOpacityGradient.addressMode[0] = cudaAddressModeClamp;
+	gTexOpacityGradient.addressMode[1] = cudaAddressModeClamp;
+	gTexOpacityGradient.addressMode[2] = cudaAddressModeClamp;
+
+	HandleCudaError(cudaBindTextureToArray(gTexOpacityGradient, pCuOpacityGradient, ChannelDesc));
+
+
+	// Bind the 1D magnitude array to 3D texture
+	cudaChannelFormatDesc ChannelDescMag = cudaCreateChannelDesc<float>();
+	cudaArray* pCuOpacityMagnitudeNormalized = NULL;
+	HandleCudaError(cudaMalloc3DArray(&pCuOpacityMagnitudeNormalized, &ChannelDescMag, Extent));
+
+	cudaMemcpy3DParms CopyParams = { 0 };
+
+	CopyParams.srcPtr = make_cudaPitchedPtr(pOpacityGradient1D, Extent.width * sizeof(float), Extent.width, Extent.height);
+	CopyParams.dstArray = pCuOpacityMagnitudeNormalized;
+	CopyParams.extent = Extent;
+	CopyParams.kind = cudaMemcpyHostToDevice;
+
+	HandleCudaError(cudaMemcpy3D(&CopyParams));
+
+	gTexOpacityMagnitudeNormalized.normalized = true;
+	gTexOpacityMagnitudeNormalized.filterMode = cudaFilterModeLinear;
+	gTexOpacityMagnitudeNormalized.addressMode[0] = cudaAddressModeClamp;
+	gTexOpacityMagnitudeNormalized.addressMode[1] = cudaAddressModeClamp;
+	gTexOpacityMagnitudeNormalized.addressMode[2] = cudaAddressModeClamp;
+
+	HandleCudaError(cudaBindTextureToArray(gTexOpacityMagnitudeNormalized, pCuOpacityMagnitudeNormalized, ChannelDescMag));
+
+	/*gTexDensity = gTexOpacityMagnitudeNormalized;
+
+	// Make 1to1 opacity texture
+	texture<float, cudaTextureType1D, cudaReadModeElementType> gTexOpacityDummy;
+	gTexOpacityDummy.normalized = true;
+	gTexOpacityDummy.filterMode = cudaFilterModeLinear;
+	gTexOpacityDummy.addressMode[0] = cudaAddressModeClamp;
+
+	float Opacity[2];
+	Opacity[0] = 0;
+	Opacity[1] = 1;
+
+	cudaChannelFormatDesc ChannelDescDummy = cudaCreateChannelDesc<float>();
+
+	cudaArray* gpOpacityArrayDummy = NULL;
+	if (gpOpacityArrayDummy == NULL)
+		HandleCudaError(cudaMallocArray(&gpOpacityArrayDummy, &ChannelDescDummy, 2, 1));
+
+	HandleCudaError(cudaMemcpyToArray(gpOpacityArrayDummy, 0, 0, Opacity, TF_NO_SAMPLES * sizeof(float), cudaMemcpyHostToDevice));
+	HandleCudaError(cudaBindTextureToArray(gTexOpacityDummy, gpOpacityArrayDummy, ChannelDescDummy));*/
+
+	int nrPoints = 150000;
+
+	Vec3i* points = getPointsOpacityGradientMagnitudeBased(pOpacityGradientMagnitude1D, Scene.m_Resolution, nrPoints);
+
+
+	// override density buffer;
+	overridDensity(points, Scene.m_Resolution, nrPoints);
+}
+
+void overridDensity(Vec3i* points, CResolution3D resolution, int nrPoits) {
+	short* pFakeDensityBuffer;
+	pFakeDensityBuffer = (short*)malloc(resolution.GetNoElements() * sizeof(short));
+
+	for (int i = 0; i < resolution.GetNoElements(); i++) {
+		pFakeDensityBuffer[i] = -1000;
+	}
+
+	for (int i = 0; i < nrPoits; i++) {
+		int index = Index3To1(points[i], resolution);
+		pFakeDensityBuffer[index] = 3095;
+	}
+
+	UnbindDensityBuffer();
+
+	cudaExtent Extent;
+	Extent.width = resolution[0];
+	Extent.height = resolution[1];
+	Extent.depth = resolution[2];
+
+	BindDensityBuffer(pFakeDensityBuffer, Extent);
+}
+
+Vec3i* getPointsOpacityGradientMagnitudeBased(float* opacityGradientMagnitudes, CResolution3D resolution, int nrPoints) {
+	// Create PDF's
+	vector<float> pdfX(resolution.GetResX());
+	vector<vector<float>> pdfY(resolution.GetResX(), vector<float>(resolution.GetResY()));
+	vector<vector<vector<float>>> pdfZ(resolution.GetResX(), vector<vector<float>>(resolution.GetResY(), vector<float>(resolution.GetResZ())));
+
+	for (int x = 0; x < resolution.GetResX(); x++) {
+		for (int y = 0; y < resolution.GetResY(); y++) {
+			for (int z = 0; z < resolution.GetResZ(); z++) {
+				int index = Index3To1(x, y, z, resolution);
+				float val = opacityGradientMagnitudes[index];
+				
+				if (y == 0 && z == 0 && x != 0)
+					pdfX.at(x) = pdfX.at(x - 1) + val;
+				else
+					pdfX.at(x) += val;
+				
+				if (z == 0 && y != 0)
+					pdfY.at(x).at(y) = pdfY.at(x).at(y - 1) + val;
+				else
+					pdfY.at(x).at(y) += val;
+				
+				if (z != 0)
+					pdfZ.at(x).at(y).at(z) = pdfZ.at(x).at(y).at(z - 1) + val; 
+				else
+					pdfZ.at(x).at(y).at(z) = val;
+			}
+		}
+	}
+
+	/*cout << fixed;
+	for (int i = 0; i < resolution.GetResX(); i++) {
+		cout << pdfX[i] << endl;
+	}*/
+
+	//int nrPoints = 150;
+
+	Vec3i* points;
+	points = (Vec3i*)malloc(nrPoints * sizeof(Vec3i));
+
+	std::random_device rd;  //Will be used to obtain a seed for the random number engine
+	std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+	std::uniform_real_distribution<> dis(0, 1.0);
+	for (int n = 0; n < nrPoints; n++) {
+		double val = dis(gen) * pdfX.back();
+
+		int x, y, z;
+
+		for (x = 0; x < resolution.GetResX(); x++) {
+			if (pdfX[x] > val) {
+				break;
+			}
+		}
+
+		vector<float> pdfYcur = pdfY.at(x);
+		val = dis(gen) * pdfYcur.back();
+
+		for (y = 0; y < resolution.GetResY(); y++) {
+			if (pdfYcur[y] > val) {
+				break;
+			}
+		}
+
+		vector<float> pdfZcur = pdfZ.at(x).at(y);
+		val = dis(gen) * pdfZcur.back();
+
+		for (z = 0; z < resolution.GetResZ(); z++) {
+			if (pdfZcur[z] > val) {
+				break;
+			}
+		}
+
+		points[n] = Vec3i(x, y, z);
+	}
+	
+
+	/*for (int i = 0; i < nrPoints; i++) {
+		Vec3i p = points[i];
+		cout << p.x << ", " << p.y << ", " << p.z << endl;
+	}*/
+
+
+	return points;
+}
+
+
+void InitPreCalculatedCore(CScene& Scene, short* pDensityBuffer) {
 	if (m_DevPoints != NULL)
 		HandleCudaError(cudaFree(m_DevPoints));
 	if (m_DevColours != NULL)
@@ -563,13 +822,14 @@ void InitPreCalculatedCore(CScene& Scene) {
 	HandleCudaError(cudaMalloc(&pDevScene, sizeof(CScene)));
 	HandleCudaError(cudaMemcpy(pDevScene, &Scene, sizeof(CScene), cudaMemcpyHostToDevice));
 
-	int nrPoints = Scene.m_Resolution.GetNoElements() / 1000;
+	int nrPoints = Scene.m_Resolution.GetNoElements() / 500;
+	//int nrPoints = Scene.m_Camera.m_Film.GetWidth() * Scene.m_Camera.m_Film.GetHeight();
 	int PointPerState = 10;
 	int nrThreads = (nrPoints + (PointPerState - 1)) / PointPerState;
 
 	int SizePoints = nrPoints * sizeof(Vec3f);
 
-	
+	cout << "Total Points: " << Scene.m_Resolution.GetNoElements() << ", Generated Points: " << nrPoints << endl;
 
 	Vec3f* pDevPoints;
 	HandleCudaError(cudaMalloc(&pDevPoints, SizePoints));
@@ -597,18 +857,12 @@ void InitPreCalculatedCore(CScene& Scene) {
 	pPoints = (Vec3f *)malloc(SizePoints);
 	HandleCudaError(cudaMemcpy(pPoints, pDevPoints, SizePoints, cudaMemcpyDeviceToHost));
 
-	//for (int i = 0; i < nrPoints; i++) {
-		//std::cout << pPoints[i].x << ", " << pPoints[i].y << ", " << pPoints[i].z << endl;
-	//}
-
-	//HandleCudaError(cudaFree(pDevScene));
-	//HandleCudaError(cudaFree(pDevPoints));
 	
 	HandleCudaError(cudaFree(pDevStates));
 	HandleCudaError(cudaFree(pDevSeeds));
 	free(Seeds);
 
-	// generate points
+	// generate colours/connections
 
 	int seedSizeRNG = nrPoints * sizeof(unsigned int);
 	unsigned int* pSeedsCRNG = (unsigned int*)malloc(seedSizeRNG);
@@ -631,11 +885,8 @@ void InitPreCalculatedCore(CScene& Scene) {
 
 	free(pSeedsCRNG);
 
-	//std::vector<float> sample = std::vector<float>(nrPoints);
-	//std::vector<float>* pDevConnections;
-	//HandleCudaError(cudaMalloc(&pDevConnections, nrPoints * sizeof(sample)));
-	float* pDevConnections;
-	HandleCudaError(cudaMalloc(&pDevConnections, nrPoints * nrPoints * sizeof(float)));
+	float* pDevConnections = NULL;
+	//HandleCudaError(cudaMalloc(&pDevConnections, nrPoints * nrPoints * sizeof(float)));
 
 	CColorXyza* pDevPointColours;
 	HandleCudaError(cudaMalloc(&pDevPointColours, nrPoints * sizeof(CColorXyza)));
@@ -658,15 +909,10 @@ void InitPreCalculatedCore(CScene& Scene) {
 	m_DevColours = pDevPointColours;
 	m_DevConnections = pDevConnections;
 
-	//HandleCudaError(cudaFree(pDevConnections));
-	//HandleCudaError(cudaFree(pDevPointColours));
-
-
 	HandleCudaError(cudaFree(pDevSeeds1CRNG));
 	HandleCudaError(cudaFree(pDevSeeds2CRNG));
 	
 	HandleCudaError(cudaFree(pDevScene));
-	//HandleCudaError(cudaFree(pDevPoints));
 }
 
 /// <summary>

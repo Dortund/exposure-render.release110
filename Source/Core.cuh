@@ -17,6 +17,8 @@
 #include "Timing.h"
 #include "Scene.h"
 #include <curand_kernel.h>
+#include <vector>
+#include <random>
 
 class CScene;
 class CVariance;
@@ -42,6 +44,9 @@ extern "C" void UnbindTransferFunctionRoughness(void);
 extern "C" void UnbindTransferFunctionEmission(void);
 extern "C" void BindConstants(CScene* pScene);
 extern "C" void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& PostProcessImage, CTiming& DenoiseImage, curandState* pDevStates);
-extern "C" void InitPreCalculatedCore(CScene& Scene);
+extern "C" void InitOpacityGradient(CScene& Scene);
+extern "C" void InitPreCalculatedCore(CScene& Scene, short* pDensityBuffer);
 extern "C" curandState* InitStates(int N);
 extern "C" void random_ints(int* a, int N);
+extern "C" void overridDensity(Vec3i* points, CResolution3D resolution, int nrPoits);
+extern "C" Vec3i* getPointsOpacityGradientMagnitudeBased(float* opacityGradientMagnitudes, CResolution3D resolution, int nrPoints);

@@ -31,6 +31,13 @@ KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView, curandState* 
 	int stateId = Y * gFilmWidth + X;
 	curandState localState = pStates[stateId];
 
+	//float r = RNG.Get1();
+	//pView->m_FrameEstimateXyza.Set(CColorXyza(r, r, r), X, Y);
+	//return;
+
+	//pView->m_FrameEstimateXyza.Set(CColorXyza((float) X / (float)gFilmWidth, (float) Y / (float)gFilmHeight, fmodf(X*0.1, 1.f) ), X, Y);
+	//return;
+
 	//curandState state;
 	//curand_init((int) pView->m_RandomSeeds1.GetPtr(X, Y), 1, 0, &state);
 	//float r = curand_uniform(&state);

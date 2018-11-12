@@ -555,6 +555,8 @@ void QRenderThread::OnUpdateTransferFunction(void)
 
 	if (gScene.m_AlgorithmType == 2) {
 		InitPreCalculated();
+	} else if (gScene.m_AlgorithmType == 3) {
+		InitOpacityGradient(CScene(gScene));
 	}
 
 	gScene.m_DirtyFlags.SetFlag(TransferFunctionDirty);
@@ -613,9 +615,9 @@ void QRenderThread::OnUpdateTransferFunction(void)
 	//}
 }
 
-void InitPreCalculated(void) {
+void QRenderThread::InitPreCalculated() {
 	CScene SceneCopy = gScene;
-	InitPreCalculatedCore(SceneCopy);
+	InitPreCalculatedCore(SceneCopy, m_pDensityBuffer);
 }
 
 void QRenderThread::OnUpdateCamera(void)
