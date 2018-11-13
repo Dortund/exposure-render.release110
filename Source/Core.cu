@@ -591,6 +591,8 @@ break;
 }
 
 void InitOpacityGradient(CScene& Scene) {
+	CCudaTimer TmrinitGradient;
+
 	cudaExtent Extent;
 	Extent.width = Scene.m_Resolution[0];
 	Extent.height = Scene.m_Resolution[1];
@@ -692,7 +694,9 @@ void InitOpacityGradient(CScene& Scene) {
 	HandleCudaError(cudaMemcpyToArray(gpOpacityArrayDummy, 0, 0, Opacity, TF_NO_SAMPLES * sizeof(float), cudaMemcpyHostToDevice));
 	HandleCudaError(cudaBindTextureToArray(gTexOpacityDummy, gpOpacityArrayDummy, ChannelDescDummy));*/
 
-	int nrPoints = 150000;
+	cout << "Getting opacity gradient magnitude: " << TmrinitGradient.ElapsedTime() << endl;
+
+	int nrPoints = 15000;
 
 	Vec3i* points = getPointsOpacityGradientMagnitudeBased(pOpacityGradientMagnitude1D, Scene.m_Resolution, nrPoints);
 
@@ -702,6 +706,8 @@ void InitOpacityGradient(CScene& Scene) {
 }
 
 void overridDensity(Vec3i* points, CResolution3D resolution, int nrPoits) {
+	CCudaTimer TmrReplaceTexture;
+
 	short* pFakeDensityBuffer;
 	pFakeDensityBuffer = (short*)malloc(resolution.GetNoElements() * sizeof(short));
 
@@ -722,16 +728,22 @@ void overridDensity(Vec3i* points, CResolution3D resolution, int nrPoits) {
 	Extent.depth = resolution[2];
 
 	BindDensityBuffer(pFakeDensityBuffer, Extent);
+
+	cout << "Replacing Texutre: " << TmrReplaceTexture.ElapsedTime() << endl;
 }
 
 Vec3i* getPointsOpacityGradientMagnitudeBased(float* opacityGradientMagnitudes, CResolution3D resolution, int nrPoints) {
+	CCudaTimer TmrMakePdf;
+
 	// Create PDF's
 	vector<float> pdfX(resolution.GetResX());
 	vector<vector<float>> pdfY(resolution.GetResX(), vector<float>(resolution.GetResY()));
 	vector<vector<vector<float>>> pdfZ(resolution.GetResX(), vector<vector<float>>(resolution.GetResY(), vector<float>(resolution.GetResZ())));
 
 	for (int x = 0; x < resolution.GetResX(); x++) {
+		vector<float> pdfYcur = pdfY.at(x);
 		for (int y = 0; y < resolution.GetResY(); y++) {
+			vector<float> pdfZcur = pdfZ.at(x).at(y);
 			for (int z = 0; z < resolution.GetResZ(); z++) {
 				int index = Index3To1(x, y, z, resolution);
 				float val = opacityGradientMagnitudes[index];
@@ -742,17 +754,21 @@ Vec3i* getPointsOpacityGradientMagnitudeBased(float* opacityGradientMagnitudes, 
 					pdfX.at(x) += val;
 				
 				if (z == 0 && y != 0)
-					pdfY.at(x).at(y) = pdfY.at(x).at(y - 1) + val;
+					pdfYcur.at(y) = pdfYcur.at(y - 1) + val;
 				else
-					pdfY.at(x).at(y) += val;
+					pdfYcur.at(y) += val;
 				
 				if (z != 0)
-					pdfZ.at(x).at(y).at(z) = pdfZ.at(x).at(y).at(z - 1) + val; 
+					pdfZcur.at(z) = pdfZcur.at(z - 1) + val;
 				else
-					pdfZ.at(x).at(y).at(z) = val;
+					pdfZcur.at(z) = val;
 			}
+			pdfZ.at(x).at(y) = pdfZcur;
 		}
+		pdfY.at(x) = pdfYcur;
 	}
+
+	cout << "Making PDF's: " << TmrMakePdf.ElapsedTime() << endl;
 
 	/*cout << fixed;
 	for (int i = 0; i < resolution.GetResX(); i++) {
@@ -760,6 +776,8 @@ Vec3i* getPointsOpacityGradientMagnitudeBased(float* opacityGradientMagnitudes, 
 	}*/
 
 	//int nrPoints = 150;
+
+	CCudaTimer TmrGetPoints;
 
 	Vec3i* points;
 	points = (Vec3i*)malloc(nrPoints * sizeof(Vec3i));
@@ -804,7 +822,7 @@ Vec3i* getPointsOpacityGradientMagnitudeBased(float* opacityGradientMagnitudes, 
 		Vec3i p = points[i];
 		cout << p.x << ", " << p.y << ", " << p.z << endl;
 	}*/
-
+	cout << "Generating points: " << TmrGetPoints.ElapsedTime() << endl;
 
 	return points;
 }

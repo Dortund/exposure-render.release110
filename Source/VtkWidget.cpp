@@ -86,7 +86,7 @@ void CVtkWidget::OnRenderBegin(void)
 {
 	
 	// Scale
-	m_SceneRenderer->GetActiveCamera()->SetParallelScale(500.0f);
+	m_SceneRenderer->GetActiveCamera()->SetParallelScale(500.f);
 
 	m_ImageImport->SetDataSpacing(1, 1, 1);
 	m_ImageImport->SetDataOrigin(-0.5f * (float)gScene.m_Camera.m_Film.m_Resolution.GetResX(), -0.5f * (float)gScene.m_Camera.m_Film.m_Resolution.GetResY(), 0);
@@ -180,6 +180,9 @@ void CVtkWidget::OnRenderLoopTimer(void)
 	m_ImageImport->Update();
 	
 	m_ImageActor->SetInputData(m_ImageImport->GetOutput());
+
+	// (m_RenderWindow->GetSize()[1]) / 2.f seems to guarantee a near 1:1 resolution ratio
+	m_SceneRenderer->GetActiveCamera()->SetParallelScale((m_RenderWindow->GetSize()[1]) / 2.f);
 
 	m_RenderWindow->GetInteractor()->Render();
 }
