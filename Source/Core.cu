@@ -445,14 +445,14 @@ void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& Po
 	{
 		case 0:
 		{
-			SingleScattering(&Scene, pDevScene, pDevView, pStates);
+			SingleScattering(&Scene, pDevScene, pDevView);
 			break;
 		}
 
 		case 1:
 		{
 			//MultipleScattering(&Scene, pDevScene);
-			//MultipleScattering(&Scene, pDevScene, pDevView);
+			MultipleScattering(&Scene, pDevScene, pDevView);
 			break;
 		}
 
@@ -544,7 +544,7 @@ break;
 		}
 
 		case 3: {
-			SingleScattering(&Scene, pDevScene, pDevView, pStates);
+			SingleScattering(&Scene, pDevScene, pDevView);
 			break;
 		}
 	}
@@ -696,13 +696,26 @@ void InitOpacityGradient(CScene& Scene) {
 
 	cout << "Getting opacity gradient magnitude: " << TmrinitGradient.ElapsedTime() << endl;
 
-	int nrPoints = 15000;
+	int nrPoints = 150000;
 
 	Vec3i* points = getPointsOpacityGradientMagnitudeBased(pOpacityGradientMagnitude1D, Scene.m_Resolution, nrPoints);
 
+	int maxX = -1;
+	int maxY = -1;
+	int maxZ = -1;
+	for (int i = 0; i < nrPoints; i++) {
+		maxX = max(maxX, points[i].x);
+		maxY = max(maxY, points[i].y);
+		maxZ = max(maxZ, points[i].z);
+	}
+	cout << "Max(x,y,z)" << maxX << ", " << maxY << ", " << maxZ << endl;
+	cout << "Res(x,y,z)" << Scene.m_Resolution.GetResX() << ", " << Scene.m_Resolution.GetResY() << ", " << Scene.m_Resolution.GetResZ() << endl;
 
 	// override density buffer;
 	overridDensity(points, Scene.m_Resolution, nrPoints);
+
+	// create graph
+
 }
 
 void overridDensity(Vec3i* points, CResolution3D resolution, int nrPoits) {

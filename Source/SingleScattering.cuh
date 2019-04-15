@@ -16,7 +16,7 @@
 #include "Transport.cuh"
 #include <curand_kernel.h>
 
-KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView, curandState* pStates)
+KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView)
 {
 	// Get X and Y position in the block grid.
 	const int X		= blockIdx.x * blockDim.x + threadIdx.x;
@@ -28,8 +28,6 @@ KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView, curandState* 
 	
 	// Create RNG using 2 random seeds
 	CRNG RNG(pView->m_RandomSeeds1.GetPtr(X, Y), pView->m_RandomSeeds2.GetPtr(X, Y));
-	int stateId = Y * gFilmWidth + X;
-	curandState localState = pStates[stateId];
 
 	//float r = RNG.Get1();
 	//pView->m_FrameEstimateXyza.Set(CColorXyza(r, r, r), X, Y);
@@ -88,7 +86,6 @@ KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView, curandState* 
 			// Set the current estimated colour of the pixel. Seems to always be 'SPEC_BLACK' from this position in the code.
 			// And return on the function call
 			pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
-			pStates[stateId] = localState;
 			return;
 		}
 		
@@ -140,16 +137,14 @@ KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView, curandState* 
 	pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
 	//float r = curand_uniform(&localState);
 	//pView->m_FrameEstimateXyza.Set(CColorXyza(r, r, r), X, Y);
-
-	pStates[stateId] = localState;
 }
 
-void SingleScattering(CScene* pScene, CScene* pDevScene, CCudaView* pView, curandState* pStates)
+void SingleScattering(CScene* pScene, CScene* pDevScene, CCudaView* pView)
 {
 	const dim3 KernelBlock(KRNL_SS_BLOCK_W, KRNL_SS_BLOCK_H);
 	const dim3 KernelGrid((int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResX() / (float)KernelBlock.x), (int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResY() / (float)KernelBlock.y));
-	// Some weird block distortion in a 17x21 grid at 400x500 pixels, scales with the amount of pixels
-	KrnlSingleScattering<<<KernelGrid, KernelBlock>>>(pDevScene, pView, pStates);
+	
+	KrnlSingleScattering<<<KernelGrid, KernelBlock>>>(pDevScene, pView);
 	cudaThreadSynchronize();
 	HandleCudaKernelError(cudaGetLastError(), "Single Scattering");
 }	
