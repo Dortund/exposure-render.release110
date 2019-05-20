@@ -36,7 +36,8 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_DoEstimate(),
 	m_DoToneMap(),
 	m_DoDenoise(),
-	m_DoOffset()
+	m_DoOffset(),
+	m_MaxBouncesSpinner()
 {
 	setLayout(&m_MainLayout);
 
@@ -48,7 +49,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_AlgorithmType.addItem("Opacity Gradient", 3);
 	m_MainLayout.addWidget(&m_AlgorithmType, 1, 1, 1, 2);
 
-	QObject::connect(&m_AlgorithmType, SIGNAL(currentIndexChanged(int)), this, SLOT(onSetAlgorithmType(int)));
+	QObject::connect(&m_AlgorithmType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetAlgorithmType(int)));
 
 	m_MainLayout.addWidget(new QLabel("Density Scale"), 2, 0);
 
@@ -129,7 +130,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_DoOffset.setChecked(true);
 	m_MainLayout.addWidget(&m_DoOffset, 7, 1);
 
-	QObject::connect(&m_DoOffset, SIGNAL(stateChanged(int)), this, SLOT(onDoOffsetChanged(int)));
+	QObject::connect(&m_DoOffset, SIGNAL(stateChanged(int)), this, SLOT(OnDoOffsetChanged(int)));
 
 	m_MainLayout.addWidget(new QLabel("Blur"), 8, 0);
 
@@ -139,28 +140,38 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	QObject::connect(&m_DoBlur, SIGNAL(stateChanged(int)), this, SLOT(OnDoBlurChanged(int)));
 
 
-	m_MainLayout.addWidget(new QLabel("Esitmate"), 9, 0);
+	m_MainLayout.addWidget(new QLabel("Estimate"), 9, 0);
 
 	m_DoEstimate.setChecked(true);
 	m_MainLayout.addWidget(&m_DoEstimate, 9, 1);
 
 	QObject::connect(&m_DoEstimate, SIGNAL(stateChanged(int)), this, SLOT(OnDoEstimateChanged(int)));
 
-	// TODO atm we always do tonemap. remove related code or make optional
-	//m_MainLayout.addWidget(new QLabel("ToneMap"), 9, 0);
+	
+	m_MainLayout.addWidget(new QLabel("ToneMap"), 10, 0);
 
 	m_DoToneMap.setChecked(true);
-	//m_MainLayout.addWidget(&m_DoToneMap, 9, 1);
+	m_MainLayout.addWidget(&m_DoToneMap, 10, 1);
 
 	QObject::connect(&m_DoToneMap, SIGNAL(stateChanged(int)), this, SLOT(OnDoToneMapChanged(int)));
 
 
-	m_MainLayout.addWidget(new QLabel("Denoise"), 10, 0);
+	m_MainLayout.addWidget(new QLabel("Denoise"), 11, 0);
 
 	m_DoDenoise.setChecked(true);
-	m_MainLayout.addWidget(&m_DoDenoise, 10, 1);
+	m_MainLayout.addWidget(&m_DoDenoise, 11, 1);
 
 	QObject::connect(&m_DoDenoise, SIGNAL(stateChanged(int)), this, SLOT(OnDoDenoiseChanged(int)));
+
+
+	m_MainLayout.addWidget(new QLabel("max # of Bounces"), 12, 0);
+
+	m_MaxBouncesSpinner.setRange(1, 100);
+	m_MaxBouncesSpinner.setDecimals(0);
+
+	m_MainLayout.addWidget(&m_MaxBouncesSpinner, 12, 1);
+
+	QObject::connect(&m_MaxBouncesSpinner, SIGNAL(valueChanged(double)), this, SLOT(OnSetMaxBounces(double)));
 }
 
 void QAppearanceSettingsWidget::OnRenderBegin(void)
@@ -188,7 +199,7 @@ void QAppearanceSettingsWidget::OnSetShadingType(int Index)
 	m_GradientFactorSpinner.setEnabled(Index == 2);
 }
 
-void QAppearanceSettingsWidget::onSetAlgorithmType(int Index)
+void QAppearanceSettingsWidget::OnSetAlgorithmType(int Index)
 {
 	gTransferFunction.SetAlgorithmType(Index);
 }
@@ -239,7 +250,12 @@ void QAppearanceSettingsWidget::OnDoDenoiseChanged(int doDenoise) {
 	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
 }
 
-void QAppearanceSettingsWidget::onDoOffsetChanged(int doOffset) {
+void QAppearanceSettingsWidget::OnDoOffsetChanged(int doOffset) {
 	gScene.m_PostProcessingSteps ^= 16;
+	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
+}
+
+void QAppearanceSettingsWidget::OnSetMaxBounces(double nrOfBounces) {
+	gScene.m_MaxBounces = (int) nrOfBounces;
 	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
 }

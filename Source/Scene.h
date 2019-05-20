@@ -83,6 +83,7 @@ public:
 	float				m_GradMagMean;
 	int					m_AlgorithmType;
 	uint8_t				m_PostProcessingSteps;
+	int					m_MaxBounces;
 
 	HOD int GetNoIterations(void) const					{ return m_NoIterations;			}
 	HOD void SetNoIterations(const int& NoIterations)	{ m_NoIterations = NoIterations;	}

@@ -46,7 +46,8 @@ KERNEL void KrnlBlurH(CCudaView* pView)
 
 	for (int x = X0; x <= X1; x++)
 	{
-		FW[TID] = gFilterWeights[(int)fabs((float)x - X)];
+		//FW[TID] = gFilterWeights[(int)fabs((float)x - X)];
+		FW[TID] = gFilterWeights[abs(x - X)];
 
 		Sum			+= pView->m_FrameEstimateXyza.Get(x, Y) * FW[TID];
 		SumW[TID]	+= FW[TID];
@@ -82,7 +83,8 @@ KERNEL void KrnlBlurV(CCudaView* pView)
 
 	for (int y = Y0; y <= Y1; y++)
 	{
-		FW[TID] = gFilterWeights[(int)fabs((float)y - Y)];
+		//FW[TID] = gFilterWeights[(int)fabs((float)y - Y)];
+		FW[TID] = gFilterWeights[abs(y - Y)];
 
 		Sum			+= pView->m_FrameBlurXyza.Get(X, y) * FW[TID];
 		SumW[TID]	+= FW[TID];
@@ -92,6 +94,8 @@ KERNEL void KrnlBlurV(CCudaView* pView)
 		pView->m_FrameEstimateXyza.Set(CColorXyza(Sum / SumW[TID]), X, Y);
 	else
 		pView->m_FrameEstimateXyza.Set(CColorXyza(0.0f), X, Y);
+
+	//pView->m_FrameEstimateXyza.Set(pView->m_FrameBlurXyza.Get(X, Y), X, Y);
 }
 
 void Blur(CScene* pScene, CScene* pDevScene, CCudaView* pDevView)

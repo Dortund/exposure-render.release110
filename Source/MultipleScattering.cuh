@@ -58,18 +58,20 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 	
 	CLight* pLight = NULL;
 	
-	for (int i = 0; !Terminate(Tr, RNG); i++)
+	for (int i = 0; i < pScene->m_MaxBounces; i++)
+	//for (int i = 0; !Terminate(Tr, RNG); i++)
 	//for (int i = 0; i < 1; i++)
 	{
 		if (SampleDistanceRM(Re, RNG, Pe))
 		{
-			if (NearestLight(pScene, CRay(Re.m_O, Re.m_D, 0.0f, (Pe - Re.m_O).Length()), Li, Pl, pLight))
+			/*if (NearestLight(pScene, CRay(Re.m_O, Re.m_D, 0.0f, (Pe - Re.m_O).Length()), Li, Pl, pLight))
 			{
 				pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
 				//float4 ColorXYZA = make_float4(Lv.c[0], Lv.c[1], Lv.c[2], 0.0f);
 				//				surf2Dwrite(ColorXYZA, gSurfRunningEstimateXyza, X * sizeof(float4), Y);
+				
 				return;
-			}
+			}*/
 
 			const float D = GetNormalizedIntensity(Pe);
 
@@ -87,14 +89,14 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 				// BRDF Only (Bidirectional Reflectance Distribution Function)
 				case 0:
 				{
-					Lv += UniformSampleOneLight(pScene, CVolumeShader::Brdf, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
+					Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::Brdf, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
 					break;
 				}
 
 				// Phase Function Only
 				case 1:
 				{
-					Lv += 0.5f * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
+					Lv += Tr * 0.5f * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
 					break;
 				}
 
@@ -106,9 +108,9 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 					const float PdfBrdf = (1.0f - __expf(-pScene->m_GradientFactor * GradMag));
 
 					if (RNG.Get1() < PdfBrdf)
-						Lv += UniformSampleOneLight(pScene, CVolumeShader::Brdf, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
+						Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::Brdf, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
 					else
-						Lv += 0.5f * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
+						Lv += Tr * 0.5f * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
 
 					break;
 				}
@@ -116,24 +118,40 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 		}
 		else
 		{
-			if (NearestLight(pScene, CRay(Re.m_O, Re.m_D, 0.0f, INF_MAX), Li, Pl, pLight))
+			if (NearestLight(pScene, CRay(Re.m_O, Re.m_D, 0.0f, INF_MAX), Li, Pl, pLight)) {
 				Lv += Tr * Li;
-
+			}
 			break;
 		}
+
+		
 		
 		Re.m_O		= Pe;
 		Re.m_D		= UniformSampleSphere(RNG.Get2());
 		Re.m_MinT	= 0.0f;
 		Re.m_MaxT	= INF_MAX;
 
-		// Adjusting weight for sampling from a sphere??
+		// Adjusting weight for sampling from a sphere
 		Tr *= INV_4_PI_F;
+
+		if (Terminate(Tr, RNG)) {
+			break;
+		}
 	}
 
 	__syncthreads();
 	
-	pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
+	/*float test = 1;
+	if (Lv.c[0] >= test && Lv.c[1] >= test && Lv.c[2] >= test)
+		pView->m_FrameEstimateXyza.Set(CColorXyza(test), X, Y);
+	else
+		pView->m_FrameEstimateXyza.Set(CColorXyza(0), X, Y);*/
+	
+	//pView->m_FrameEstimateXyza.Set(CColorXyza(Tr.c[0], Tr.c[0], Tr.c[0]), X, Y);
+	//pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
+
+	pView->m_FrameEstimateXyza.Set(CColorXyza(Clamp(Lv.c[0], 0.0, 1.0f), Clamp(Lv.c[1], 0.0, 1.0f), Clamp(Lv.c[2], 0.0, 1.0f)), X, Y);
+
 	//float4 ColorXYZA = make_float4(Lv.c[0], Lv.c[1], Lv.c[2], 0.0f);
 //	surf2Dwrite(ColorXYZA, gSurfRunningEstimateXyza, X * sizeof(float4), Y);
 }

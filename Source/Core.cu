@@ -400,7 +400,7 @@ void BindConstants(CScene* pScene)
 	const float InvGamma	= 1.0f / Gamma;
 	const float Exposure	= pScene->m_Camera.m_Film.m_Exposure;
 	const float InvExposure	= 1.0f / Exposure;
-
+	// TODO remove: std::cout << "invExposure: " << InvExposure << std::endl;
 	HandleCudaError(cudaMemcpyToSymbol(gExposure, &Exposure, sizeof(float)));
 	HandleCudaError(cudaMemcpyToSymbol(gInvExposure, &InvExposure, sizeof(float)));
 	HandleCudaError(cudaMemcpyToSymbol(gGamma, &Gamma, sizeof(float)));
@@ -567,13 +567,12 @@ break;
 	}
 	PostProcessImage.AddDuration(TmrPostProcess.ElapsedTime());
 
-	// TODO remove commented code
-	//if (PostProcessingSteps & 4) {
-	ToneMap(&Scene, pDevScene, pDevView);
-	//}
-	//else {
-	//	pDevView->m_EstimateRgbaLdr = pDevView->m_RunningEstimateXyza;
-	//}
+	if (Scene.m_PostProcessingSteps & 4) {
+		ToneMap(&Scene, pDevScene, pDevView);
+	}
+	else {
+		ToneMapCopy(&Scene, pDevScene, pDevView);
+	}
 
 	CCudaTimer TmrDenoise;
 	if (Scene.m_PostProcessingSteps & 8) {
@@ -584,7 +583,6 @@ break;
 		DenoiseCopy(&Scene, pDevScene, pDevView);
 	}
 	DenoiseImage.AddDuration(TmrDenoise.ElapsedTime());
-
 
 	HandleCudaError(cudaFree(pDevScene));
 	HandleCudaError(cudaFree(pDevView));

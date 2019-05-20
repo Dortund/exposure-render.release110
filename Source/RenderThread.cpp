@@ -20,6 +20,10 @@
 #include "Lighting.h"
 #include "Timing.h"
 
+// std
+#include <string>
+#include <iostream>
+
 // CUDA kernels
 #include "Core.cuh"
 
@@ -306,6 +310,17 @@ void QRenderThread::run()
 			HandleCudaError(cudaMemcpy(m_pRenderImage, GetDisplayEstimate(), SceneCopy.m_Camera.m_Film.m_Resolution.GetNoElements() * sizeof(CColorRgbLdr), cudaMemcpyDeviceToHost));
 			//some random test
 			//HandleCudaError(cudaMemcpy(m_pRenderImage, GetFrameDisplayEstimate(), SceneCopy.m_Camera.m_Film.m_Resolution.GetNoElements() * sizeof(CColorRgbLdr), cudaMemcpyDeviceToHost));
+
+			// total colour intensity
+			int r = 0, g = 0, b = 0;
+			for (int x = 0; x < SceneCopy.m_Camera.m_Film.m_Resolution.GetResX(); x++) {
+				for (int y = 0; y < SceneCopy.m_Camera.m_Film.m_Resolution.GetResY(); y++) {
+					r += m_pRenderImage[x + x * y].r;
+					g += m_pRenderImage[x + x * y].g;
+					b += m_pRenderImage[x + x * y].b;
+				}
+			}
+			std::cout << static_cast<int>(m_pRenderImage[100].r) << "Intensity: " << r << ", " << g << ", " << b << std::endl;
 
 			gFrameBuffer.Set((unsigned char*)m_pRenderImage, SceneCopy.m_Camera.m_Film.GetWidth(), SceneCopy.m_Camera.m_Film.GetHeight());
 

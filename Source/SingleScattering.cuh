@@ -78,6 +78,7 @@ KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView)
 	if (SampleDistanceRM(Re, RNG, Pe))
 	{
 		// Retrieves information about a light it had a hit with
+		// What purpose does this check have here??
 		// Li = light color, gets filled during the call
 		// Pl = the position of the light along the ray, gets filled during the call
 		// pLight = the light with which we have a hit, gets filled during the call

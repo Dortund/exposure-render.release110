@@ -178,6 +178,8 @@ public:
 			const float DotN = Dot(R.m_D, m_N);
 
 			// Rays is co-planar with light surface
+			// More understandable, if DotN > 0, the ray is going the same direction the light is pointing and
+			// thus approaches it from the back, which is not usefull
 			if (DotN >= 0.0f)
 				return false;
 

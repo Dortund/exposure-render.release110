@@ -36,7 +36,8 @@ CScene::CScene(void) :
 	m_GradientFactor(4.0f),
 	m_GradMagMean(1.0f),
 	m_AlgorithmType(0),
-	m_PostProcessingSteps(15)
+	m_PostProcessingSteps(15),
+	m_MaxBounces(1)
 {
 }
 
@@ -68,6 +69,7 @@ HOD CScene& CScene::operator=(const CScene& Other)
 	m_GradMagMean				= Other.m_GradMagMean;
 	m_AlgorithmType				= Other.m_AlgorithmType;
 	m_PostProcessingSteps		= Other.m_PostProcessingSteps;
+	m_MaxBounces				= Other.m_MaxBounces;
 
 	return *this;
 }

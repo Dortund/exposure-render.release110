@@ -28,12 +28,13 @@ public slots:
 	void OnSetGradientFactor(double GradientFactor);
 	void OnSetStepSizePrimaryRay(const double& StepSizePrimaryRay);
 	void OnSetStepSizeSecondaryRay(const double& StepSizeSecondaryRay);
-	void onSetAlgorithmType(int index);
+	void OnSetAlgorithmType(int index);
 	void OnDoBlurChanged(int doBlur);
 	void OnDoEstimateChanged(int doEstimate);
 	void OnDoToneMapChanged(int doToneMap);
 	void OnDoDenoiseChanged(int doDenoise);
-	void onDoOffsetChanged(int doOffset);
+	void OnDoOffsetChanged(int doOffset);
+	void OnSetMaxBounces(double nrOfBounces);
 
 private:
 	QGridLayout		m_MainLayout;
@@ -53,4 +54,5 @@ private:
 	QCheckBox		m_DoToneMap;
 	QCheckBox		m_DoDenoise;
 	QCheckBox		m_DoOffset;
+	QDoubleSpinner	m_MaxBouncesSpinner;
 };
