@@ -137,6 +137,8 @@ KERNEL void KrnlPreCalculatedScattering(CScene* pScene, CCudaView* pView, Vec3f*
 		}
 	}
 
+	__syncthreads();
+
 	pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
 	//pView->m_FrameEstimateXyza.Set(CColorXyza(RNG.Get1(), RNG.Get1(), RNG.Get1()), X, Y);
 
@@ -153,7 +155,7 @@ void PreCalculatedScattering(CScene* pScene, CScene* pDevScene, CCudaView* pView
 	const dim3 KernelBlock(KRNL_SS_BLOCK_W, KRNL_SS_BLOCK_H);
 	const dim3 KernelGrid((int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResX() / (float)KernelBlock.x), (int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResY() / (float)KernelBlock.y));
 
-	KrnlPreCalculatedScattering << <KernelGrid, KernelBlock >> > (pDevScene, pView, pPoints, nrPoints, pDevConnections, pDevPointColour, pDevResults);
+	KrnlPreCalculatedScattering<<<KernelGrid, KernelBlock>>>(pDevScene, pView, pPoints, nrPoints, pDevConnections, pDevPointColour, pDevResults);
 	cudaThreadSynchronize();
 	HandleCudaKernelError(cudaGetLastError(), "Pre-calculated Scattering");
 }
@@ -465,4 +467,105 @@ void GetOpacityGradientTexture(CResolution3D resolution, float4* pDevOpacityGrad
 	KrnlCreateOpacityGradientTexture<<<KernelBlock, KernelGrid>>>(resolution, pDevOpacityGradient1D, pDevOpacityGradientMagnitude1D);
 	cudaThreadSynchronize();
 	HandleCudaKernelError(cudaGetLastError(), "Opacity Gradient Creation");
+}
+
+
+//KERNEL void KrnlCreateIlluminationTexture(CScene* pScene, float* pDevIllumination1D, CCudaRandomBuffer2D* rng1, CCudaRandomBuffer2D* rng2) {
+KERNEL void KrnlCreateIlluminationTexture(CScene* pScene, float* pDevIllumination1D, unsigned int* rng1, unsigned int* rng2) {
+	const int X = blockIdx.x * blockDim.x + threadIdx.x;
+	const int Y = blockIdx.y * blockDim.y + threadIdx.y;
+	const int Z = blockIdx.z * blockDim.z + threadIdx.z;
+
+	if (X >= pScene->m_Resolution.GetResX() || Y >= pScene->m_Resolution.GetResY() || Z >= pScene->m_Resolution.GetResZ())
+		return;
+
+	Vec3f realPos = gGradientDelta * Vec3f(X, Y, Z);
+
+	//__shared__ CRNG rngTest[OPACITY_BLOCK_DIM][OPACITY_BLOCK_DIM];
+	//rngTest[threadIdx.x][threadIdx.y] = CRNG(rng1->GetPtr(X, Y), rng2->GetPtr(X, Y));
+	//CRNG RNG = rngTest[threadIdx.x][threadIdx.y];
+	//CRNG RNG = CRNG(rng1->GetPtr(X, Y), rng2->GetPtr(X, Y));
+	CRNG RNG = CRNG(&rng1[Index3To1(X, Y, Z, pScene->m_Resolution)], &rng2[Index3To1(X, Y, Z, pScene->m_Resolution)]);
+	
+	CColorXyz Lv = SPEC_BLACK, Li = SPEC_BLACK, Tr = SPEC_WHITE;
+	
+	CRay Re;
+
+	Re.m_O = realPos;
+	Re.m_D = UniformSampleSphere(RNG.Get2());
+	Re.m_MinT = 0.0f;
+	Re.m_MaxT = FLT_MAX;
+
+	Vec3f Pe, Pl;
+
+	CLight* pLight = NULL;
+	for (int i = 0; i < pScene->m_MaxBounces; i++) {
+		if (SampleDistanceRM(Re, RNG, Pe)) {
+			const float D = GetNormalizedIntensity(Pe);
+
+			Lv += Tr * GetEmission(D).ToXYZ();
+
+			// Switch Depending on the shading type
+			switch (pScene->m_ShadingType) {
+				// BRDF Only (Bidirectional Reflectance Distribution Function)
+				case 0:	{
+					Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::Brdf, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
+					break;
+				}
+
+				// Phase Function Only
+				case 1:	{
+					Lv += Tr * 0.5f * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
+					break;
+				}
+
+				// Hybrid (BDRF & Phase Function)
+				case 2:	{
+					const float GradMag = GradientMagnitude(Pe) * gIntensityInvRange;
+
+					const float PdfBrdf = (1.0f - __expf(-pScene->m_GradientFactor * GradMag));
+
+					if (RNG.Get1() < PdfBrdf)
+						Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::Brdf, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
+					else
+						Lv += Tr * 0.5f * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
+
+					break;
+				}
+			}
+		}
+		else {
+			if (NearestLight(pScene, CRay(Re.m_O, Re.m_D, 0.0f, INF_MAX), Li, Pl, pLight)) {
+				Lv += Tr * Li;
+			}
+			break;
+		}
+
+		Re.m_O = Pe;
+		Re.m_D = UniformSampleSphere(RNG.Get2());
+		Re.m_MinT = 0.0f;
+		Re.m_MaxT = INF_MAX;
+
+		// Adjusting weight for sampling from a sphere
+		Tr *= INV_4_PI_F;
+
+		if (Terminate(Tr, RNG)) {
+			break;
+		}
+
+		
+	}
+	
+	// Convert to grayscale
+	pDevIllumination1D[Index3To1(X, Y, Z, pScene->m_Resolution)] = (Lv.c[0] + Lv.c[1] + Lv.c[2]) / 3.0f;
+}
+
+//void GetIlluminationTexture(CScene* pScene, CResolution3D resolution, float* pDevIllumination1D, CCudaRandomBuffer2D* rng1, CCudaRandomBuffer2D* rng2) {
+void GetIlluminationTexture(CScene* pScene, CResolution3D resolution, float* pDevIllumination1D, unsigned int* rng1, unsigned int* rng2) {
+	const dim3 KernelBlock((int)ceilf((float)resolution.GetResX() / (float)OPACITY_BLOCK_DIM), (int)ceilf((float)resolution.GetResY() / (float)OPACITY_BLOCK_DIM), (int)ceilf((float)resolution.GetResZ() / (float)OPACITY_BLOCK_DIM));
+	const dim3 KernelGrid(OPACITY_BLOCK_DIM, OPACITY_BLOCK_DIM, OPACITY_BLOCK_DIM);
+
+	KrnlCreateIlluminationTexture<<<KernelBlock, KernelGrid>>>(pScene, pDevIllumination1D, rng1, rng2);
+	cudaThreadSynchronize();
+	HandleCudaKernelError(cudaGetLastError(), "Illumination Texture Creation");
 }

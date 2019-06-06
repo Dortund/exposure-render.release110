@@ -43,6 +43,7 @@ public slots:
 	void ShowStartupDialog(void);
 	void OnVisitWebsite(void);
 	void OnSaveImage(void);
+	void OnCreateIlluminationVolume(void);
 	void OnCheckForUpdates(void);
 	void VersionInfoDownloaded(void);
 

@@ -53,12 +53,14 @@ public:
 
 	bool			Load(QString& FileName);
 	void			InitPreCalculated(void);
+	void			InitFloodFill(void);
 
 	QString			GetFileName(void) const						{	return m_FileName;		}
 	void			SetFileName(const QString& FileName)		{	m_FileName = FileName;	}
 	CColorRgbLdr*	GetRenderImage(void) const;
 	void			Close(void)									{	m_Abort = true;			}
 	void			PauseRendering(const bool& Pause)			{	m_Pause = Pause;		}
+	void			CreateIlluminanceTexture(void);
 	
 private:
 	QString				m_FileName;

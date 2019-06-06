@@ -156,7 +156,7 @@ void QLightsWidget::OnAddLight(void)
 
 	QLight NewLight;
 	NewLight.SetName("Light " + QString::number(gLighting.m_Lights.size() + 1));
-
+	
 	// Add the light
 	gLighting.AddLight(NewLight);
 

@@ -18,6 +18,11 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 class CRNG
 {
 public:
+	HOD CRNG() {
+		m_pSeed0 = 0;
+		m_pSeed1 = 0;
+	}
+
 	HOD CRNG(unsigned int* pSeed0, unsigned int* pSeed1)
 	{
 		m_pSeed0 = pSeed0;

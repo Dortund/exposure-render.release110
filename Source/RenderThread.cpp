@@ -23,6 +23,8 @@
 // std
 #include <string>
 #include <iostream>
+#include <queue>
+#include <chrono>
 
 // CUDA kernels
 #include "Core.cuh"
@@ -41,6 +43,7 @@
 #include <vtkErrorCode.h>
 #include <vtkImageGradient.h>
 #include <vtkExtractVectorComponents.h>
+#include <vtkMetaImageWriter.h>
 
 // Render thread
 QRenderThread* gpRenderThread = NULL;
@@ -254,10 +257,10 @@ void QRenderThread::run()
 
 
 				///temp
-				if (pDevStates != nullptr)
-					HandleCudaError(cudaFree(pDevStates));
+				//if (pDevStates != nullptr)
+					//HandleCudaError(cudaFree(pDevStates));
 
-				pDevStates = InitStates(SceneCopy.m_Camera.m_Film.m_Resolution.GetNoElements());
+				//pDevStates = InitStates(SceneCopy.m_Camera.m_Film.m_Resolution.GetNoElements());
 				///temp
 
 				Log("Render canvas resized to: " + QString::number(SceneCopy.m_Camera.m_Film.m_Resolution.GetResX()) + " x " + QString::number(SceneCopy.m_Camera.m_Film.m_Resolution.GetResY()) + " pixels", "application-resize");
@@ -312,7 +315,7 @@ void QRenderThread::run()
 			//HandleCudaError(cudaMemcpy(m_pRenderImage, GetFrameDisplayEstimate(), SceneCopy.m_Camera.m_Film.m_Resolution.GetNoElements() * sizeof(CColorRgbLdr), cudaMemcpyDeviceToHost));
 
 			// total colour intensity
-			int r = 0, g = 0, b = 0;
+			/*int r = 0, g = 0, b = 0;
 			for (int x = 0; x < SceneCopy.m_Camera.m_Film.m_Resolution.GetResX(); x++) {
 				for (int y = 0; y < SceneCopy.m_Camera.m_Film.m_Resolution.GetResY(); y++) {
 					r += m_pRenderImage[x + x * y].r;
@@ -320,7 +323,7 @@ void QRenderThread::run()
 					b += m_pRenderImage[x + x * y].b;
 				}
 			}
-			std::cout << static_cast<int>(m_pRenderImage[100].r) << "Intensity: " << r << ", " << g << ", " << b << std::endl;
+			std::cout << "Intensity: " << r << ", " << g << ", " << b << std::endl;*/
 
 			gFrameBuffer.Set((unsigned char*)m_pRenderImage, SceneCopy.m_Camera.m_Film.GetWidth(), SceneCopy.m_Camera.m_Film.GetHeight());
 
@@ -523,6 +526,68 @@ bool QRenderThread::Load(QString& FileName)
 	gStatus.SetStatisticChanged("Volume", "Spacing", FormatSize(gScene.m_Spacing, 2), "mm");
 	gStatus.SetStatisticChanged("Volume", "No. Voxels", QString::number(gScene.m_Resolution.GetNoElements()), "Voxels");
 	gStatus.SetStatisticChanged("Volume", "Density Range", "[" + QString::number(gScene.m_IntensityRange.GetMin()) + ", " + QString::number(gScene.m_IntensityRange.GetMax()) + "]", "");
+
+
+
+	// Try to save our own file
+	// adapt path !
+	std::string filePath = "../exposure-render.release110/Source/Examples/testFile2.mhd";
+	std::string filePathRaw = "../exposure-render.release110/Source/Examples/testFile2.raw";
+
+	struct stat buffer;
+	if (!((stat(filePath.c_str(), &buffer) == 0))) {
+		// Create an image
+		const int width = 28;
+		const int height = 28;
+		const int depth = 28;
+
+		unsigned short img[width*height*depth];
+		for (int row = 0; row < height; row++) {
+			for (int col = 0; col < width; col++) {
+				for (int dep = 0; dep < depth; dep++) {
+					int id = col + row * width + dep * width * height;
+					img[id] = 0;
+					if ((row >=  3 * height / 7 && row < 4 * height / 7)
+						|| (col >= 3 * width / 7 && col < 4 * width / 7)
+						|| (dep >= 3 * depth / 7 && dep < 4 * depth / 7)
+							) {
+						img[id] = 100;
+					}
+					if (dep == depth / 2
+						&& (row >= 5 * height / 7 && row < 6 * height / 7)
+						&& ((col >= 1 * width / 7 && col < 2 * width / 7) || (col >= 5 * width / 7 && col < 6 * width / 7))
+						) {
+						img[id] = 50;
+					}
+				}
+			}
+		}
+
+		// Convert the c-style image to a vtkImageData
+		vtkSmartPointer<vtkImageImport> imageImport =
+			vtkSmartPointer<vtkImageImport>::New();
+		imageImport->SetDataSpacing(1, 1, 1);
+		imageImport->SetDataOrigin(0, 0, 0);
+		imageImport->SetWholeExtent(0, width - 1, 0, height - 1, 0, depth - 1);
+		imageImport->SetDataExtentToWholeExtent();
+		imageImport->SetDataScalarTypeToShort();
+		imageImport->SetNumberOfScalarComponents(1);
+		imageImport->SetImportVoidPointer(img);
+		imageImport->Update();
+
+		vtkSmartPointer<vtkImageCast> castFilter =
+			vtkSmartPointer<vtkImageCast>::New();
+		castFilter->SetOutputScalarTypeToShort();
+		castFilter->SetInputConnection(imageImport->GetOutputPort());
+		castFilter->Update();
+
+		vtkSmartPointer<vtkMetaImageWriter> writer =
+			vtkSmartPointer<vtkMetaImageWriter>::New();
+		writer->SetInputConnection(castFilter->GetOutputPort());
+		writer->SetFileName(filePath.c_str());
+		writer->SetRAWFileName(filePathRaw.c_str());
+		writer->Write();
+	}
 	
 	return true;
 }
@@ -572,6 +637,9 @@ void QRenderThread::OnUpdateTransferFunction(void)
 		InitPreCalculated();
 	} else if (gScene.m_AlgorithmType == 3) {
 		InitOpacityGradient(CScene(gScene));
+	}
+	else if (gScene.m_AlgorithmType == 4) {
+		InitFloodFill();
 	}
 
 	gScene.m_DirtyFlags.SetFlag(TransferFunctionDirty);
@@ -635,6 +703,118 @@ void QRenderThread::InitPreCalculated() {
 	InitPreCalculatedCore(SceneCopy, m_pDensityBuffer);
 }
 
+void QRenderThread::InitFloodFill() {
+	// using lambda to compare elements.
+	auto compare = [](Vec4i lhs, Vec4i rhs)
+	{
+		return lhs.w > rhs.w;
+	};
+
+	
+
+
+	//gScene.m_Resolution.SetResX(5);
+	//gScene.m_Resolution.SetResY(5);
+	//gScene.m_Resolution.SetResZ(5);
+
+	int** results;
+	results = (int**)malloc(sizeof(int*) * gScene.m_Lighting.m_NoLights);
+
+	for (int lightIndex = 0; lightIndex < gScene.m_Lighting.m_NoLights; lightIndex++) {
+		// Make an array to store our results
+		int* result;
+		result = (int*)malloc(gScene.m_Resolution.GetNoElements() * sizeof(int));
+		for (int i = 0; i < gScene.m_Resolution.GetNoElements(); i++) {
+			result[i] = -1;
+		}
+		results[lightIndex] = result;
+
+		// Make a new priority queue
+		std::priority_queue<Vec4i, std::vector<Vec4i>, decltype(compare)> queue(compare);
+
+		// Setup regarding the current light
+		CLight light = gScene.m_Lighting.m_Lights[lightIndex];
+		std::cout << "LightIndex: " << lightIndex << ", Type: " << light.m_T << std::endl;
+		if (light.m_T == 0) { // Area light
+			// TODO properly calculate a starting queue for this type of light
+
+			Vec4i start = Vec4i(gScene.m_Resolution.GetResX() / 2, gScene.m_Resolution.GetResY() / 2, 0, 0);
+			int pos1D = start.x + gScene.m_Resolution.GetResX() * start.y + gScene.m_Resolution.GetResX() * gScene.m_Resolution.GetResY() * start.z;
+			float normalizedDensity = (m_pDensityBuffer[pos1D] - gScene.m_IntensityRange.GetMin()) / gScene.m_IntensityRange.GetRange();
+			float opacity = gScene.m_TransferFunctions.m_Opacity.F(normalizedDensity).r;
+			start.w = (int)(opacity * 100 + 1);
+			result[pos1D] = start.w;
+			queue.push(start);
+		}
+		else if (light.m_T == 1) { // Background light
+			for (int x = 0; x < gScene.m_Resolution.GetResX(); x++) {
+				for (int y = 0; y < gScene.m_Resolution.GetResY(); y++) {
+					for (int z = 0; z < gScene.m_Resolution.GetResZ(); z++) {
+						// Check if this is a point along the edge
+						if (x == 0 || x == gScene.m_Resolution.GetResX() - 1
+							|| y == 0 || y == gScene.m_Resolution.GetResY() - 1
+							|| z == 0 || z == gScene.m_Resolution.GetResZ() - 1) {
+							Vec4i start = Vec4i(x, y, z, 0);
+							int pos1D = start.x + gScene.m_Resolution.GetResX() * start.y + gScene.m_Resolution.GetResX() * gScene.m_Resolution.GetResY() * start.z;
+							float normalizedDensity = (m_pDensityBuffer[pos1D] - gScene.m_IntensityRange.GetMin()) / gScene.m_IntensityRange.GetRange();
+							float opacity = gScene.m_TransferFunctions.m_Opacity.F(normalizedDensity).r;
+							start.w = (int)(opacity * 100 + 1);
+							result[pos1D] = start.w;
+							queue.push(start);
+						}
+					}
+				}
+			}
+		}
+		else { // Unknown type. skip
+			continue;
+		}
+
+		int i = 1;
+
+		while (!queue.empty()) {
+			Vec4i point = queue.top();
+			queue.pop();
+			//std::cout << "Point: " << point.x << ", " << point.y << ", " << point.z << ", " << point.w << ". Result: " << result[pos1D] << std::endl;
+
+			if (i++ % (gScene.m_Resolution.GetNoElements() / 100) == 0)
+				std::cout << "i: " << i << " of " << gScene.m_Resolution.GetNoElements() << " = " << ((int)((float)i / gScene.m_Resolution.GetNoElements() * 10000) / 100.0f) << ". Point: " << point.x << ", " << point.y << ", " << point.z << ". Value: " << point.w << std::endl;
+
+			for (int x = -1; x < 2; x++) {
+				for (int y = -1; y < 2; y++) {
+					for (int z = -1; z < 2; z++) {
+						Vec4i newPoint = Vec4i(point.x + x, point.y + y, point.z + z, point.w);
+						int pos1D = newPoint.x + gScene.m_Resolution.GetResX() * newPoint.y + gScene.m_Resolution.GetResX() * gScene.m_Resolution.GetResY() * newPoint.z;
+						//std::cout << "newPoint: " << point.x << ", " << point.y << ", " << point.z << ", " << point.w << ". Result: " << result[pos1D] << std::endl;
+						// Check if we have a usable point. Otherwise continue to the next point
+						if (newPoint.x < 0 || newPoint.x >= gScene.m_Resolution.GetResX()
+							|| newPoint.y < 0 || newPoint.y >= gScene.m_Resolution.GetResY()
+							|| newPoint.z < 0 || newPoint.z >= gScene.m_Resolution.GetResZ()
+							|| result[pos1D] != -1)
+							continue;
+
+						float normalizedDensity = (m_pDensityBuffer[pos1D] - gScene.m_IntensityRange.GetMin()) / gScene.m_IntensityRange.GetRange();
+						float opacity = gScene.m_TransferFunctions.m_Opacity.F(normalizedDensity).r;
+
+						// Some function to map opacity to step size. Could emulating stepsizes of woodcock more closely help?
+						newPoint.w += (int)(opacity * 100 + 1);
+
+						// Store the result in an array
+						result[pos1D] = newPoint.w;
+
+						// Add new point to the queue
+						queue.push(newPoint);
+					}
+				}
+			}
+		}
+	}
+
+	/*for (int i = 0; i < gScene.m_Resolution.GetNoElements(); i++) {
+		std::cout << "index: " << i << ", result: " + std::to_string(result[i]) << std::endl;
+	}*/
+}
+
 void QRenderThread::OnUpdateCamera(void)
 {
 	QMutexLocker Locker(&gSceneMutex);
@@ -694,6 +874,19 @@ void QRenderThread::OnUpdateLighting(void)
 		BackgroundLight.Update(gScene.m_BoundingBox);
 
 		gScene.m_Lighting.AddLight(BackgroundLight);
+
+		// TODO: remove printing of text
+		std::cout << "name: backgroundTop, Intensity: " << gLighting.Background().GetIntensity() 
+			<< ", Color(RGB): " << gLighting.Background().GetTopColor().redF() << ", " << gLighting.Background().GetTopColor().greenF() << ", " << gLighting.Background().GetTopColor().blueF() 
+			<< ", ColorFINAL(RGB): " << BackgroundLight.m_ColorTop.r << ", " << BackgroundLight.m_ColorTop.g << ", " << BackgroundLight.m_ColorTop.b << std::endl;
+
+		std::cout << "name: backgroundMiddle, Intensity: " << gLighting.Background().GetIntensity()
+			<< ", Color(RGB): " << gLighting.Background().GetMiddleColor().redF() << ", " << gLighting.Background().GetMiddleColor().greenF() << ", " << gLighting.Background().GetMiddleColor().blueF()
+			<< ", ColorFINAL(RGB): " << BackgroundLight.m_ColorMiddle.r << ", " << BackgroundLight.m_ColorMiddle.g << ", " << BackgroundLight.m_ColorMiddle.b << std::endl;
+
+		std::cout << "name: backgroundBottom, Intensity: " << gLighting.Background().GetIntensity()
+			<< ", Color(RGB): " << gLighting.Background().GetBottomColor().redF() << ", " << gLighting.Background().GetBottomColor().greenF() << ", " << gLighting.Background().GetBottomColor().blueF()
+			<< ", ColorFINAL(RGB): " << BackgroundLight.m_ColorBottom.r << ", " << BackgroundLight.m_ColorBottom.g << ", " << BackgroundLight.m_ColorBottom.b << std::endl;
 	}
 
 	for (int i = 0; i < gLighting.GetLights().size(); i++)
@@ -709,6 +902,8 @@ void QRenderThread::OnUpdateLighting(void)
 		AreaLight.m_Height		= Light.GetHeight();
 		AreaLight.m_Distance	= Light.GetDistance();
 		AreaLight.m_Color		= Light.GetIntensity() * CColorRgbHdr(Light.GetColor().redF(), Light.GetColor().greenF(), Light.GetColor().blueF());
+
+		std::cout << "name: " << Light.GetName().toUtf8().constData() << ", Intensity: " << Light.GetIntensity() << ", Color(RGB): " << Light.GetColor().redF() << ", " << Light.GetColor().greenF() << ", " << Light.GetColor().blueF() << ", ColorFINAL(RGB): " << AreaLight.m_Color.r << ", " << AreaLight.m_Color.g << ", " << AreaLight.m_Color.b << std::endl;
 
 		AreaLight.Update(gScene.m_BoundingBox);
 
@@ -757,3 +952,45 @@ void KillRenderThread(void)
 	gpRenderThread = NULL;
 }
 
+void QRenderThread::CreateIlluminanceTexture() {
+	CScene SceneCopy = gScene;
+
+	int SizeIlluminance = SceneCopy.m_Resolution.GetNoElements() * sizeof(float);
+	float* pIlluminanceTexture;
+	pIlluminanceTexture = (float *)malloc(SizeIlluminance);
+
+	CreateIlluminanceTextureCore(SceneCopy, pIlluminanceTexture);
+
+	// Store Illuminance texture
+	unsigned __int64 now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	std::string filePath = "../exposure-render.release110/Source/Examples/illuminance/volume" + std::to_string(now) + ".mhd";
+	std::string filePathRaw = "../exposure-render.release110/Source/Examples/illuminance/volume" + std::to_string(now) + ".raw";
+	std::chrono::system_clock::now().time_since_epoch();
+	
+	// Convert the c-style image to a vtkImageData
+	vtkSmartPointer<vtkImageImport> imageImport =
+		vtkSmartPointer<vtkImageImport>::New();
+	imageImport->SetDataSpacing(1, 1, 1);
+	imageImport->SetDataOrigin(0, 0, 0);
+	imageImport->SetWholeExtent(0, SceneCopy.m_Resolution.GetResX() - 1, 0, SceneCopy.m_Resolution.GetResY() - 1, 0, SceneCopy.m_Resolution.GetResZ() - 1);
+	imageImport->SetDataExtentToWholeExtent();
+	imageImport->SetDataScalarTypeToFloat();
+	imageImport->SetNumberOfScalarComponents(1);
+	imageImport->SetImportVoidPointer(pIlluminanceTexture);
+	imageImport->Update();
+
+	vtkSmartPointer<vtkImageCast> castFilter =
+		vtkSmartPointer<vtkImageCast>::New();
+	castFilter->SetOutputScalarTypeToFloat();
+	castFilter->SetInputConnection(imageImport->GetOutputPort());
+	castFilter->Update();
+
+	vtkSmartPointer<vtkMetaImageWriter> writer =
+		vtkSmartPointer<vtkMetaImageWriter>::New();
+	writer->SetInputConnection(castFilter->GetOutputPort());
+	writer->SetFileName(filePath.c_str());
+	writer->SetRAWFileName(filePathRaw.c_str());
+	writer->Write();
+
+	std::cout << "Created Illuminance Volume at: " << filePath << std::endl;
+}

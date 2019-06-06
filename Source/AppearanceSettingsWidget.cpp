@@ -47,6 +47,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_AlgorithmType.addItem("Multiple Scattering", 1);
 	m_AlgorithmType.addItem("Pre-Random", 2);
 	m_AlgorithmType.addItem("Opacity Gradient", 3);
+	m_AlgorithmType.addItem("Flood Fill", 4);
 	m_MainLayout.addWidget(&m_AlgorithmType, 1, 1, 1, 2);
 
 	QObject::connect(&m_AlgorithmType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetAlgorithmType(int)));

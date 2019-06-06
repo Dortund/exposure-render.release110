@@ -692,7 +692,7 @@ void InitOpacityGradient(CScene& Scene) {
 	HandleCudaError(cudaMemcpyToArray(gpOpacityArrayDummy, 0, 0, Opacity, TF_NO_SAMPLES * sizeof(float), cudaMemcpyHostToDevice));
 	HandleCudaError(cudaBindTextureToArray(gTexOpacityDummy, gpOpacityArrayDummy, ChannelDescDummy));*/
 
-	cout << "Getting opacity gradient magnitude: " << TmrinitGradient.ElapsedTime() << endl;
+	cout << "Getting opacity gradient magnitude: " << TmrinitGradient.ElapsedTime() << " ms" << endl;
 
 	int nrPoints = 150000;
 
@@ -740,7 +740,7 @@ void overridDensity(Vec3i* points, CResolution3D resolution, int nrPoits) {
 
 	BindDensityBuffer(pFakeDensityBuffer, Extent);
 
-	cout << "Replacing Texutre: " << TmrReplaceTexture.ElapsedTime() << endl;
+	cout << "Replacing Texture: " << TmrReplaceTexture.ElapsedTime() << " ms" << endl;
 }
 
 Vec3i* getPointsOpacityGradientMagnitudeBased(float* opacityGradientMagnitudes, CResolution3D resolution, int nrPoints) {
@@ -779,7 +779,7 @@ Vec3i* getPointsOpacityGradientMagnitudeBased(float* opacityGradientMagnitudes, 
 		pdfY.at(x) = pdfYcur;
 	}
 
-	cout << "Making PDF's: " << TmrMakePdf.ElapsedTime() << endl;
+	cout << "Making PDF's: " << TmrMakePdf.ElapsedTime() << " ms" << endl;
 
 	/*cout << fixed;
 	for (int i = 0; i < resolution.GetResX(); i++) {
@@ -978,4 +978,74 @@ void random_ints(int* a, int N)
 	int i;
 	for (i = 0; i < N; ++i)
 		a[i] = rand();
+}
+
+void CreateIlluminanceTextureCore(CScene& Scene, float* pIlluminanceBuffer) {
+	
+	CResolution3D resolution = Scene.m_Resolution;
+
+	/*CCudaRandomBuffer2D* pDevRandom1 = NULL;
+	CCudaRandomBuffer2D random1;
+	random1.Resize(CResolution2D(resolution.GetResX(), resolution.GetResY()));
+
+	HandleCudaError(cudaMalloc(&pDevRandom1, sizeof(CCudaRandomBuffer2D)));
+	HandleCudaError(cudaMemcpy(pDevRandom1, &random1, sizeof(CCudaRandomBuffer2D), cudaMemcpyHostToDevice));
+	random1.Free();
+
+	CCudaRandomBuffer2D* pDevRandom2 = NULL;
+	CCudaRandomBuffer2D random2;
+	random2.Resize(CResolution2D(resolution.GetResX(), resolution.GetResY()));
+
+	HandleCudaError(cudaMalloc(&pDevRandom2, sizeof(CCudaRandomBuffer2D)));
+	HandleCudaError(cudaMemcpy(pDevRandom2, &random2, sizeof(CCudaRandomBuffer2D), cudaMemcpyHostToDevice));
+	random2.Free();*/
+
+	int sizeSeeds = resolution.GetNoElements() * sizeof(unsigned int);
+	unsigned int* seeds1;
+	seeds1 = (unsigned int *)malloc(sizeSeeds);
+	for (int i = 0; i < resolution.GetNoElements(); i++) {
+		seeds1[i] = rand();
+	}
+	unsigned int* pDevSeeds1;
+	HandleCudaError(cudaMalloc(&pDevSeeds1, sizeSeeds));
+	HandleCudaError(cudaMemcpy(pDevSeeds1, seeds1, sizeSeeds, cudaMemcpyHostToDevice));
+
+	unsigned int* seeds2;
+	seeds2 = (unsigned int *)malloc(sizeSeeds);
+	for (int i = 0; i < resolution.GetNoElements(); i++) {
+		seeds2[i] = rand();
+	}
+	unsigned int* pDevSeeds2;
+	HandleCudaError(cudaMalloc(&pDevSeeds2, sizeSeeds));
+	HandleCudaError(cudaMemcpy(pDevSeeds2, seeds1, sizeSeeds, cudaMemcpyHostToDevice));
+
+	CScene* pDevScene = NULL;
+	HandleCudaError(cudaMalloc(&pDevScene, sizeof(CScene)));
+	HandleCudaError(cudaMemcpy(pDevScene, &Scene, sizeof(CScene), cudaMemcpyHostToDevice));
+
+	int SizeIlluminance = resolution.GetNoElements() * sizeof(float);
+	float* pDevIlluminanceTexture;
+	HandleCudaError(cudaMalloc(&pDevIlluminanceTexture, SizeIlluminance));
+
+	for (int i = 0; i < 1; i++) {
+		CCudaTimer timerIlluminanceRound;
+		std::cout << "Working on iteration: " << i << std::endl;
+		//GetIlluminationTexture(pDevScene, resolution, pDevIlluminanceTexture, pDevRandom1, pDevRandom2);
+		GetIlluminationTexture(pDevScene, resolution, pDevIlluminanceTexture, pDevSeeds1, pDevSeeds2);
+
+
+		std::cout << "Pass time: " << timerIlluminanceRound.ElapsedTime() << " ms" << std::endl;
+	}
+
+	HandleCudaError(cudaMemcpy(pIlluminanceBuffer, pDevIlluminanceTexture, SizeIlluminance, cudaMemcpyDeviceToHost));
+
+	//free memory
+	//HandleCudaError(cudaFree(pDevRandom1));
+	//HandleCudaError(cudaFree(pDevRandom2));
+	HandleCudaError(cudaFree(pDevSeeds1));
+	free(seeds1);
+	HandleCudaError(cudaFree(pDevSeeds2));
+	free(seeds2);
+	HandleCudaError(cudaFree(pDevScene));
+	HandleCudaError(cudaFree(pDevIlluminanceTexture));
 }

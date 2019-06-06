@@ -97,6 +97,10 @@ void CMainWindow::CreateMenus(void)
 
     m_pFileMenu->addSeparator();
 
+	m_pFileMenu->addAction(GetIcon("image-export"), "Create Illumination Volume", this, SLOT(OnCreateIlluminationVolume()));
+
+	m_pFileMenu->addSeparator();
+
 	m_pFileMenu->addAction(GetIcon("star"), "Welcome screen", this, SLOT(ShowStartupDialog()));
 
 	m_pFileMenu->addSeparator();
@@ -335,6 +339,18 @@ void CMainWindow::OnSaveImage(void)
 	gpRenderThread->PauseRendering(true);
 
 	SaveImage((unsigned char*)gpRenderThread->GetRenderImage(), gScene.m_Camera.m_Film.m_Resolution.GetResX(), gScene.m_Camera.m_Film.m_Resolution.GetResY());
+
+	gpRenderThread->PauseRendering(false);
+}
+
+void CMainWindow::OnCreateIlluminationVolume(void)
+{
+	if (!gpRenderThread)
+		return;
+
+	gpRenderThread->PauseRendering(true);
+
+	gpRenderThread->CreateIlluminanceTexture();
 
 	gpRenderThread->PauseRendering(false);
 }

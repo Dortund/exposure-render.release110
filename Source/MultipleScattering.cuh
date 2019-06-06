@@ -57,7 +57,8 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 	Vec3f Pe, Pl;
 	
 	CLight* pLight = NULL;
-	
+	float test = 1;
+	bool testing = false;
 	for (int i = 0; i < pScene->m_MaxBounces; i++)
 	//for (int i = 0; !Terminate(Tr, RNG); i++)
 	//for (int i = 0; i < 1; i++)
@@ -90,6 +91,10 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 				case 0:
 				{
 					Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::Brdf, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
+					if (testing && (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test)) {
+						pView->m_FrameEstimateXyza.Set(CColorXyza((i + 1) / (float)pScene->m_MaxBounces, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test), 0), X, Y);
+						return;
+					}
 					break;
 				}
 
@@ -97,6 +102,10 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 				case 1:
 				{
 					Lv += Tr * 0.5f * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
+					if (testing && (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test)) {
+						pView->m_FrameEstimateXyza.Set(CColorXyza((i + 1) / (float)pScene->m_MaxBounces, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test), 0), X, Y);
+						return;
+					}
 					break;
 				}
 
@@ -112,6 +121,11 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 					else
 						Lv += Tr * 0.5f * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
 
+					if (testing && (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test)) {
+						pView->m_FrameEstimateXyza.Set(CColorXyza((i+1)/ (float)pScene->m_MaxBounces, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test), 0), X, Y);
+						return;
+					}
+
 					break;
 				}
 			}
@@ -120,6 +134,14 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 		{
 			if (NearestLight(pScene, CRay(Re.m_O, Re.m_D, 0.0f, INF_MAX), Li, Pl, pLight)) {
 				Lv += Tr * Li;
+				if (testing && (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test)) {
+					pView->m_FrameEstimateXyza.Set(CColorXyza((i + 1) / (float)pScene->m_MaxBounces, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test), 1), X, Y);
+					return;
+				}
+			}
+			if (testing && (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test)) {
+				pView->m_FrameEstimateXyza.Set(CColorXyza((i + 1) / (float)pScene->m_MaxBounces, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test), 0.5f), X, Y);
+				return;
 			}
 			break;
 		}
@@ -135,25 +157,42 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 		Tr *= INV_4_PI_F;
 
 		if (Terminate(Tr, RNG)) {
+			if (testing && (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test)) {
+				pView->m_FrameEstimateXyza.Set(CColorXyza((i + 1) / (float)pScene->m_MaxBounces, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test), 0.75f), X, Y);
+				return;
+			}
 			break;
 		}
 	}
 
 	__syncthreads();
 	
-	/*float test = 1;
-	if (Lv.c[0] >= test && Lv.c[1] >= test && Lv.c[2] >= test)
-		pView->m_FrameEstimateXyza.Set(CColorXyza(test), X, Y);
-	else
-		pView->m_FrameEstimateXyza.Set(CColorXyza(0), X, Y);*/
-	
-	//pView->m_FrameEstimateXyza.Set(CColorXyza(Tr.c[0], Tr.c[0], Tr.c[0]), X, Y);
-	//pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
+	if (testing) {
+		if (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test) {
+			//pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0] / 10.0f, Lv.c[1] / 10.0f, Lv.c[2] / 10.0f), X, Y);
+			//pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
+			pView->m_FrameEstimateXyza.Set(CColorXyza(1, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test), 0.25f), X, Y);
+		}
+		else
+			pView->m_FrameEstimateXyza.Set(CColorXyza(0), X, Y);
+	}
+	else {
+		/*if (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test) {
+			pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0] / 10.0f, Lv.c[1] / 10.0f, Lv.c[2] / (10.0f * test)), X, Y);
+			//pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
+			//pView->m_FrameEstimateXyza.Set(CColorXyza(1, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / 10.0f, 0.25f), X, Y);
+		}
+		else
+			pView->m_FrameEstimateXyza.Set(CColorXyza(0), X, Y);*/
 
-	pView->m_FrameEstimateXyza.Set(CColorXyza(Clamp(Lv.c[0], 0.0, 1.0f), Clamp(Lv.c[1], 0.0, 1.0f), Clamp(Lv.c[2], 0.0, 1.0f)), X, Y);
+		//pView->m_FrameEstimateXyza.Set(CColorXyza(Tr.c[0], Tr.c[0], Tr.c[0]), X, Y);
+		pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
 
-	//float4 ColorXYZA = make_float4(Lv.c[0], Lv.c[1], Lv.c[2], 0.0f);
-//	surf2Dwrite(ColorXYZA, gSurfRunningEstimateXyza, X * sizeof(float4), Y);
+		//pView->m_FrameEstimateXyza.Set(CColorXyza(Clamp(Lv.c[0], 0.0, 1.0f), Clamp(Lv.c[1], 0.0, 1.0f), Clamp(Lv.c[2], 0.0, 1.0f)), X, Y);
+
+		//float4 ColorXYZA = make_float4(Lv.c[0], Lv.c[1], Lv.c[2], 0.0f);
+	//	surf2Dwrite(ColorXYZA, gSurfRunningEstimateXyza, X * sizeof(float4), Y);
+	}
 }
 
 //void MultipleScattering(CScene* pScene, CScene* pDevScene, int* pSeeds)

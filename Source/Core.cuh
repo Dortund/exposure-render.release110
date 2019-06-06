@@ -50,3 +50,4 @@ extern "C" curandState* InitStates(int N);
 extern "C" void random_ints(int* a, int N);
 extern "C" void overridDensity(Vec3i* points, CResolution3D resolution, int nrPoits);
 extern "C" Vec3i* getPointsOpacityGradientMagnitudeBased(float* opacityGradientMagnitudes, CResolution3D resolution, int nrPoints);
+extern "C" void CreateIlluminanceTextureCore(CScene& Scene, float* pIlluminanceBuffer);

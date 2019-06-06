@@ -135,7 +135,17 @@ KERNEL void KrnlSingleScattering(CScene* pScene, CCudaView* pView)
 			Lv = Li;
 	}
 
+	/*float test = 10;
+	if (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test) {
+		float res = max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test);
+		pView->m_FrameEstimateXyza.Set(CColorXyza(res), X, Y);
+	}
+	else {
+		pView->m_FrameEstimateXyza.Set(CColorXyza(0), X, Y);
+	}*/
+
 	pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
+	
 	//float r = curand_uniform(&localState);
 	//pView->m_FrameEstimateXyza.Set(CColorXyza(r, r, r), X, Y);
 }
