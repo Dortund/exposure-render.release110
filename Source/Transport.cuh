@@ -20,7 +20,7 @@ DEV CColorXyz EstimateDirectLight(CScene* pScene, const CVolumeShader::EType& Ty
 {
 	CColorXyz Ld = SPEC_BLACK, Li = SPEC_BLACK, F = SPEC_BLACK;
 	
-	CVolumeShader Shader(Type, N, Wo, GetDiffuse(Density).ToXYZ(), GetSpecular(Density).ToXYZ(), 2.5f/*pScene->m_IOR*/, GetRoughness(Density));
+	CVolumeShader Shader(Type, N, Wo, GetDiffuse(Density).ToXYZ(), GetSpecular(Density).ToXYZ(), 2.5f, GetRoughness(Density));
 	
 	CRay Rl; 
 
@@ -28,16 +28,22 @@ DEV CColorXyz EstimateDirectLight(CScene* pScene, const CVolumeShader::EType& Ty
 	
 	Vec3f Wi, P, Pl;
 
+	// Take a sample of the light.
+	// Also generate a ray 'Rl from a point on the light towards the scattering point
+	// Also register the PDF for the light
+	// 'LS' ??
  	Li = Light.SampleL(Pe, Rl, LightPdf, LS);
 	
 	CLight* pLight = NULL;
 
+	// Create vector pointing from scattering point to point on light (direction already normalized)
 	Wi = -Rl.m_D; 
 
 	F = Shader.F(Wo, Wi); 
 
 	ShaderPdf = Shader.Pdf(Wo, Wi);
 	
+	// if the light has a color, PDF's are greater then zero and there is a free enough path between the light point and scattering point
 	if (!Li.IsBlack() && ShaderPdf > 0.0f && LightPdf > 0.0f && !FreePathRM(Rl, RNG))
 	{
 		const float WeightMIS = PowerHeuristic(1.0f, LightPdf, 1.0f, ShaderPdf);

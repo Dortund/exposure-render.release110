@@ -531,17 +531,18 @@ bool QRenderThread::Load(QString& FileName)
 
 	// Try to save our own file
 	// adapt path !
-	std::string filePath = "../exposure-render.release110/Source/Examples/testFile2.mhd";
-	std::string filePathRaw = "../exposure-render.release110/Source/Examples/testFile2.raw";
+	std::string filePath = "../exposure-render.release110/Source/Examples/testFile5.mhd";
+	std::string filePathRaw = "../exposure-render.release110/Source/Examples/testFile5.raw";
 
 	struct stat buffer;
 	if (!((stat(filePath.c_str(), &buffer) == 0))) {
+		/*
 		// Create an image
 		const int width = 28;
 		const int height = 28;
 		const int depth = 28;
 
-		unsigned short img[width*height*depth];
+		short img[width*height*depth];
 		for (int row = 0; row < height; row++) {
 			for (int col = 0; col < width; col++) {
 				for (int dep = 0; dep < depth; dep++) {
@@ -562,6 +563,60 @@ bool QRenderThread::Load(QString& FileName)
 				}
 			}
 		}
+		*/
+
+		// Create an image
+		const int size = 128;
+		const int width = size;
+		const int height = size;
+		const int depth = size;
+		int wt = 8;
+
+		//short img[width*height*depth];
+		short* img;
+		img = (short*)malloc(width*height*depth*sizeof(short));
+
+		for (int row = 0; row < height; row++) {
+			for (int col = 0; col < width; col++) {
+				for (int dep = 0; dep < depth; dep++) {
+					int id = col + row * width + dep * width * height;
+					
+					img[id] = 0;
+
+					short voxelIntensity = 0;
+
+					if (dep > 0) {
+						const bool wall = (row < wt || row >= size - wt) || (col < wt || col >= size - wt) || dep >= size - wt;
+
+						if (wall)
+							img[id] = 100;
+
+						const bool floor = row < wt;
+
+						if (floor)
+							img[id] = 50;
+					}
+
+					
+
+					/*
+					if ((row >= 3 * height / 7 && row < 4 * height / 7)
+						|| (col >= 3 * width / 7 && col < 4 * width / 7)
+						|| (dep >= 3 * depth / 7 && dep < 4 * depth / 7)
+						) {
+						img[id] = 100;
+					}
+					if (dep == depth / 2
+						&& (row >= 5 * height / 7 && row < 6 * height / 7)
+						&& ((col >= 1 * width / 7 && col < 2 * width / 7) || (col >= 5 * width / 7 && col < 6 * width / 7))
+						) {
+						img[id] = 50;
+					}
+					*/
+				}
+			}
+		}
+
 
 		// Convert the c-style image to a vtkImageData
 		vtkSmartPointer<vtkImageImport> imageImport =
@@ -570,6 +625,7 @@ bool QRenderThread::Load(QString& FileName)
 		imageImport->SetDataOrigin(0, 0, 0);
 		imageImport->SetWholeExtent(0, width - 1, 0, height - 1, 0, depth - 1);
 		imageImport->SetDataExtentToWholeExtent();
+		//imageImport->SetDataScalarTypeToUnsignedShort();
 		imageImport->SetDataScalarTypeToShort();
 		imageImport->SetNumberOfScalarComponents(1);
 		imageImport->SetImportVoidPointer(img);
@@ -578,6 +634,7 @@ bool QRenderThread::Load(QString& FileName)
 		vtkSmartPointer<vtkImageCast> castFilter =
 			vtkSmartPointer<vtkImageCast>::New();
 		castFilter->SetOutputScalarTypeToShort();
+		//castFilter->SetOutputScalarTypeToUnsignedShort();
 		castFilter->SetInputConnection(imageImport->GetOutputPort());
 		castFilter->Update();
 

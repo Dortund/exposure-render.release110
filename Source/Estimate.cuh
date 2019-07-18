@@ -49,6 +49,10 @@ KERNEL void KrnlEstimateCopy(CCudaView* pView)
 		return;
 
 	pView->m_RunningEstimateXyza.Set(pView->m_FrameEstimateXyza.Get(X, Y), X, Y);
+
+	/*if (pView->m_FrameEstimateXyza.Get(X, Y).c[1] > pView->m_RunningEstimateXyza.Get(X, Y).c[1]) {
+		pView->m_RunningEstimateXyza.Set(pView->m_FrameEstimateXyza.Get(X, Y), X, Y);
+	}*/
 }
 
 void EstimateCopy(CScene* pScene, CScene* pDevScene, CCudaView* pDevView)

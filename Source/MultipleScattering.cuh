@@ -40,7 +40,6 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 	if (X >= gFilmWidth || Y >= gFilmHeight || PID >= gFilmNoPixels)
 		return;
 	
-	//CRNG RNG(&pSeeds[2 * PID], &pSeeds[2 * PID + 1]);
 	CRNG RNG(pView->m_RandomSeeds1.GetPtr(X, Y), pView->m_RandomSeeds2.GetPtr(X, Y));
 
 	CColorXyz Lv = SPEC_BLACK, Li = SPEC_BLACK, Tr = SPEC_WHITE;
@@ -57,33 +56,15 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 	Vec3f Pe, Pl;
 	
 	CLight* pLight = NULL;
-	float test = 1;
-	bool testing = false;
+
 	for (int i = 0; i < pScene->m_MaxBounces; i++)
-	//for (int i = 0; !Terminate(Tr, RNG); i++)
-	//for (int i = 0; i < 1; i++)
 	{
 		if (SampleDistanceRM(Re, RNG, Pe))
 		{
-			/*if (NearestLight(pScene, CRay(Re.m_O, Re.m_D, 0.0f, (Pe - Re.m_O).Length()), Li, Pl, pLight))
-			{
-				pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
-				//float4 ColorXYZA = make_float4(Lv.c[0], Lv.c[1], Lv.c[2], 0.0f);
-				//				surf2Dwrite(ColorXYZA, gSurfRunningEstimateXyza, X * sizeof(float4), Y);
-				
-				return;
-			}*/
-
 			const float D = GetNormalizedIntensity(Pe);
 
 			Lv += Tr * GetEmission(D).ToXYZ();
 
-			// original
-			//Lv += Tr * 0.5f * UniformSampleOneLight(pScene, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
-			// fixed
-			//Lv += Tr * 0.5f * UniformSampleOneLight(pScene, CVolumeShader::Brdf, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
-
-			// from single
 			// Switch Depending on the shading type
 			switch (pScene->m_ShadingType)
 			{
@@ -91,10 +72,6 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 				case 0:
 				{
 					Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::Brdf, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
-					if (testing && (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test)) {
-						pView->m_FrameEstimateXyza.Set(CColorXyza((i + 1) / (float)pScene->m_MaxBounces, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test), 0), X, Y);
-						return;
-					}
 					break;
 				}
 
@@ -102,10 +79,6 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 				case 1:
 				{
 					Lv += Tr * 0.5f * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
-					if (testing && (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test)) {
-						pView->m_FrameEstimateXyza.Set(CColorXyza((i + 1) / (float)pScene->m_MaxBounces, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test), 0), X, Y);
-						return;
-					}
 					break;
 				}
 
@@ -113,53 +86,45 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 				case 2:
 				{
 					const float GradMag = GradientMagnitude(Pe) * gIntensityInvRange;
-
 					const float PdfBrdf = (1.0f - __expf(-pScene->m_GradientFactor * GradMag));
-
 					if (RNG.Get1() < PdfBrdf)
 						Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::Brdf, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
 					else
 						Lv += Tr * 0.5f * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
 
-					if (testing && (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test)) {
-						pView->m_FrameEstimateXyza.Set(CColorXyza((i+1)/ (float)pScene->m_MaxBounces, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test), 0), X, Y);
-						return;
-					}
-
 					break;
 				}
+			}
+
+
+			CVolumeShader Shader(CVolumeShader::Phase, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+			Vec3f Wi;
+			float ShaderPdf = 1.0f;
+			CColorXyz F = SPEC_BLACK;
+			CLightingSample LS;
+			LS.LargeStep(RNG);
+			F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+			Re.m_O = Pe;
+			//Re.m_D = UniformSampleSphere(RNG.Get2());
+			Re.m_D = Wi;
+			Re.m_MinT = 0.0f;
+			Re.m_MaxT = INF_MAX;
+
+			// Adjusting throughput for sampling from a sphere
+			//Tr *= INV_4_PI_F;
+			Tr *= F * INV_4_PI_F;
+
+			if (Terminate(Tr, RNG)) {
+				break;
 			}
 		}
 		else
 		{
 			if (NearestLight(pScene, CRay(Re.m_O, Re.m_D, 0.0f, INF_MAX), Li, Pl, pLight)) {
-				Lv += Tr * Li;
-				if (testing && (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test)) {
-					pView->m_FrameEstimateXyza.Set(CColorXyza((i + 1) / (float)pScene->m_MaxBounces, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test), 1), X, Y);
-					return;
-				}
-			}
-			if (testing && (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test)) {
-				pView->m_FrameEstimateXyza.Set(CColorXyza((i + 1) / (float)pScene->m_MaxBounces, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test), 0.5f), X, Y);
-				return;
-			}
-			break;
-		}
-
-		
-		
-		Re.m_O		= Pe;
-		Re.m_D		= UniformSampleSphere(RNG.Get2());
-		Re.m_MinT	= 0.0f;
-		Re.m_MaxT	= INF_MAX;
-
-		// Adjusting weight for sampling from a sphere
-		Tr *= INV_4_PI_F;
-
-		if (Terminate(Tr, RNG)) {
-			if (testing && (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test)) {
-				pView->m_FrameEstimateXyza.Set(CColorXyza((i + 1) / (float)pScene->m_MaxBounces, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test), 0.75f), X, Y);
-				return;
+				//Lv += Tr * Li;
+				if (i==0)
+					Lv += Tr * Li;
 			}
 			break;
 		}
@@ -167,32 +132,7 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 
 	__syncthreads();
 	
-	if (testing) {
-		if (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test) {
-			//pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0] / 10.0f, Lv.c[1] / 10.0f, Lv.c[2] / 10.0f), X, Y);
-			//pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
-			pView->m_FrameEstimateXyza.Set(CColorXyza(1, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / (10.0f * test), 0.25f), X, Y);
-		}
-		else
-			pView->m_FrameEstimateXyza.Set(CColorXyza(0), X, Y);
-	}
-	else {
-		/*if (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test) {
-			pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0] / 10.0f, Lv.c[1] / 10.0f, Lv.c[2] / (10.0f * test)), X, Y);
-			//pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
-			//pView->m_FrameEstimateXyza.Set(CColorXyza(1, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / 10.0f, 0.25f), X, Y);
-		}
-		else
-			pView->m_FrameEstimateXyza.Set(CColorXyza(0), X, Y);*/
-
-		//pView->m_FrameEstimateXyza.Set(CColorXyza(Tr.c[0], Tr.c[0], Tr.c[0]), X, Y);
-		pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
-
-		//pView->m_FrameEstimateXyza.Set(CColorXyza(Clamp(Lv.c[0], 0.0, 1.0f), Clamp(Lv.c[1], 0.0, 1.0f), Clamp(Lv.c[2], 0.0, 1.0f)), X, Y);
-
-		//float4 ColorXYZA = make_float4(Lv.c[0], Lv.c[1], Lv.c[2], 0.0f);
-	//	surf2Dwrite(ColorXYZA, gSurfRunningEstimateXyza, X * sizeof(float4), Y);
-	}
+	pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
 }
 
 //void MultipleScattering(CScene* pScene, CScene* pDevScene, int* pSeeds)

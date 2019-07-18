@@ -93,11 +93,11 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 
 	m_MainLayout.addWidget(new QLabel("Primary Step Size"), 5, 0);
 
-	m_StepSizePrimaryRaySlider.setRange(1.0, 10.0);
+	m_StepSizePrimaryRaySlider.setRange(0.5, 10.0);
 
 	m_MainLayout.addWidget(&m_StepSizePrimaryRaySlider, 5, 1);
 
-	m_StepSizePrimaryRaySpinner.setRange(1.0, 10.0);
+	m_StepSizePrimaryRaySpinner.setRange(0.5, 10.0);
 	m_StepSizePrimaryRaySpinner.setDecimals(2);
 
 	m_MainLayout.addWidget(&m_StepSizePrimaryRaySpinner, 5, 2);
@@ -108,11 +108,11 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 
 	m_MainLayout.addWidget(new QLabel("Secondary Step Size"), 6, 0);
 
-	m_StepSizeSecondaryRaySlider.setRange(1.0, 10.0);
+	m_StepSizeSecondaryRaySlider.setRange(0.5, 10.0);
 
 	m_MainLayout.addWidget(&m_StepSizeSecondaryRaySlider, 6, 1);
 
-	m_StepSizeSecondaryRaySpinner.setRange(1.0, 10.0);
+	m_StepSizeSecondaryRaySpinner.setRange(0.5, 10.0);
 	m_StepSizeSecondaryRaySpinner.setDecimals(2);
 
 	m_MainLayout.addWidget(&m_StepSizeSecondaryRaySpinner, 6, 2);
