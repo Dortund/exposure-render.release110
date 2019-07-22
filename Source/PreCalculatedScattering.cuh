@@ -549,7 +549,7 @@ KERNEL void KrnlCreateIlluminationTexture(CScene* pScene, float* pDevIlluminatio
 		// Adjusting weight for sampling from a sphere
 		Tr *= INV_4_PI_F;
 
-		if (Terminate(Tr, RNG)) {
+		if (Terminate(Tr, RNG, 0.5)) {
 			break;
 		}
 
@@ -700,7 +700,7 @@ KERNEL void krnlTestMultipleScattering(CScene* pScene, CCudaView* pView)
 		// Adjusting weight for sampling from a sphere
 		Tr *= INV_4_PI_F;
 
-		if (Terminate(Tr, RNG)) {
+		if (Terminate(Tr, RNG, 0.5)) {
 			if (testing && (Lv.c[0] > test || Lv.c[1] > test || Lv.c[2] > test)) {
 				pView->m_FrameEstimateXyza.Set(CColorXyza((i + 1) / (float)pScene->m_MaxBounces, max(max(Lv.c[0], Lv.c[1]), Lv.c[2]) / range, 0.2f), X, Y);
 				return;

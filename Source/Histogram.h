@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include <vtkIdTypeArray.h>
+
 class QHistogram : public QObject
 {
 	Q_OBJECT
@@ -26,7 +28,7 @@ public:
 	void			SetEnabled(const bool& Enabled);
 	QList<int>&		GetBins(void);
 	void			SetBins(const QList<int>& Bins);
-	void			SetBins(const int* pBins, const int& NoBins);
+	void			SetBins(const vtkIdType* pBins, const int& NoBins);
 	void			CreatePixMap(void);
 	QPixmap*		GetPixMap(void);
 	int				GetMax(void) const;

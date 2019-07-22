@@ -506,16 +506,15 @@ bool QRenderThread::Load(QString& FileName)
 	vtkSmartPointer<vtkImageAccumulate> Histogram = vtkSmartPointer<vtkImageAccumulate>::New();
 
 	Log("Creating histogram", "grid");
-
  	Histogram->SetInputConnection(ImageCast->GetOutputPort());
- 	Histogram->SetComponentExtent(0, 256, 0, 0, 0, 0);
+ 	Histogram->SetComponentExtent(0, 255, 0, 0, 0, 0);
  	Histogram->SetComponentOrigin(gScene.m_IntensityRange.GetMin(), 0, 0);
- 	Histogram->SetComponentSpacing(gScene.m_IntensityRange.GetRange() / 256.0f, 0, 0);
- 	Histogram->IgnoreZeroOn();
+ 	Histogram->SetComponentSpacing((gScene.m_IntensityRange.GetRange() + 0.01) / 256.0f, 0, 0);
+// 	Histogram->IgnoreZeroOn();
  	Histogram->Update();
- 
+
 	// Update the histogram in the transfer function
-	gHistogram.SetBins((int*)Histogram->GetOutput()->GetScalarPointer(), 256);
+	gHistogram.SetBins((vtkIdType*)Histogram->GetOutput()->GetScalarPointer(), 256);
 	
 	gStatus.SetStatisticChanged("Volume", "File", QFileInfo(m_FileName).fileName(), "");
 	gStatus.SetStatisticChanged("Volume", "Bounding Box", "", "");
@@ -531,8 +530,8 @@ bool QRenderThread::Load(QString& FileName)
 
 	// Try to save our own file
 	// adapt path !
-	std::string filePath = "../exposure-render.release110/Source/Examples/testFile5.mhd";
-	std::string filePathRaw = "../exposure-render.release110/Source/Examples/testFile5.raw";
+	std::string filePath = "../exposure-render.release110/Source/Examples/graduallyIncreasingPow.mhd";
+	std::string filePathRaw = "../exposure-render.release110/Source/Examples/graduallyIncreasingPow.raw";
 
 	struct stat buffer;
 	if (!((stat(filePath.c_str(), &buffer) == 0))) {
@@ -542,7 +541,8 @@ bool QRenderThread::Load(QString& FileName)
 		const int height = 28;
 		const int depth = 28;
 
-		short img[width*height*depth];
+		short* img;
+		img = (short*)malloc(width*height*depth*sizeof(short));
 		for (int row = 0; row < height; row++) {
 			for (int col = 0; col < width; col++) {
 				for (int dep = 0; dep < depth; dep++) {
@@ -565,17 +565,15 @@ bool QRenderThread::Load(QString& FileName)
 		}
 		*/
 
-		// Create an image
-		const int size = 128;
+		// Create an Cornell box image
+		/*const int size = 128;
 		const int width = size;
 		const int height = size;
 		const int depth = size;
 		int wt = 8;
 
-		//short img[width*height*depth];
 		short* img;
 		img = (short*)malloc(width*height*depth*sizeof(short));
-
 		for (int row = 0; row < height; row++) {
 			for (int col = 0; col < width; col++) {
 				for (int dep = 0; dep < depth; dep++) {
@@ -596,27 +594,41 @@ bool QRenderThread::Load(QString& FileName)
 						if (floor)
 							img[id] = 50;
 					}
+				}
+			}
+		}*/
 
-					
 
-					/*
-					if ((row >= 3 * height / 7 && row < 4 * height / 7)
-						|| (col >= 3 * width / 7 && col < 4 * width / 7)
-						|| (dep >= 3 * depth / 7 && dep < 4 * depth / 7)
-						) {
-						img[id] = 100;
+		const int size = 128;
+		const int width = size;
+		const int height = size;
+		const int depth = size;
+
+		int currentSum = 0;
+		int density = -5;
+		int itt = 0;
+
+		int target = pow(2, itt);
+
+		short* img;
+		img = (short*)malloc(width*height*depth * sizeof(short));
+		for (int row = 0; row < height; row++) {
+			for (int col = 0; col < width; col++) {
+				for (int dep = 0; dep < depth; dep++) {
+					int id = col + row * width + dep * width * height;
+
+					img[id] = density;
+					currentSum++;
+
+					if (currentSum == target) {
+						itt++;
+						currentSum = 0;
+						density++;
+						target = pow(2, itt);
 					}
-					if (dep == depth / 2
-						&& (row >= 5 * height / 7 && row < 6 * height / 7)
-						&& ((col >= 1 * width / 7 && col < 2 * width / 7) || (col >= 5 * width / 7 && col < 6 * width / 7))
-						) {
-						img[id] = 50;
-					}
-					*/
 				}
 			}
 		}
-
 
 		// Convert the c-style image to a vtkImageData
 		vtkSmartPointer<vtkImageImport> imageImport =

@@ -20,12 +20,12 @@
 #define KRNL_MS_BLOCK_H		8
 #define KRNL_MS_BLOCK_SIZE	KRNL_MS_BLOCK_W * KRNL_MS_BLOCK_H
 
-DEV bool Terminate(CColorXyz& throughput, CRNG &RNG) {
+DEV bool Terminate(CColorXyz& throughput, CRNG &RNG, float p) {
 	if (throughput[0] < 0.01 && throughput[1] < 0.01 && throughput[2] < 0.01) {
-		if (RNG.Get1() > 0.5) {
+		if (RNG.Get1() > p) {
 			return true;
 		}
-		throughput /= 0.5;
+		throughput /= 1 - p;
 	}
 	return false;
 }
@@ -96,34 +96,54 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 				}
 			}
 
+			// Lets see if we can use the same trick for the direction as for calculating the light
+			const float GradMag = GradientMagnitude(Pe) * gIntensityInvRange;
+			const float PdfBrdf = (1.0f - __expf(-pScene->m_GradientFactor * GradMag));
+			if (RNG.Get1() < PdfBrdf) {
+				CVolumeShader Shader(CVolumeShader::Brdf, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+				Vec3f Wi;
+				float ShaderPdf = 1.0f;
+				CColorXyz F = SPEC_BLACK;
+				CLightingSample LS;
+				LS.LargeStep(RNG);
+				F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
 
-			CVolumeShader Shader(CVolumeShader::Phase, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
-			Vec3f Wi;
-			float ShaderPdf = 1.0f;
-			CColorXyz F = SPEC_BLACK;
-			CLightingSample LS;
-			LS.LargeStep(RNG);
-			F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+				Re.m_O = Pe;
+				Re.m_D = Wi;
+				Re.m_MinT = 0.0f;
+				Re.m_MaxT = INF_MAX;
 
-			Re.m_O = Pe;
-			//Re.m_D = UniformSampleSphere(RNG.Get2());
-			Re.m_D = Wi;
-			Re.m_MinT = 0.0f;
-			Re.m_MaxT = INF_MAX;
+				if (!F.IsBlack() && ShaderPdf > 0)
+					Tr *= F * AbsDot(Wi, NormalizedGradient(Pe)) / ShaderPdf;
+				else
+					break;
+			}
+			else {
+				CVolumeShader Shader(CVolumeShader::Phase, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+				Vec3f Wi;
+				float ShaderPdf = 1.0f;
+				CColorXyz F = SPEC_BLACK;
+				CLightingSample LS;
+				LS.LargeStep(RNG);
+				F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
 
-			// Adjusting throughput for sampling from a sphere
-			//Tr *= INV_4_PI_F;
-			Tr *= F * INV_4_PI_F;
+				Re.m_O = Pe;
+				Re.m_D = Wi;
+				Re.m_MinT = 0.0f;
+				Re.m_MaxT = INF_MAX;
 
-			if (Terminate(Tr, RNG)) {
+				if (!F.IsBlack() && ShaderPdf > 0)
+					Tr *= F / ShaderPdf;
+			}
+
+			if (Terminate(Tr, RNG, 0.5)) {
 				break;
 			}
 		}
 		else
 		{
-			if (NearestLight(pScene, CRay(Re.m_O, Re.m_D, 0.0f, INF_MAX), Li, Pl, pLight)) {
-				//Lv += Tr * Li;
-				if (i==0)
+			// If we immediatly miss everything in the volume, use nearestlight to try render lights/background light
+			if (i == 0 && NearestLight(pScene, CRay(Re.m_O, Re.m_D, 0.0f, INF_MAX), Li, Pl, pLight)) {
 					Lv += Tr * Li;
 			}
 			break;

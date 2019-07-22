@@ -81,7 +81,7 @@ void QHistogramItem::Update(void)
 	{
 		// Compute polygon point in scene coordinates
 		QPointF CanvasPoint;
-		CanvasPoint.setX(rect().width() * ((float)i / (float)m_Histogram.GetBins().size()));
+		CanvasPoint.setX(rect().width() * ((float)i / (float)(m_Histogram.GetBins().size() - 1)));
 		
 		if (m_Histogram.GetBins()[i] <= 0.0f)
 			CanvasPoint.setY(rect().height());

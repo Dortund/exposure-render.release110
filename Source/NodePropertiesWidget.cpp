@@ -289,6 +289,7 @@ void QNodePropertiesWidget::OnNodeGlossinessChanged(QNode* pNode)
 	if (pNode)
 	{
 		m_GlossinessSlider.setValue((double)pNode->GetGlossiness(), true);
+		m_GlossinessSpinner.setValue((double)pNode->GetGlossiness(), true);
 	}
 
 	m_GlossinessLabel.setEnabled(Enable);

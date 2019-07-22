@@ -154,6 +154,7 @@ void QBackgroundWidget::OnBackgroundChanged(void)
 	m_GradientColorBottom.SetColor(gLighting.Background().GetBottomColor());
 
 	m_IntensitySlider.setValue((double)gLighting.Background().GetIntensity(), true);
+	m_IntensitySpinner.setValue((double)gLighting.Background().GetIntensity(), true);
 
 	// Use texture
 	m_TextureFilePath.setEnabled(gLighting.Background().GetEnabled() && gLighting.Background().GetUseTexture());
