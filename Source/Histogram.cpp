@@ -53,12 +53,12 @@ void QHistogram::SetEnabled(const bool& Enabled)
 	emit HistogramChanged();
 }
 
-QList<int>& QHistogram::GetBins(void)
+QList<long long>& QHistogram::GetBins(void)
 {
 	return m_Bins;
 }
 
-void QHistogram::SetBins(const QList<int>& Bins)
+void QHistogram::SetBins(const QList<long long>& Bins)
 {
 	m_Bins = Bins;
 
@@ -76,11 +76,11 @@ void QHistogram::SetBins(const vtkIdType* pBins, const int& NoBins)
 	for (int i = 0; i < NoBins; i++)
 	{
 		if (pBins[i] > GetMax())
-			m_Max = (int)pBins[i];
+			m_Max = (long long)pBins[i];
 	}
 
 	for (int i = 0; i < NoBins; i++)
-		m_Bins.append((int)pBins[i]);
+		m_Bins.append((long long)pBins[i]);
 
 	m_Enabled = true;
 

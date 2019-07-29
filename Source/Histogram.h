@@ -26,8 +26,8 @@ public:
 
 	bool			GetEnabled(void) const;
 	void			SetEnabled(const bool& Enabled);
-	QList<int>&		GetBins(void);
-	void			SetBins(const QList<int>& Bins);
+	QList<long long>& GetBins(void);
+	void			SetBins(const QList<long long>& Bins);
 	void			SetBins(const vtkIdType* pBins, const int& NoBins);
 	void			CreatePixMap(void);
 	QPixmap*		GetPixMap(void);
@@ -40,8 +40,8 @@ signals:
 
 private:
 	bool			m_Enabled;
-	QList<int>		m_Bins;
-	int				m_Max;
+	QList<long long> m_Bins;
+	long long		m_Max;
  	QPixmap*		m_pPixMap;
 };
 
