@@ -205,21 +205,12 @@ void QAppearanceSettingsWidget::OnTransferFunctionChanged(void)
 }
 
 void QAppearanceSettingsWidget::OnTransferFunctionSettingsChanged(void) {
-	if (m_ShadingType.currentIndex() != gTransferFunction.GetShadingType()) {
-		m_ShadingType.blockSignals(true);
+	if (m_ShadingType.currentIndex() != gTransferFunction.GetShadingType())
 		m_ShadingType.setCurrentIndex(gTransferFunction.GetShadingType());
-		m_ShadingType.blockSignals(false);
-	}
-	if (m_AlgorithmType.currentIndex() != gTransferFunction.GetAlgorithmType()) {
-		m_AlgorithmType.blockSignals(true);
+	if (m_AlgorithmType.currentIndex() != gTransferFunction.GetAlgorithmType())
 		m_AlgorithmType.setCurrentIndex(gTransferFunction.GetAlgorithmType());
-		m_AlgorithmType.blockSignals(false);
-	}
-	if (m_ScatterType.currentIndex() != gTransferFunction.GetScatterType()) {
-		m_ScatterType.blockSignals(true);
+	if (m_ScatterType.currentIndex() != gTransferFunction.GetScatterType())
 		m_ScatterType.setCurrentIndex(gTransferFunction.GetScatterType());
-		m_ScatterType.blockSignals(false);
-	}
 	if (m_MaxBouncesSpinner.value() != gTransferFunction.GetNrOfBounces(), true)
 		m_MaxBouncesSpinner.setValue(gTransferFunction.GetNrOfBounces(), true);
 	if (m_DoBlur.isChecked() != (bool)(gTransferFunction.GetPostProcessingSteps() & PostProcessingStepsEnum::BLUR)) {

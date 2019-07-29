@@ -411,7 +411,7 @@ void QTransferFunction::ReadXML(QDomElement& Parent)
 	}
 
 	UpdateNodeRanges();
-
+	
 	m_DensityScale		= Parent.firstChildElement("DensityScale").attribute("Value").toFloat();
 	m_ShadingType		= Parent.firstChildElement("ShadingType").attribute("Value").toInt();
 	m_GradientFactor	= Parent.firstChildElement("GradientFactor").attribute("Value").toFloat();
@@ -458,7 +458,7 @@ QDomElement QTransferFunction::WriteXML(QDomDocument& DOM, QDomElement& Parent)
 	Preset.appendChild(GradientFactor);
 
 	QDomElement AlgorithmType = DOM.createElement("AlgorithmType");
-	AlgorithmType.setAttribute("value", GetAlgorithmType());
+	AlgorithmType.setAttribute("Value", GetAlgorithmType());
 	Preset.appendChild(AlgorithmType);
 
 	QDomElement ScatterType = DOM.createElement("ScatterType");
