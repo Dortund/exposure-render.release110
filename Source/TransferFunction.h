@@ -51,12 +51,19 @@ public:
 	static QTransferFunction	Default(void);
 	int							GetAlgorithmType(void) const;
 	void						SetAlgorithmType(const int& AlgorithmType);
+	int							GetScatterType(void) const;
+	void						SetScatterType(const int& ScatterType);
+	int							GetNrOfBounces(void) const;
+	void						SetNrOfBounces(const int& NrOfBounces);
+	short						GetPostProcessingSteps(void) const;
+	void						SetPostProcessingSteps(const short& PostProcessingSteps);
 
 private slots:
 	void	OnNodeChanged(QNode* pNode);
 
 signals:
-	void	Changed(void);
+	void	FunctionChanged(void);
+	void	SettingsChanged(void);
 	void	SelectionChanged(QNode* pNode);
 	
 private:
@@ -66,6 +73,9 @@ private:
 	int			m_ShadingType;
 	float		m_GradientFactor;
 	int			m_AlgorithmType;
+	int			m_ScatterType;
+	int			m_NrOfBounces;
+	short		m_PostProcessingSteps;
 
 	friend class QNode;
 };

@@ -206,7 +206,8 @@ void QRenderThread::run()
 	
 	Log("Device memory: " + QString::number(GetUsedCudaMemory() / MB, 'f', 2) + "/" + QString::number(GetTotalCudaMemory() / MB, 'f', 2) + " MB", "memory");
 
-	QObject::connect(&gTransferFunction, SIGNAL(Changed()), this, SLOT(OnUpdateTransferFunction()));
+	QObject::connect(&gTransferFunction, SIGNAL(FunctionChanged()), this, SLOT(OnUpdateTransferFunction()));
+	QObject::connect(&gTransferFunction, SIGNAL(SettingsChanged()), this, SLOT(OnUpdateTransferFunctionSettings()));
 	QObject::connect(&gCamera, SIGNAL(Changed()), this, SLOT(OnUpdateCamera()));
 	QObject::connect(&gLighting, SIGNAL(Changed()), this, SLOT(OnUpdateLighting()));
 	QObject::connect(&gLighting.Background(), SIGNAL(Changed()), this, SLOT(OnUpdateLighting()));
@@ -610,8 +611,7 @@ bool QRenderThread::Load(QString& FileName)
 
 		int target = pow(2, itt);
 
-		short* img;
-		img = (short*)malloc(width*height*depth * sizeof(short));
+		std::unique_ptr<short[]> img(new short[width * height * depth]);
 		for (int row = 0; row < height; row++) {
 			for (int col = 0; col < width; col++) {
 				for (int dep = 0; dep < depth; dep++) {
@@ -640,7 +640,7 @@ bool QRenderThread::Load(QString& FileName)
 		//imageImport->SetDataScalarTypeToUnsignedShort();
 		imageImport->SetDataScalarTypeToShort();
 		imageImport->SetNumberOfScalarComponents(1);
-		imageImport->SetImportVoidPointer(img);
+		imageImport->SetImportVoidPointer(img.get());
 		imageImport->Update();
 
 		vtkSmartPointer<vtkImageCast> castFilter =
@@ -698,18 +698,7 @@ void QRenderThread::OnUpdateTransferFunction(void)
 	}
 
 	gScene.m_DensityScale	= TransferFunction.GetDensityScale();
-	gScene.m_ShadingType	= TransferFunction.GetShadingType();
 	gScene.m_GradientFactor	= TransferFunction.GetGradientFactor();
-	gScene.m_AlgorithmType	= TransferFunction.GetAlgorithmType();
-
-	if (gScene.m_AlgorithmType == 2) {
-		InitPreCalculated();
-	} else if (gScene.m_AlgorithmType == 3) {
-		InitOpacityGradient(CScene(gScene));
-	}
-	else if (gScene.m_AlgorithmType == 4) {
-		InitFloodFill();
-	}
 
 	gScene.m_DirtyFlags.SetFlag(TransferFunctionDirty);
 
@@ -765,6 +754,30 @@ void QRenderThread::OnUpdateTransferFunction(void)
 	//		std::cout << i << "-- x: " << x << ", y: " << y << ", z:" << z << std::endl;
 	//	}
 	//}
+}
+
+void QRenderThread::OnUpdateTransferFunctionSettings(void) {
+	QMutexLocker Locker(&gSceneMutex);
+
+	QTransferFunction TransferFunction = gTransferFunction;
+
+	gScene.m_ShadingType = TransferFunction.GetShadingType();
+	gScene.m_AlgorithmType = TransferFunction.GetAlgorithmType();
+	gScene.m_ScatterType = TransferFunction.GetScatterType();
+	gScene.m_MaxBounces = TransferFunction.GetNrOfBounces();
+	gScene.m_PostProcessingSteps = TransferFunction.GetPostProcessingSteps();
+
+	if (gScene.m_AlgorithmType == 2) {
+		InitPreCalculated();
+	}
+	else if (gScene.m_AlgorithmType == 3) {
+		InitOpacityGradient(CScene(gScene));
+	}
+	else if (gScene.m_AlgorithmType == 4) {
+		InitFloodFill();
+	}
+
+	gScene.m_DirtyFlags.SetFlag(TransferFunctionDirty);
 }
 
 void QRenderThread::InitPreCalculated() {

@@ -24,6 +24,7 @@ public slots:
 	void OnRenderBegin(void);
 	void OnSetDensityScale(double DensityScale);
 	void OnTransferFunctionChanged(void);
+	void OnTransferFunctionSettingsChanged(void);
 	void OnSetShadingType(int Index);
 	void OnSetGradientFactor(double GradientFactor);
 	void OnSetStepSizePrimaryRay(const double& StepSizePrimaryRay);
@@ -35,6 +36,7 @@ public slots:
 	void OnDoDenoiseChanged(int doDenoise);
 	void OnDoOffsetChanged(int doOffset);
 	void OnSetMaxBounces(double nrOfBounces);
+	void OnSetScatteringType(int index);
 
 private:
 	QGridLayout		m_MainLayout;
@@ -55,4 +57,5 @@ private:
 	QCheckBox		m_DoDenoise;
 	QCheckBox		m_DoOffset;
 	QDoubleSpinner	m_MaxBouncesSpinner;
+	QComboBox		m_ScatterType;
 };

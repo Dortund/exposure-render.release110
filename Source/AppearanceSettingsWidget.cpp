@@ -70,6 +70,8 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_ShadingType.addItem("Hybrid", 2);
 	m_MainLayout.addWidget(&m_ShadingType, 3, 1, 1, 2);
 
+	QObject::connect(&m_ShadingType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetShadingType(int)));
+
 	m_GradientFactorLabel.setText("Gradient Factor");
 	m_MainLayout.addWidget(&m_GradientFactorLabel, 4, 0);
 	
@@ -121,11 +123,6 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	QObject::connect(&m_StepSizeSecondaryRaySpinner, SIGNAL(valueChanged(double)), &m_StepSizeSecondaryRaySlider, SLOT(setValue(double)));
 	QObject::connect(&m_StepSizeSecondaryRaySlider, SIGNAL(valueChanged(double)), this, SLOT(OnSetStepSizeSecondaryRay(double)));
 
-
-	QObject::connect(&m_ShadingType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetShadingType(int)));
-	QObject::connect(&gStatus, SIGNAL(RenderBegin()), this, SLOT(OnRenderBegin()));
-	QObject::connect(&gTransferFunction, SIGNAL(Changed()), this, SLOT(OnTransferFunctionChanged()));
-
 	m_MainLayout.addWidget(new QLabel("Random Offset"), 7, 0);
 
 	m_DoOffset.setChecked(true);
@@ -173,18 +170,83 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_MainLayout.addWidget(&m_MaxBouncesSpinner, 12, 1);
 
 	QObject::connect(&m_MaxBouncesSpinner, SIGNAL(valueChanged(double)), this, SLOT(OnSetMaxBounces(double)));
+
+
+	m_MainLayout.addWidget(new QLabel("Scattering Type"), 13, 0);
+
+	m_ScatterType.addItem("BRDF Only", 0);
+	m_ScatterType.addItem("Phase Function Only", 1);
+	m_ScatterType.addItem("Hybrid", 2);
+	m_ScatterType.addItem("Light Paths", 3);
+	m_ScatterType.setCurrentIndex(2);
+	m_MainLayout.addWidget(&m_ScatterType, 13, 1, 1, 2);
+
+	QObject::connect(&m_ScatterType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetScatteringType(int)));
+
+
+	QObject::connect(&gStatus, SIGNAL(RenderBegin()), this, SLOT(OnRenderBegin()));
+	QObject::connect(&gTransferFunction, SIGNAL(FunctionChanged()), this, SLOT(OnTransferFunctionChanged()));
+	QObject::connect(&gTransferFunction, SIGNAL(SettingsChanged()), this, SLOT(OnTransferFunctionSettingsChanged()));
+
 }
 
 void QAppearanceSettingsWidget::OnRenderBegin(void)
 {
-	m_DensityScaleSlider.setValue(gTransferFunction.GetDensityScale());
-	m_ShadingType.setCurrentIndex(gTransferFunction.GetShadingType());
-	m_GradientFactorSlider.setValue(gScene.m_GradientFactor);
+	OnTransferFunctionSettingsChanged();
+	OnTransferFunctionChanged();
+}
 
-	m_StepSizePrimaryRaySlider.setValue(gScene.m_StepSizeFactor, true);
-	m_StepSizePrimaryRaySpinner.setValue(gScene.m_StepSizeFactor, true);
-	m_StepSizeSecondaryRaySlider.setValue(gScene.m_StepSizeFactorShadow, true);
-	m_StepSizeSecondaryRaySpinner.setValue(gScene.m_StepSizeFactorShadow, true);
+void QAppearanceSettingsWidget::OnTransferFunctionChanged(void)
+{
+	m_DensityScaleSlider.setValue(gTransferFunction.GetDensityScale(), true);
+	m_DensityScaleSlider.setValue(gTransferFunction.GetDensityScale(), true);
+	m_GradientFactorSlider.setValue(gTransferFunction.GetGradientFactor(), true);
+	m_GradientFactorSpinner.setValue(gTransferFunction.GetGradientFactor(), true);
+}
+
+void QAppearanceSettingsWidget::OnTransferFunctionSettingsChanged(void) {
+	if (m_ShadingType.currentIndex() != gTransferFunction.GetShadingType()) {
+		m_ShadingType.blockSignals(true);
+		m_ShadingType.setCurrentIndex(gTransferFunction.GetShadingType());
+		m_ShadingType.blockSignals(false);
+	}
+	if (m_AlgorithmType.currentIndex() != gTransferFunction.GetAlgorithmType()) {
+		m_AlgorithmType.blockSignals(true);
+		m_AlgorithmType.setCurrentIndex(gTransferFunction.GetAlgorithmType());
+		m_AlgorithmType.blockSignals(false);
+	}
+	if (m_ScatterType.currentIndex() != gTransferFunction.GetScatterType()) {
+		m_ScatterType.blockSignals(true);
+		m_ScatterType.setCurrentIndex(gTransferFunction.GetScatterType());
+		m_ScatterType.blockSignals(false);
+	}
+	if (m_MaxBouncesSpinner.value() != gTransferFunction.GetNrOfBounces(), true)
+		m_MaxBouncesSpinner.setValue(gTransferFunction.GetNrOfBounces(), true);
+	if (m_DoBlur.isChecked() != (bool)(gTransferFunction.GetPostProcessingSteps() & PostProcessingStepsEnum::BLUR)) {
+		m_DoBlur.blockSignals(true);
+		m_DoBlur.setChecked(gTransferFunction.GetPostProcessingSteps() & PostProcessingStepsEnum::BLUR);
+		m_DoBlur.blockSignals(false);
+	}
+	if (m_DoEstimate.isChecked() != (bool)(gTransferFunction.GetPostProcessingSteps() & PostProcessingStepsEnum::ESTIMATE)) {
+		m_DoEstimate.blockSignals(true);
+		m_DoEstimate.setChecked(gTransferFunction.GetPostProcessingSteps() & PostProcessingStepsEnum::ESTIMATE);
+		m_DoEstimate.blockSignals(false);
+	}
+	if (m_DoToneMap.isChecked() != (bool)(gTransferFunction.GetPostProcessingSteps() & PostProcessingStepsEnum::TONE_MAP)) {
+		m_DoToneMap.blockSignals(true);
+		m_DoToneMap.setChecked(gTransferFunction.GetPostProcessingSteps() & PostProcessingStepsEnum::TONE_MAP);
+		m_DoToneMap.blockSignals(false);
+	}
+	if (m_DoDenoise.isChecked() != (bool)(gTransferFunction.GetPostProcessingSteps() & PostProcessingStepsEnum::DENOISE)) {
+		m_DoDenoise.blockSignals(true);
+		m_DoDenoise.setChecked(gTransferFunction.GetPostProcessingSteps() & PostProcessingStepsEnum::DENOISE);
+		m_DoDenoise.blockSignals(false);
+	}
+	if (m_DoOffset.isChecked() != (bool)(gTransferFunction.GetPostProcessingSteps() & PostProcessingStepsEnum::OFFSET)) {
+		m_DoOffset.blockSignals(true);
+		m_DoOffset.setChecked(gTransferFunction.GetPostProcessingSteps() & PostProcessingStepsEnum::OFFSET);
+		m_DoOffset.blockSignals(false);
+	}
 }
 
 void QAppearanceSettingsWidget::OnSetDensityScale(double DensityScale)
@@ -222,41 +284,31 @@ void QAppearanceSettingsWidget::OnSetStepSizeSecondaryRay(const double& StepSize
 	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
 }
 
-void QAppearanceSettingsWidget::OnTransferFunctionChanged(void)
-{
-	m_DensityScaleSlider.setValue(gTransferFunction.GetDensityScale(), true);
-	m_DensityScaleSlider.setValue(gTransferFunction.GetDensityScale(), true);
-	m_ShadingType.setCurrentIndex(gTransferFunction.GetShadingType());
-	m_GradientFactorSlider.setValue(gTransferFunction.GetGradientFactor(), true);
-	m_GradientFactorSpinner.setValue(gTransferFunction.GetGradientFactor(), true);
-}
-
 void QAppearanceSettingsWidget::OnDoBlurChanged(int doBlur) {
-	gScene.m_PostProcessingSteps ^= 1;
-	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
+	gTransferFunction.SetPostProcessingSteps(gTransferFunction.GetPostProcessingSteps() ^ PostProcessingStepsEnum::BLUR);
 }
 
 void QAppearanceSettingsWidget::OnDoEstimateChanged(int doEstimate) {
-	gScene.m_PostProcessingSteps ^= 2;
-	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
+	gTransferFunction.SetPostProcessingSteps(gTransferFunction.GetPostProcessingSteps() ^ PostProcessingStepsEnum::ESTIMATE);
 }
 
 void QAppearanceSettingsWidget::OnDoToneMapChanged(int doToneMap) {
-	gScene.m_PostProcessingSteps ^= 4;
-	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
+	gTransferFunction.SetPostProcessingSteps(gTransferFunction.GetPostProcessingSteps() ^ PostProcessingStepsEnum::TONE_MAP);
 }
 
 void QAppearanceSettingsWidget::OnDoDenoiseChanged(int doDenoise) {
-	gScene.m_PostProcessingSteps ^= 8;
-	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
+	gTransferFunction.SetPostProcessingSteps(gTransferFunction.GetPostProcessingSteps() ^ PostProcessingStepsEnum::DENOISE);
 }
 
 void QAppearanceSettingsWidget::OnDoOffsetChanged(int doOffset) {
-	gScene.m_PostProcessingSteps ^= 16;
-	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
+	gTransferFunction.SetPostProcessingSteps(gTransferFunction.GetPostProcessingSteps() ^ PostProcessingStepsEnum::OFFSET);
 }
 
 void QAppearanceSettingsWidget::OnSetMaxBounces(double nrOfBounces) {
-	gScene.m_MaxBounces = (int) nrOfBounces;
-	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
+	gTransferFunction.SetNrOfBounces((int)nrOfBounces);
+}
+
+void QAppearanceSettingsWidget::OnSetScatteringType(int index)
+{
+	gTransferFunction.SetScatterType(index);
 }

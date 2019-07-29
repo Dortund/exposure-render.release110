@@ -84,6 +84,7 @@ public:
 	int					m_AlgorithmType;
 	uint8_t				m_PostProcessingSteps;
 	int					m_MaxBounces;
+	int					m_ScatterType;
 
 	HOD int GetNoIterations(void) const					{ return m_NoIterations;			}
 	HOD void SetNoIterations(const int& NoIterations)	{ m_NoIterations = NoIterations;	}
@@ -93,3 +94,11 @@ private:
 };
 
 extern CScene gScene;
+
+HOD enum PostProcessingStepsEnum {
+	BLUR = 1,
+	ESTIMATE = 2,
+	TONE_MAP = 4,
+	DENOISE = 8,
+	OFFSET = 16
+};

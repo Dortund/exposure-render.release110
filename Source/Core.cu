@@ -552,13 +552,13 @@ break;
 	RenderImage.AddDuration(TmrRender.ElapsedTime());
 
 	CCudaTimer TmrBlur;
-	if (Scene.m_PostProcessingSteps & 1) {
+	if (Scene.m_PostProcessingSteps & PostProcessingStepsEnum::BLUR) {
 		Blur(&Scene, pDevScene, pDevView);
 	}
 	BlurImage.AddDuration(TmrBlur.ElapsedTime());
 
 	CCudaTimer TmrPostProcess;
-	if (Scene.m_PostProcessingSteps & 2) {
+	if (Scene.m_PostProcessingSteps & PostProcessingStepsEnum::ESTIMATE) {
 		Estimate(&Scene, pDevScene, pDevView);
 	}
 	else {
@@ -567,7 +567,7 @@ break;
 	}
 	PostProcessImage.AddDuration(TmrPostProcess.ElapsedTime());
 
-	if (Scene.m_PostProcessingSteps & 4) {
+	if (Scene.m_PostProcessingSteps & PostProcessingStepsEnum::TONE_MAP) {
 		ToneMap(&Scene, pDevScene, pDevView);
 	}
 	else {
@@ -575,7 +575,7 @@ break;
 	}
 
 	CCudaTimer TmrDenoise;
-	if (Scene.m_PostProcessingSteps & 8) {
+	if (Scene.m_PostProcessingSteps & PostProcessingStepsEnum::DENOISE) {
 		Denoise(&Scene, pDevScene, pDevView);
 	}
 	else {

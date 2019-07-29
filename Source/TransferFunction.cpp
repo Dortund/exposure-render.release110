@@ -30,7 +30,10 @@ QTransferFunction::QTransferFunction(QObject* pParent, const QString& Name) :
 	m_DensityScale(5.0f),
 	m_ShadingType(1),
 	m_GradientFactor(0.0f),
-	m_AlgorithmType(0)
+	m_AlgorithmType(0),
+	m_ScatterType(2),
+	m_NrOfBounces(1),
+	m_PostProcessingSteps(31)
 {
 }
 
@@ -56,6 +59,9 @@ QTransferFunction& QTransferFunction::operator = (const QTransferFunction& Other
 	m_ShadingType		= Other.m_ShadingType;
 	m_GradientFactor	= Other.m_GradientFactor;
 	m_AlgorithmType		= Other.m_AlgorithmType;
+	m_ScatterType		= Other.m_ScatterType;
+	m_NrOfBounces		= Other.m_NrOfBounces;
+	m_PostProcessingSteps = Other.m_PostProcessingSteps;
 
 	// Update node's range
 	UpdateNodeRanges();
@@ -63,7 +69,8 @@ QTransferFunction& QTransferFunction::operator = (const QTransferFunction& Other
 	blockSignals(false);
 
 	// Notify others that the function has changed selection has changed
-	emit Changed();
+	emit FunctionChanged();
+	emit SettingsChanged();
 
 	SetSelectedNode(NULL);
 
@@ -75,7 +82,7 @@ void QTransferFunction::OnNodeChanged(QNode* pNode)
 	// Update node's range
 	UpdateNodeRanges();
 
-	emit Changed();
+	emit FunctionChanged();
 
 	SetDirty();
 }
@@ -201,7 +208,7 @@ void QTransferFunction::AddNode(const QNode& Node)
 	}
 
 	// Inform others that the transfer function has changed
-	emit Changed();
+	emit FunctionChanged();
 
 	if (!signalsBlocked())
 		Log("Inserted node", "layer-select-point");
@@ -234,7 +241,7 @@ void QTransferFunction::RemoveNode(QNode* pNode)
 	SetSelectedNode(NodeIndex);
 
 	// Inform others that the transfer function has changed
-	emit Changed();
+	emit FunctionChanged();
 
 	Log("Removed node", "layer-select-point");
 }
@@ -289,7 +296,7 @@ void QTransferFunction::SetDensityScale(const float& DensityScale)
 
 	m_DensityScale = DensityScale;
 
-	emit Changed();
+	emit FunctionChanged();
 }
 
 int QTransferFunction::GetShadingType(void) const
@@ -304,7 +311,7 @@ void QTransferFunction::SetShadingType(const int& ShadingType)
 
 	m_ShadingType = ShadingType;
 
-	emit Changed();
+	emit SettingsChanged();
 }
 
 float QTransferFunction::GetGradientFactor(void) const
@@ -319,7 +326,7 @@ void QTransferFunction::SetGradientFactor(const float& GradientFactor)
 
 	m_GradientFactor = GradientFactor;
 
-	emit Changed();
+	emit FunctionChanged();
 }
 
 int QTransferFunction::GetAlgorithmType(void) const
@@ -334,7 +341,52 @@ void QTransferFunction::SetAlgorithmType(const int& AlgorithmType)
 
 	m_AlgorithmType = AlgorithmType;
 
-	emit Changed();
+	emit SettingsChanged();
+}
+
+int QTransferFunction::GetScatterType(void) const
+{
+	return m_ScatterType;
+}
+
+void QTransferFunction::SetScatterType(const int& ScatterType)
+{
+	if (ScatterType == m_ScatterType)
+		return;
+
+	m_ScatterType = ScatterType;
+
+	emit SettingsChanged();
+}
+
+int QTransferFunction::GetNrOfBounces(void) const
+{
+	return m_NrOfBounces;
+}
+
+void QTransferFunction::SetNrOfBounces(const int& NrOfBounces)
+{
+	if (NrOfBounces == m_NrOfBounces)
+		return;
+
+	m_NrOfBounces = NrOfBounces;
+
+	emit SettingsChanged();
+}
+
+short QTransferFunction::GetPostProcessingSteps(void) const
+{
+	return m_PostProcessingSteps;
+}
+
+void QTransferFunction::SetPostProcessingSteps(const short& PostProcessingSteps)
+{
+	if (PostProcessingSteps == m_PostProcessingSteps)
+		return;
+
+	m_PostProcessingSteps = PostProcessingSteps;
+
+	emit SettingsChanged();
 }
 
 void QTransferFunction::ReadXML(QDomElement& Parent)
@@ -363,12 +415,18 @@ void QTransferFunction::ReadXML(QDomElement& Parent)
 	m_DensityScale		= Parent.firstChildElement("DensityScale").attribute("Value").toFloat();
 	m_ShadingType		= Parent.firstChildElement("ShadingType").attribute("Value").toInt();
 	m_GradientFactor	= Parent.firstChildElement("GradientFactor").attribute("Value").toFloat();
-	m_AlgorithmType		= Parent.firstChildElement("AlgorithmType").attribute("Value").toFloat();
+	m_AlgorithmType		= Parent.firstChildElement("AlgorithmType").attribute("Value").toInt();
+	m_ScatterType		= Parent.firstChildElement("ScatterType").attribute("Value").toInt();
+	m_NrOfBounces		= Parent.firstChildElement("NrOfBounces").attribute("Value").toInt();
+	if (m_NrOfBounces == 0)
+		m_NrOfBounces = 1;
+	m_PostProcessingSteps = Parent.firstChildElement("PostProcessingSteps").attribute("Value").toShort();
 
 	blockSignals(false);
 
 	// Inform others that the transfer function has changed
-	emit Changed();
+	emit FunctionChanged();
+	emit SettingsChanged();
 }
 
 QDomElement QTransferFunction::WriteXML(QDomDocument& DOM, QDomElement& Parent)
@@ -398,6 +456,22 @@ QDomElement QTransferFunction::WriteXML(QDomDocument& DOM, QDomElement& Parent)
 	QDomElement GradientFactor = DOM.createElement("GradientFactor");
 	GradientFactor.setAttribute("Value", GetGradientFactor());
 	Preset.appendChild(GradientFactor);
+
+	QDomElement AlgorithmType = DOM.createElement("AlgorithmType");
+	AlgorithmType.setAttribute("value", GetAlgorithmType());
+	Preset.appendChild(AlgorithmType);
+
+	QDomElement ScatterType = DOM.createElement("ScatterType");
+	ScatterType.setAttribute("Value", GetScatterType());
+	Preset.appendChild(ScatterType);
+
+	QDomElement NrOfBounces = DOM.createElement("NrOfBounces");
+	NrOfBounces.setAttribute("Value", GetNrOfBounces());
+	Preset.appendChild(NrOfBounces);
+
+	QDomElement PostProcessingSteps = DOM.createElement("PostProcessingSteps");
+	PostProcessingSteps.setAttribute("Value", GetPostProcessingSteps());
+	Preset.appendChild(PostProcessingSteps);
 	
 	return Preset;
 }

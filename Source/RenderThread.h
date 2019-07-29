@@ -81,6 +81,7 @@ public:
 
 public slots:
 	void OnUpdateTransferFunction(void);
+	void OnUpdateTransferFunctionSettings(void);
 	void OnUpdateCamera(void);
 	void OnUpdateLighting(void);
 	void OnRenderPause(const bool& Pause);

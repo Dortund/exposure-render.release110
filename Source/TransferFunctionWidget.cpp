@@ -84,7 +84,7 @@ QTransferFunctionWidget::QTransferFunctionWidget(QWidget* pParent) :
 
 	QObject::connect(&gStatus, SIGNAL(RenderBegin()), this, SLOT(OnRenderBegin()));
 	QObject::connect(&gStatus, SIGNAL(RenderEnd()), this, SLOT(OnRenderEnd()));
-	QObject::connect(&gTransferFunction, SIGNAL(Changed()), this, SLOT(OnUpdateGradients()));
+	QObject::connect(&gTransferFunction, SIGNAL(FunctionChanged()), this, SLOT(OnUpdateGradients()));
 }
 
 void QTransferFunctionWidget::OnRenderBegin(void)
