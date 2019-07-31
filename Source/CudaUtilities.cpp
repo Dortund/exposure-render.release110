@@ -104,21 +104,21 @@ void HandleCudaKernelError(const cudaError_t CudaError, const char* pName /*= ""
 	throw new QString("The '" + QString::fromLatin1(pName) + "' kernel caused the following CUDA runtime error: " + QString(cudaGetErrorString(CudaError)));
 }
 
-int GetTotalCudaMemory(void)
+size_t GetTotalCudaMemory(void)
 {
 	size_t Available = 0, Total = 0;
 	cudaMemGetInfo(&Available, &Total);
 	return Total;
 }
 
-int GetAvailableCudaMemory(void)
+size_t GetAvailableCudaMemory(void)
 {
 	size_t Available = 0, Total = 0;
 	cudaMemGetInfo(&Available, &Total);
 	return Available;
 }
 
-int GetUsedCudaMemory(void)
+size_t GetUsedCudaMemory(void)
 {
 	size_t Available = 0, Total = 0;
 	cudaMemGetInfo(&Available, &Total);

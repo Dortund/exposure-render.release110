@@ -531,8 +531,8 @@ bool QRenderThread::Load(QString& FileName)
 
 	// Try to save our own file
 	// adapt path !
-	std::string filePath = "../exposure-render.release110/Source/Examples/graduallyIncreasingPow.mhd";
-	std::string filePathRaw = "../exposure-render.release110/Source/Examples/graduallyIncreasingPow.raw";
+	std::string filePath = "../exposure-render.release110/Source/Examples/tunnelDiagonal.mhd";
+	std::string filePathRaw = "../exposure-render.release110/Source/Examples/tunnelDiagonal.raw";
 
 	struct stat buffer;
 	if (!((stat(filePath.c_str(), &buffer) == 0))) {
@@ -599,7 +599,8 @@ bool QRenderThread::Load(QString& FileName)
 			}
 		}*/
 
-
+		/*
+		// Intensity gradient
 		const int size = 128;
 		const int width = size;
 		const int height = size;
@@ -628,6 +629,62 @@ bool QRenderThread::Load(QString& FileName)
 					}
 				}
 			}
+		}*/
+
+		//Tunnel
+		const int size = 64;
+		const int width = size;
+		const int height = size;
+
+		const int tunnelRadius = size / 4;
+		const int wallThickness = size / 8;
+
+		const int depth = size + wallThickness;
+
+		std::unique_ptr<short[]> img(new short[width * height * depth]);
+		for (int row = 0; row < height; row++) {
+			for (int col = 0; col < width; col++) {
+				for (int dep = 0; dep < depth; dep++) {
+					int id = col + row * width + dep * width * height;
+
+					img[id] = 0;
+
+					if (dep < wallThickness) {
+						img[id] = 1000;
+						if (col >= wallThickness && col < wallThickness + tunnelRadius) {
+							img[id] = 100;
+							if (row < wallThickness)
+								img[id] = 1000;
+						}
+					}
+					else {
+						int c = dep - 8;
+						if (c < (depth - wallThickness) / 2) {
+							if (col >= c)
+								img[id] = 500;
+							if (col >= c + wallThickness)
+								img[id] = 100;
+							if (col >= c + wallThickness + tunnelRadius)
+								img[id] = 500;
+							if (col >= c + 2 * wallThickness + tunnelRadius)
+								img[id] = 0;
+						}
+						else {
+							c = depth - dep;
+							if (col >= c)
+								img[id] = 500;
+							if (col >= c + wallThickness)
+								img[id] = 100;
+							if (col >= c + wallThickness + tunnelRadius)
+								img[id] = 500;
+							if (col >= c + 2 * wallThickness + tunnelRadius)
+								img[id] = 0;
+						}
+						if (row < wallThickness)
+							img[id] = 500;
+					}
+				}
+			}
 		}
 
 		// Convert the c-style image to a vtkImageData
@@ -637,7 +694,6 @@ bool QRenderThread::Load(QString& FileName)
 		imageImport->SetDataOrigin(0, 0, 0);
 		imageImport->SetWholeExtent(0, width - 1, 0, height - 1, 0, depth - 1);
 		imageImport->SetDataExtentToWholeExtent();
-		//imageImport->SetDataScalarTypeToUnsignedShort();
 		imageImport->SetDataScalarTypeToShort();
 		imageImport->SetNumberOfScalarComponents(1);
 		imageImport->SetImportVoidPointer(img.get());
@@ -646,7 +702,6 @@ bool QRenderThread::Load(QString& FileName)
 		vtkSmartPointer<vtkImageCast> castFilter =
 			vtkSmartPointer<vtkImageCast>::New();
 		castFilter->SetOutputScalarTypeToShort();
-		//castFilter->SetOutputScalarTypeToUnsignedShort();
 		castFilter->SetInputConnection(imageImport->GetOutputPort());
 		castFilter->Update();
 
