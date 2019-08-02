@@ -41,147 +41,175 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 {
 	setLayout(&m_MainLayout);
 
-	m_MainLayout.addWidget(new QLabel("Algorithm Type"), 1, 0);
+	int i = 1;
+
+	m_MainLayout.addWidget(new QLabel("Algorithm Type"), i, 0);
 
 	m_AlgorithmType.addItem("Single Scattering", 0);
 	m_AlgorithmType.addItem("Multiple Scattering", 1);
 	m_AlgorithmType.addItem("Pre-Random", 2);
 	m_AlgorithmType.addItem("Opacity Gradient", 3);
 	m_AlgorithmType.addItem("Flood Fill", 4);
-	m_MainLayout.addWidget(&m_AlgorithmType, 1, 1, 1, 2);
+	m_MainLayout.addWidget(&m_AlgorithmType, i++, 1, 1, 2);
 
 	QObject::connect(&m_AlgorithmType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetAlgorithmType(int)));
 
-	m_MainLayout.addWidget(new QLabel("Density Scale"), 2, 0);
-
-	m_DensityScaleSlider.setOrientation(Qt::Horizontal);
-	m_DensityScaleSlider.setRange(0.001, 100.0);
-	m_DensityScaleSlider.setValue(1.0);
-	m_MainLayout.addWidget(&m_DensityScaleSlider, 2, 1);
-
-	m_DensityScaleSpinner.setRange(0.001, 100.0);
-	m_DensityScaleSpinner.setDecimals(3);
-	m_MainLayout.addWidget(&m_DensityScaleSpinner, 2, 2);
-
-	m_MainLayout.addWidget(new QLabel("Shading Type"), 3, 0);
+	m_MainLayout.addWidget(new QLabel("Shading Type"), i, 0);
 
 	m_ShadingType.addItem("BRDF Only", 0);
 	m_ShadingType.addItem("Phase Function Only", 1);
 	m_ShadingType.addItem("Hybrid", 2);
-	m_MainLayout.addWidget(&m_ShadingType, 3, 1, 1, 2);
+	m_MainLayout.addWidget(&m_ShadingType, i++, 1, 1, 2);
 
 	QObject::connect(&m_ShadingType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetShadingType(int)));
 
-	m_GradientFactorLabel.setText("Gradient Factor");
-	m_MainLayout.addWidget(&m_GradientFactorLabel, 4, 0);
-	
-	m_GradientFactorSlider.setRange(0.001, 100.0);
-	m_GradientFactorSlider.setValue(100.0);
-
-	m_MainLayout.addWidget(&m_GradientFactorSlider, 4, 1);
-
-	m_GradientFactorSpinner.setRange(0.001, 100.0);
-	m_GradientFactorSpinner.setDecimals(3);
-
-	m_MainLayout.addWidget(&m_GradientFactorSpinner, 4, 2);
-
-	QObject::connect(&m_DensityScaleSlider, SIGNAL(valueChanged(double)), &m_DensityScaleSpinner, SLOT(setValue(double)));
-	QObject::connect(&m_DensityScaleSpinner, SIGNAL(valueChanged(double)), &m_DensityScaleSlider, SLOT(setValue(double)));
-	QObject::connect(&m_DensityScaleSlider, SIGNAL(valueChanged(double)), this, SLOT(OnSetDensityScale(double)));
-
-	QObject::connect(&m_GradientFactorSlider, SIGNAL(valueChanged(double)), &m_GradientFactorSpinner, SLOT(setValue(double)));
-	QObject::connect(&m_GradientFactorSpinner, SIGNAL(valueChanged(double)), &m_GradientFactorSlider, SLOT(setValue(double)));
-	QObject::connect(&m_GradientFactorSlider, SIGNAL(valueChanged(double)), this, SLOT(OnSetGradientFactor(double)));
-
-	m_MainLayout.addWidget(new QLabel("Primary Step Size"), 5, 0);
-
-	m_StepSizePrimaryRaySlider.setRange(0.5, 10.0);
-
-	m_MainLayout.addWidget(&m_StepSizePrimaryRaySlider, 5, 1);
-
-	m_StepSizePrimaryRaySpinner.setRange(0.5, 10.0);
-	m_StepSizePrimaryRaySpinner.setDecimals(2);
-
-	m_MainLayout.addWidget(&m_StepSizePrimaryRaySpinner, 5, 2);
-
-	QObject::connect(&m_StepSizePrimaryRaySlider, SIGNAL(valueChanged(double)), &m_StepSizePrimaryRaySpinner, SLOT(setValue(double)));
-	QObject::connect(&m_StepSizePrimaryRaySpinner, SIGNAL(valueChanged(double)), &m_StepSizePrimaryRaySlider, SLOT(setValue(double)));
-	QObject::connect(&m_StepSizePrimaryRaySlider, SIGNAL(valueChanged(double)), this, SLOT(OnSetStepSizePrimaryRay(double)));
-
-	m_MainLayout.addWidget(new QLabel("Secondary Step Size"), 6, 0);
-
-	m_StepSizeSecondaryRaySlider.setRange(0.5, 10.0);
-
-	m_MainLayout.addWidget(&m_StepSizeSecondaryRaySlider, 6, 1);
-
-	m_StepSizeSecondaryRaySpinner.setRange(0.5, 10.0);
-	m_StepSizeSecondaryRaySpinner.setDecimals(2);
-
-	m_MainLayout.addWidget(&m_StepSizeSecondaryRaySpinner, 6, 2);
-
-	QObject::connect(&m_StepSizeSecondaryRaySlider, SIGNAL(valueChanged(double)), &m_StepSizeSecondaryRaySpinner, SLOT(setValue(double)));
-	QObject::connect(&m_StepSizeSecondaryRaySpinner, SIGNAL(valueChanged(double)), &m_StepSizeSecondaryRaySlider, SLOT(setValue(double)));
-	QObject::connect(&m_StepSizeSecondaryRaySlider, SIGNAL(valueChanged(double)), this, SLOT(OnSetStepSizeSecondaryRay(double)));
-
-	m_MainLayout.addWidget(new QLabel("Random Offset"), 7, 0);
-
-	m_DoOffset.setChecked(true);
-	m_MainLayout.addWidget(&m_DoOffset, 7, 1);
-
-	QObject::connect(&m_DoOffset, SIGNAL(stateChanged(int)), this, SLOT(OnDoOffsetChanged(int)));
-
-	m_MainLayout.addWidget(new QLabel("Blur"), 8, 0);
-
-	m_DoBlur.setChecked(true);
-	m_MainLayout.addWidget(&m_DoBlur, 8, 1);
-
-	QObject::connect(&m_DoBlur, SIGNAL(stateChanged(int)), this, SLOT(OnDoBlurChanged(int)));
-
-
-	m_MainLayout.addWidget(new QLabel("Estimate"), 9, 0);
-
-	m_DoEstimate.setChecked(true);
-	m_MainLayout.addWidget(&m_DoEstimate, 9, 1);
-
-	QObject::connect(&m_DoEstimate, SIGNAL(stateChanged(int)), this, SLOT(OnDoEstimateChanged(int)));
-
-	
-	m_MainLayout.addWidget(new QLabel("ToneMap"), 10, 0);
-
-	m_DoToneMap.setChecked(true);
-	m_MainLayout.addWidget(&m_DoToneMap, 10, 1);
-
-	QObject::connect(&m_DoToneMap, SIGNAL(stateChanged(int)), this, SLOT(OnDoToneMapChanged(int)));
-
-
-	m_MainLayout.addWidget(new QLabel("Denoise"), 11, 0);
-
-	m_DoDenoise.setChecked(true);
-	m_MainLayout.addWidget(&m_DoDenoise, 11, 1);
-
-	QObject::connect(&m_DoDenoise, SIGNAL(stateChanged(int)), this, SLOT(OnDoDenoiseChanged(int)));
-
-
-	m_MainLayout.addWidget(new QLabel("max # of Bounces"), 12, 0);
-
-	m_MaxBouncesSpinner.setRange(1, 100);
-	m_MaxBouncesSpinner.setDecimals(0);
-
-	m_MainLayout.addWidget(&m_MaxBouncesSpinner, 12, 1);
-
-	QObject::connect(&m_MaxBouncesSpinner, SIGNAL(valueChanged(double)), this, SLOT(OnSetMaxBounces(double)));
-
-
-	m_MainLayout.addWidget(new QLabel("Scattering Type"), 13, 0);
+	m_MainLayout.addWidget(new QLabel("Scattering Type"), i, 0);
 
 	m_ScatterType.addItem("BRDF Only", 0);
 	m_ScatterType.addItem("Phase Function Only", 1);
 	m_ScatterType.addItem("Hybrid", 2);
 	m_ScatterType.addItem("Light Paths", 3);
 	m_ScatterType.setCurrentIndex(2);
-	m_MainLayout.addWidget(&m_ScatterType, 13, 1, 1, 2);
+	m_MainLayout.addWidget(&m_ScatterType, i++, 1, 1, 2);
 
 	QObject::connect(&m_ScatterType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetScatteringType(int)));
+
+	QLabel* lblDensityScale = new QLabel("Density Scale");
+	lblDensityScale->setToolTip("Higher values virtually scale up the opacity and reduce the overal distance a ray can travel through the volume before colliding");
+
+	m_MainLayout.addWidget(lblDensityScale, i, 0);
+
+	m_DensityScaleSlider.setOrientation(Qt::Horizontal);
+	m_DensityScaleSlider.setRange(0.001, 100.0);
+	m_DensityScaleSlider.setValue(1.0);
+	m_MainLayout.addWidget(&m_DensityScaleSlider, i, 1);
+
+	m_DensityScaleSpinner.setRange(0.001, 100.0);
+	m_DensityScaleSpinner.setDecimals(3);
+	m_MainLayout.addWidget(&m_DensityScaleSpinner, i++, 2);
+
+	QObject::connect(&m_DensityScaleSlider, SIGNAL(valueChanged(double)), &m_DensityScaleSpinner, SLOT(setValue(double)));
+	QObject::connect(&m_DensityScaleSpinner, SIGNAL(valueChanged(double)), &m_DensityScaleSlider, SLOT(setValue(double)));
+	QObject::connect(&m_DensityScaleSlider, SIGNAL(valueChanged(double)), this, SLOT(OnSetDensityScale(double)));
+
+	m_GradientFactorLabel.setText("Gradient Factor");
+	m_GradientFactorLabel.setToolTip("Multiplies the gradient with this factor when calculating getting the gradient for hybrid shading");
+	m_MainLayout.addWidget(&m_GradientFactorLabel, i, 0);
+	
+	m_GradientFactorSlider.setRange(0.001, 100.0);
+	m_GradientFactorSlider.setValue(100.0);
+
+	m_MainLayout.addWidget(&m_GradientFactorSlider, i, 1);
+
+	m_GradientFactorSpinner.setRange(0.001, 100.0);
+	m_GradientFactorSpinner.setDecimals(3);
+
+	m_MainLayout.addWidget(&m_GradientFactorSpinner, i++, 2);
+
+	QObject::connect(&m_GradientFactorSlider, SIGNAL(valueChanged(double)), &m_GradientFactorSpinner, SLOT(setValue(double)));
+	QObject::connect(&m_GradientFactorSpinner, SIGNAL(valueChanged(double)), &m_GradientFactorSlider, SLOT(setValue(double)));
+	QObject::connect(&m_GradientFactorSlider, SIGNAL(valueChanged(double)), this, SLOT(OnSetGradientFactor(double)));
+
+	QLabel* lblPrimStepSize = new QLabel("Primary Step Size");
+	lblPrimStepSize->setToolTip("Sets the stepsize in voxels for primary rays");
+	m_MainLayout.addWidget(lblPrimStepSize, i, 0);
+
+	const double stepMin = 0.01;
+
+	m_StepSizePrimaryRaySlider.setRange(stepMin, 10.0);
+
+	m_MainLayout.addWidget(&m_StepSizePrimaryRaySlider, i, 1);
+
+	m_StepSizePrimaryRaySpinner.setRange(stepMin, 10.0);
+	m_StepSizePrimaryRaySpinner.setDecimals(2);
+
+	m_MainLayout.addWidget(&m_StepSizePrimaryRaySpinner, i++, 2);
+
+	QObject::connect(&m_StepSizePrimaryRaySlider, SIGNAL(valueChanged(double)), &m_StepSizePrimaryRaySpinner, SLOT(setValue(double)));
+	QObject::connect(&m_StepSizePrimaryRaySpinner, SIGNAL(valueChanged(double)), &m_StepSizePrimaryRaySlider, SLOT(setValue(double)));
+	QObject::connect(&m_StepSizePrimaryRaySlider, SIGNAL(valueChanged(double)), this, SLOT(OnSetStepSizePrimaryRay(double)));
+
+	QLabel* lblSecStepSize = new QLabel("Secondary Step Size");
+	lblSecStepSize->setToolTip("Sets the stepsize in voxels for secondary rays");
+	m_MainLayout.addWidget(lblSecStepSize, i, 0);
+
+	m_StepSizeSecondaryRaySlider.setRange(stepMin, 10.0);
+
+	m_MainLayout.addWidget(&m_StepSizeSecondaryRaySlider, i, 1);
+
+	m_StepSizeSecondaryRaySpinner.setRange(stepMin, 10.0);
+	m_StepSizeSecondaryRaySpinner.setDecimals(2);
+
+	m_MainLayout.addWidget(&m_StepSizeSecondaryRaySpinner, i++, 2);
+
+	QObject::connect(&m_StepSizeSecondaryRaySlider, SIGNAL(valueChanged(double)), &m_StepSizeSecondaryRaySpinner, SLOT(setValue(double)));
+	QObject::connect(&m_StepSizeSecondaryRaySpinner, SIGNAL(valueChanged(double)), &m_StepSizeSecondaryRaySlider, SLOT(setValue(double)));
+	QObject::connect(&m_StepSizeSecondaryRaySlider, SIGNAL(valueChanged(double)), this, SLOT(OnSetStepSizeSecondaryRay(double)));
+
+	QLabel* lblScatHeadstart = new QLabel("Scattering Ray Headstart");
+	lblScatHeadstart->setToolTip("Sets the raymarching starting distance from a scattering point");
+	m_MainLayout.addWidget(lblScatHeadstart, i, 0);
+
+	m_ScatteringHeadstartSlider.setRange(0, 10.0);
+
+	m_MainLayout.addWidget(&m_ScatteringHeadstartSlider, i, 1);
+
+	m_ScatteringHeadstartSpinner.setRange(0, 10.0);
+	m_ScatteringHeadstartSpinner.setDecimals(2);
+
+	m_MainLayout.addWidget(&m_ScatteringHeadstartSpinner, i++, 2);
+
+	QObject::connect(&m_ScatteringHeadstartSlider, SIGNAL(valueChanged(double)), &m_ScatteringHeadstartSpinner, SLOT(setValue(double)));
+	QObject::connect(&m_ScatteringHeadstartSpinner, SIGNAL(valueChanged(double)), &m_ScatteringHeadstartSlider, SLOT(setValue(double)));
+	QObject::connect(&m_ScatteringHeadstartSlider, SIGNAL(valueChanged(double)), this, SLOT(OnSetScatteringHeadstart(double)));
+
+	m_MainLayout.addWidget(new QLabel("Random Offset"), i, 0);
+
+	m_DoOffset.setChecked(true);
+	m_MainLayout.addWidget(&m_DoOffset, i++, 1);
+
+	QObject::connect(&m_DoOffset, SIGNAL(stateChanged(int)), this, SLOT(OnDoOffsetChanged(int)));
+
+	m_MainLayout.addWidget(new QLabel("Blur"), i, 0);
+
+	m_DoBlur.setChecked(true);
+	m_MainLayout.addWidget(&m_DoBlur, i++, 1);
+
+	QObject::connect(&m_DoBlur, SIGNAL(stateChanged(int)), this, SLOT(OnDoBlurChanged(int)));
+
+
+	m_MainLayout.addWidget(new QLabel("Estimate"), i, 0);
+
+	m_DoEstimate.setChecked(true);
+	m_MainLayout.addWidget(&m_DoEstimate, i++, 1);
+
+	QObject::connect(&m_DoEstimate, SIGNAL(stateChanged(int)), this, SLOT(OnDoEstimateChanged(int)));
+
+	
+	m_MainLayout.addWidget(new QLabel("ToneMap"), i, 0);
+
+	m_DoToneMap.setChecked(true);
+	m_MainLayout.addWidget(&m_DoToneMap, i++, 1);
+
+	QObject::connect(&m_DoToneMap, SIGNAL(stateChanged(int)), this, SLOT(OnDoToneMapChanged(int)));
+
+
+	m_MainLayout.addWidget(new QLabel("Denoise"), i, 0);
+
+	m_DoDenoise.setChecked(true);
+	m_MainLayout.addWidget(&m_DoDenoise, i++, 1);
+
+	QObject::connect(&m_DoDenoise, SIGNAL(stateChanged(int)), this, SLOT(OnDoDenoiseChanged(int)));
+
+
+	m_MainLayout.addWidget(new QLabel("max # of Bounces"), i, 0);
+
+	m_MaxBouncesSpinner.setRange(1, 100);
+	m_MaxBouncesSpinner.setDecimals(0);
+
+	m_MainLayout.addWidget(&m_MaxBouncesSpinner, i++, 1);
+
+	QObject::connect(&m_MaxBouncesSpinner, SIGNAL(valueChanged(double)), this, SLOT(OnSetMaxBounces(double)));
 
 
 	QObject::connect(&gStatus, SIGNAL(RenderBegin()), this, SLOT(OnRenderBegin()));
@@ -199,7 +227,7 @@ void QAppearanceSettingsWidget::OnRenderBegin(void)
 void QAppearanceSettingsWidget::OnTransferFunctionChanged(void)
 {
 	m_DensityScaleSlider.setValue(gTransferFunction.GetDensityScale(), true);
-	m_DensityScaleSlider.setValue(gTransferFunction.GetDensityScale(), true);
+	m_DensityScaleSpinner.setValue(gTransferFunction.GetDensityScale(), true);
 	m_GradientFactorSlider.setValue(gTransferFunction.GetGradientFactor(), true);
 	m_GradientFactorSpinner.setValue(gTransferFunction.GetGradientFactor(), true);
 }
@@ -238,6 +266,12 @@ void QAppearanceSettingsWidget::OnTransferFunctionSettingsChanged(void) {
 		m_DoOffset.setChecked(gTransferFunction.GetPostProcessingSteps() & PostProcessingStepsEnum::OFFSET);
 		m_DoOffset.blockSignals(false);
 	}
+	m_StepSizePrimaryRaySlider.setValue(gTransferFunction.GetPrimaryStepSize(), true);
+	m_StepSizePrimaryRaySpinner.setValue(gTransferFunction.GetPrimaryStepSize(), true);
+	m_StepSizeSecondaryRaySlider.setValue(gTransferFunction.GetSecondarStepSize(), true);
+	m_StepSizeSecondaryRaySpinner.setValue(gTransferFunction.GetSecondarStepSize(), true);
+	m_ScatteringHeadstartSlider.setValue(gTransferFunction.GetScatteringHeadstart(), true);
+	m_ScatteringHeadstartSpinner.setValue(gTransferFunction.GetScatteringHeadstart(), true);
 }
 
 void QAppearanceSettingsWidget::OnSetDensityScale(double DensityScale)
@@ -265,14 +299,12 @@ void QAppearanceSettingsWidget::OnSetGradientFactor(double GradientFactor)
 
 void QAppearanceSettingsWidget::OnSetStepSizePrimaryRay(const double& StepSizePrimaryRay)
 {
-	gScene.m_StepSizeFactor = (float)StepSizePrimaryRay;
-	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
+	gTransferFunction.SetPrimaryStepSize((float)StepSizePrimaryRay);
 }
 
 void QAppearanceSettingsWidget::OnSetStepSizeSecondaryRay(const double& StepSizeSecondaryRay)
 {
-	gScene.m_StepSizeFactorShadow = (float)StepSizeSecondaryRay;
-	gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
+	gTransferFunction.SetSecondaryStepSize((float)StepSizeSecondaryRay);
 }
 
 void QAppearanceSettingsWidget::OnDoBlurChanged(int doBlur) {
@@ -302,4 +334,8 @@ void QAppearanceSettingsWidget::OnSetMaxBounces(double nrOfBounces) {
 void QAppearanceSettingsWidget::OnSetScatteringType(int index)
 {
 	gTransferFunction.SetScatterType(index);
+}
+
+void QAppearanceSettingsWidget::OnSetScatteringHeadstart(double ScatteringHeadstart) {
+	gTransferFunction.SetScatteringHeadstart((float)ScatteringHeadstart);
 }

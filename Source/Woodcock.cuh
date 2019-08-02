@@ -113,7 +113,7 @@ DEV inline bool SampleDistanceDdaWoodcock(CRay R, CRNG& RNG, Vec3f& P, CScene* p
     float lastSigmaMax = sigmaMax;
     float ds = min(t.x, min(t.y, t.z));
     float sigmaSum = sigmaMax * ds;
-    float s = -log(1.0f - RNG.Get1()) / (pScene->m_DensityScale * 100.0f);
+    float s = -log(1.0f - RNG.Get1()) / (gDensityScale * 100.0f);
     float tt = min(t.x, min(t.y, t.z));
     float3 entry;
     float3 exit = photon.origin + tt * photon.direction;

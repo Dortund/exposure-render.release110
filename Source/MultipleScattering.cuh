@@ -64,11 +64,17 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 	CColorXyz F = SPEC_BLACK;
 	CLightingSample LS;
 	CVolumeShader Shader = CVolumeShader(CVolumeShader::Phase, Vec3f(0), Vec3f(0), CColorXyz(0), CColorXyz(0), 0.0f, 0.0f);
+	int temp = 0;
+
+	auto throughput = 1.0f;
+
 
 	for (int i = 0; i < pScene->m_MaxBounces; i++)
 	{
+		
 		if (SampleDistanceRM(Re, RNG, Pe))
 		{
+			
 			const float D = GetNormalizedIntensity(Pe);
 
 			Lv += Tr * GetEmission(D).ToXYZ();
@@ -175,11 +181,22 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 				break;
 			}
 
+			/*temp = i;
+
+			throughput *= 0.9;
+
+			Lv += throughput * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
+			*/
 			// Update ray direction
 			Re.m_O = Pe;
+			//Re.m_D = UniformSampleSphere(RNG.Get2());
 			Re.m_D = Wi;
-			Re.m_MinT = 0.0f;
+			Re.m_MinT = pScene->m_ScatteringHeadstart;
 			Re.m_MaxT = INF_MAX;
+
+			//if (throughput < 0.05)
+			//	break;
+
 		}
 		else
 		{
@@ -194,6 +211,7 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 	__syncthreads();
 	
 	pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
+	//pView->m_FrameEstimateXyza.Set(CColorXyza(temp/10.0f, temp/10.0f, temp/10.0f), X, Y);
 }
 
 //void MultipleScattering(CScene* pScene, CScene* pDevScene, int* pSeeds)

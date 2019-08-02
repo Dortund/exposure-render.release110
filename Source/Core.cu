@@ -67,6 +67,7 @@ CD float		gDenoiseLerpThreshold;
 CD float		gDenoiseLerpC;
 CD float		gNoIterations;
 CD float		gInvNoIterations;
+CD float		gScatteringHeadstart;
 
 #define TF_NO_SAMPLES		128
 #define INV_TF_NO_SAMPLES	1.0f / (float)TF_NO_SAMPLES
@@ -360,9 +361,18 @@ void BindConstants(CScene* pScene)
 
 	const float StepSize		= pScene->m_StepSizeFactor * pScene->m_GradientDelta;
 	const float StepSizeShadow	= pScene->m_StepSizeFactorShadow * pScene->m_GradientDelta;
+	const float ScatteringHeadstart = pScene->m_ScatteringHeadstart * pScene->m_GradientDelta;
+
+	//TODO remove
+	//std::cout << "StepSize: " << StepSize << ", StepSizeShadow: " << StepSizeShadow << ", GradientDelta: "
+	//	<< pScene->m_GradientDelta << ", DensityScale: " << pScene->m_DensityScale << ", GradientFactor: " << pScene->m_GradientFactor
+	//	<< std::endl;
+	
 
 	HandleCudaError(cudaMemcpyToSymbol(gStepSize, &StepSize, sizeof(float)));
 	HandleCudaError(cudaMemcpyToSymbol(gStepSizeShadow, &StepSizeShadow, sizeof(float)));
+	HandleCudaError(cudaMemcpyToSymbol(gScatteringHeadstart, &ScatteringHeadstart, sizeof(float)));
+
 
 	const float DensityScale = pScene->m_DensityScale;
 
@@ -443,6 +453,10 @@ void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& Po
 	
 	switch (Scene.m_AlgorithmType)
 	{
+		case -1: {
+			GiveGreen(&Scene, pDevScene, pDevView);
+			break;
+		}
 		case 0:
 		{
 			SingleScattering(&Scene, pDevScene, pDevView);

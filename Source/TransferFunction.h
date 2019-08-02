@@ -57,6 +57,12 @@ public:
 	void						SetNrOfBounces(const int& NrOfBounces);
 	short						GetPostProcessingSteps(void) const;
 	void						SetPostProcessingSteps(const short& PostProcessingSteps);
+	float						GetPrimaryStepSize(void) const;
+	void						SetPrimaryStepSize(const float& PrimaryStepSize);
+	float						GetSecondarStepSize(void) const;
+	void						SetSecondaryStepSize(const float& SecondaryStepSize);
+	float						GetScatteringHeadstart(void) const;
+	void						SetScatteringHeadstart(const float& ScatteringHeadstart);
 
 private slots:
 	void	OnNodeChanged(QNode* pNode);
@@ -76,6 +82,9 @@ private:
 	int			m_ScatterType;
 	int			m_NrOfBounces;
 	short		m_PostProcessingSteps;
+	float		m_PrimaryStepSize;
+	float		m_SecondaryStepSize;
+	float		m_ScatteringHeadstart;
 
 	friend class QNode;
 };

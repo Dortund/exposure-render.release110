@@ -85,6 +85,7 @@ public:
 	uint8_t				m_PostProcessingSteps;
 	int					m_MaxBounces;
 	int					m_ScatterType;
+	float				m_ScatteringHeadstart;
 
 	HOD int GetNoIterations(void) const					{ return m_NoIterations;			}
 	HOD void SetNoIterations(const int& NoIterations)	{ m_NoIterations = NoIterations;	}

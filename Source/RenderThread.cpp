@@ -821,6 +821,9 @@ void QRenderThread::OnUpdateTransferFunctionSettings(void) {
 	gScene.m_ScatterType = TransferFunction.GetScatterType();
 	gScene.m_MaxBounces = TransferFunction.GetNrOfBounces();
 	gScene.m_PostProcessingSteps = TransferFunction.GetPostProcessingSteps();
+	gScene.m_StepSizeFactor = TransferFunction.GetPrimaryStepSize();
+	gScene.m_StepSizeFactorShadow = TransferFunction.GetSecondarStepSize();
+	gScene.m_ScatteringHeadstart = TransferFunction.GetScatteringHeadstart();
 
 	if (gScene.m_AlgorithmType == 2) {
 		InitPreCalculated();
@@ -1013,6 +1016,7 @@ void QRenderThread::OnUpdateLighting(void)
 		gScene.m_Lighting.AddLight(BackgroundLight);
 
 		// TODO: remove printing of text
+		/*
 		std::cout << "name: backgroundTop, Intensity: " << gLighting.Background().GetIntensity() 
 			<< ", Color(RGB): " << gLighting.Background().GetTopColor().redF() << ", " << gLighting.Background().GetTopColor().greenF() << ", " << gLighting.Background().GetTopColor().blueF() 
 			<< ", ColorFINAL(RGB): " << BackgroundLight.m_ColorTop.r << ", " << BackgroundLight.m_ColorTop.g << ", " << BackgroundLight.m_ColorTop.b << std::endl;
@@ -1024,6 +1028,7 @@ void QRenderThread::OnUpdateLighting(void)
 		std::cout << "name: backgroundBottom, Intensity: " << gLighting.Background().GetIntensity()
 			<< ", Color(RGB): " << gLighting.Background().GetBottomColor().redF() << ", " << gLighting.Background().GetBottomColor().greenF() << ", " << gLighting.Background().GetBottomColor().blueF()
 			<< ", ColorFINAL(RGB): " << BackgroundLight.m_ColorBottom.r << ", " << BackgroundLight.m_ColorBottom.g << ", " << BackgroundLight.m_ColorBottom.b << std::endl;
+			*/
 	}
 
 	for (int i = 0; i < gLighting.GetLights().size(); i++)
@@ -1040,7 +1045,7 @@ void QRenderThread::OnUpdateLighting(void)
 		AreaLight.m_Distance	= Light.GetDistance();
 		AreaLight.m_Color		= Light.GetIntensity() * CColorRgbHdr(Light.GetColor().redF(), Light.GetColor().greenF(), Light.GetColor().blueF());
 
-		std::cout << "name: " << Light.GetName().toUtf8().constData() << ", Intensity: " << Light.GetIntensity() << ", Color(RGB): " << Light.GetColor().redF() << ", " << Light.GetColor().greenF() << ", " << Light.GetColor().blueF() << ", ColorFINAL(RGB): " << AreaLight.m_Color.r << ", " << AreaLight.m_Color.g << ", " << AreaLight.m_Color.b << std::endl;
+		//std::cout << "name: " << Light.GetName().toUtf8().constData() << ", Intensity: " << Light.GetIntensity() << ", Color(RGB): " << Light.GetColor().redF() << ", " << Light.GetColor().greenF() << ", " << Light.GetColor().blueF() << ", ColorFINAL(RGB): " << AreaLight.m_Color.r << ", " << AreaLight.m_Color.g << ", " << AreaLight.m_Color.b << std::endl;
 
 		AreaLight.Update(gScene.m_BoundingBox);
 

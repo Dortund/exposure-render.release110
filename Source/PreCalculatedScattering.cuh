@@ -750,3 +750,27 @@ void TestMultipleScattering(CScene* pScene, CScene* pDevScene, CCudaView* pView)
 	cudaThreadSynchronize();
 	HandleCudaKernelError(cudaGetLastError(), "Test Multiple Scattering");
 }
+
+
+KERNEL void krnlGreen(CScene* pScene, CCudaView* pView)
+{
+	const int X = (blockIdx.x * blockDim.x) + threadIdx.x;
+	const int Y = (blockIdx.y * blockDim.y) + threadIdx.y;
+	const int PID = (Y * gFilmWidth) + X;
+
+	if (X >= gFilmWidth || Y >= gFilmHeight || PID >= gFilmNoPixels)
+		return;
+
+	pView->m_FrameEstimateXyza.Set(CColorXyza(0, 1, 0), X, Y);
+}
+
+//void MultipleScattering(CScene* pScene, CScene* pDevScene, int* pSeeds)
+void GiveGreen(CScene* pScene, CScene* pDevScene, CCudaView* pView)
+{
+	const dim3 KernelBlock(KRNL_SS_BLOCK_W, KRNL_SS_BLOCK_H);
+	const dim3 KernelGrid((int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResX() / (float)KernelBlock.x), (int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResY() / (float)KernelBlock.y));
+
+	krnlGreen<<<KernelGrid, KernelBlock>>>(pDevScene, pView);
+	cudaThreadSynchronize();
+	HandleCudaKernelError(cudaGetLastError(), "Show Green");
+}

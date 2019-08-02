@@ -37,6 +37,7 @@ public slots:
 	void OnDoOffsetChanged(int doOffset);
 	void OnSetMaxBounces(double nrOfBounces);
 	void OnSetScatteringType(int index);
+	void OnSetScatteringHeadstart(double ScatteringHeadstart);
 
 private:
 	QGridLayout		m_MainLayout;
@@ -58,4 +59,6 @@ private:
 	QCheckBox		m_DoOffset;
 	QDoubleSpinner	m_MaxBouncesSpinner;
 	QComboBox		m_ScatterType;
+	QDoubleSlider	m_ScatteringHeadstartSlider;
+	QDoubleSpinner	m_ScatteringHeadstartSpinner;
 };

@@ -33,7 +33,10 @@ QTransferFunction::QTransferFunction(QObject* pParent, const QString& Name) :
 	m_AlgorithmType(0),
 	m_ScatterType(2),
 	m_NrOfBounces(1),
-	m_PostProcessingSteps(31)
+	m_PostProcessingSteps(31),
+	m_PrimaryStepSize(3.0f),
+	m_SecondaryStepSize(3.0f),
+	m_ScatteringHeadstart(0)
 {
 }
 
@@ -62,6 +65,9 @@ QTransferFunction& QTransferFunction::operator = (const QTransferFunction& Other
 	m_ScatterType		= Other.m_ScatterType;
 	m_NrOfBounces		= Other.m_NrOfBounces;
 	m_PostProcessingSteps = Other.m_PostProcessingSteps;
+	m_PrimaryStepSize	= Other.m_PrimaryStepSize;
+	m_SecondaryStepSize = Other.m_SecondaryStepSize;
+	m_ScatteringHeadstart = Other.m_ScatteringHeadstart;
 
 	// Update node's range
 	UpdateNodeRanges();
@@ -389,6 +395,51 @@ void QTransferFunction::SetPostProcessingSteps(const short& PostProcessingSteps)
 	emit SettingsChanged();
 }
 
+float QTransferFunction::GetPrimaryStepSize(void) const
+{
+	return m_PrimaryStepSize;
+}
+
+void QTransferFunction::SetPrimaryStepSize(const float& PrimaryStepSize)
+{
+	if (PrimaryStepSize == m_PrimaryStepSize)
+		return;
+
+	m_PrimaryStepSize = PrimaryStepSize;
+
+	emit SettingsChanged();
+}
+
+float QTransferFunction::GetSecondarStepSize(void) const
+{
+	return m_SecondaryStepSize;
+}
+
+void QTransferFunction::SetSecondaryStepSize(const float& SecondaryStepSize)
+{
+	if (SecondaryStepSize == m_SecondaryStepSize)
+		return;
+
+	m_SecondaryStepSize = SecondaryStepSize;
+
+	emit SettingsChanged();
+}
+
+float QTransferFunction::GetScatteringHeadstart(void) const
+{
+	return m_ScatteringHeadstart;
+}
+
+void QTransferFunction::SetScatteringHeadstart(const float& ScatteringHeadstart)
+{
+	if (ScatteringHeadstart == m_ScatteringHeadstart)
+		return;
+
+	m_ScatteringHeadstart = ScatteringHeadstart;
+
+	emit SettingsChanged();
+}
+
 void QTransferFunction::ReadXML(QDomElement& Parent)
 {
 	QPresetXML::ReadXML(Parent);
@@ -413,6 +464,8 @@ void QTransferFunction::ReadXML(QDomElement& Parent)
 	UpdateNodeRanges();
 	
 	m_DensityScale		= Parent.firstChildElement("DensityScale").attribute("Value").toFloat();
+	if (m_DensityScale == 0)
+		m_DensityScale = 100;
 	m_ShadingType		= Parent.firstChildElement("ShadingType").attribute("Value").toInt();
 	m_GradientFactor	= Parent.firstChildElement("GradientFactor").attribute("Value").toFloat();
 	m_AlgorithmType		= Parent.firstChildElement("AlgorithmType").attribute("Value").toInt();
@@ -421,6 +474,13 @@ void QTransferFunction::ReadXML(QDomElement& Parent)
 	if (m_NrOfBounces == 0)
 		m_NrOfBounces = 1;
 	m_PostProcessingSteps = Parent.firstChildElement("PostProcessingSteps").attribute("Value").toShort();
+	m_PrimaryStepSize = Parent.firstChildElement("PrimaryStepSize").attribute("Value").toFloat();
+	if (m_PrimaryStepSize == 0)
+		m_PrimaryStepSize = 3;
+	m_SecondaryStepSize = Parent.firstChildElement("SecondaryStepSize").attribute("Value").toFloat();
+	if (m_SecondaryStepSize == 0)
+		m_SecondaryStepSize = 3;
+	m_ScatteringHeadstart = Parent.firstChildElement("ScatteringHeadStart").attribute("Value").toFloat();
 
 	blockSignals(false);
 
@@ -468,10 +528,22 @@ QDomElement QTransferFunction::WriteXML(QDomDocument& DOM, QDomElement& Parent)
 	QDomElement NrOfBounces = DOM.createElement("NrOfBounces");
 	NrOfBounces.setAttribute("Value", GetNrOfBounces());
 	Preset.appendChild(NrOfBounces);
-
+	
 	QDomElement PostProcessingSteps = DOM.createElement("PostProcessingSteps");
 	PostProcessingSteps.setAttribute("Value", GetPostProcessingSteps());
 	Preset.appendChild(PostProcessingSteps);
+	
+	QDomElement PrimaryStepSize = DOM.createElement("PrimaryStepSize");
+	PrimaryStepSize.setAttribute("Value", GetPrimaryStepSize());
+	Preset.appendChild(PrimaryStepSize);
+
+	QDomElement SecondaryStepSize = DOM.createElement("SecondaryStepSize");
+	SecondaryStepSize.setAttribute("Value", GetSecondarStepSize());
+	Preset.appendChild(SecondaryStepSize);
+	
+	QDomElement ScatteringHeadStart = DOM.createElement("ScatteringHeadStart");
+	ScatteringHeadStart.setAttribute("Value", GetScatteringHeadstart());
+	Preset.appendChild(ScatteringHeadStart);
 	
 	return Preset;
 }
@@ -489,6 +561,10 @@ QTransferFunction QTransferFunction::Default(void)
 	DefaultTransferFunction.SetDensityScale(100.0f);
 	DefaultTransferFunction.SetShadingType(2);
 	DefaultTransferFunction.SetGradientFactor(10.0f);
+	DefaultTransferFunction.SetPostProcessingSteps(31);
+	DefaultTransferFunction.SetPrimaryStepSize(3);
+	DefaultTransferFunction.SetSecondaryStepSize(3);
+	DefaultTransferFunction.SetNrOfBounces(1);
 	
 	return DefaultTransferFunction;
 }

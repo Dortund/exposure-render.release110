@@ -5,49 +5,49 @@
 <Node>
 <NormalizedIntensity Value="0"/>
 <Opacity Value="0"/>
-<Diffuse G="160" R="160" B="164"/>
-<Specular G="10" R="10" B="10"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="10" R="10" G="10"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="100"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.23597"/>
 <Opacity Value="0"/>
-<Diffuse G="0" R="45" B="0"/>
-<Specular G="170" R="255" B="127"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="0" R="45" G="0"/>
+<Specular B="127" R="255" G="170"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="0"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.288538"/>
 <Opacity Value="0.0179028"/>
-<Diffuse G="7" R="44" B="7"/>
-<Specular G="50" R="50" B="50"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="7" R="44" G="7"/>
+<Specular B="50" R="50" G="50"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="0.5868"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.288578"/>
 <Opacity Value="0.563502"/>
-<Diffuse G="0" R="67" B="0"/>
-<Specular G="7" R="11" B="5"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="0" R="67" G="0"/>
+<Specular B="5" R="11" G="7"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="0.0744"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.35417"/>
 <Opacity Value="1"/>
-<Diffuse G="72" R="86" B="41"/>
-<Specular G="2" R="4" B="2"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="41" R="86" G="72"/>
+<Specular B="2" R="4" G="2"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="0.1322"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="1"/>
 <Opacity Value="1"/>
-<Diffuse G="160" R="160" B="164"/>
-<Specular G="10" R="10" B="10"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="10" R="10" G="10"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="100"/>
 </Node>
 </Nodes>
@@ -58,39 +58,42 @@
 <ScatterType Value="2"/>
 <NrOfBounces Value="1"/>
 <PostProcessingSteps Value="31"/>
+<PrimaryStepSize Value="3"/>
+<SecondaryStepSize Value="3"/>
+<ScatteringHeadStart Value="0"/>
 </Preset>
 <Preset Name="bonsai_small">
 <Nodes>
 <Node>
 <NormalizedIntensity Value="0"/>
 <Opacity Value="0"/>
-<Diffuse G="160" R="160" B="164"/>
-<Specular G="10" R="10" B="10"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="10" R="10" G="10"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.0810647"/>
 <Opacity Value="0"/>
-<Diffuse G="78" R="0" B="0"/>
-<Specular G="16" R="16" B="16"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="0" R="0" G="78"/>
+<Specular B="16" R="16" G="16"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="0.742"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.112725"/>
 <Opacity Value="0.629156"/>
-<Diffuse G="97" R="118" B="71"/>
-<Specular G="7" R="7" B="7"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="71" R="118" G="97"/>
+<Specular B="7" R="7" G="7"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="0.9587"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="1"/>
 <Opacity Value="1"/>
-<Diffuse G="160" R="160" B="164"/>
-<Specular G="10" R="10" B="10"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="10" R="10" G="10"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 </Nodes>
@@ -101,39 +104,42 @@
 <ScatterType Value="2"/>
 <NrOfBounces Value="1"/>
 <PostProcessingSteps Value="31"/>
+<PrimaryStepSize Value="3"/>
+<SecondaryStepSize Value="3"/>
+<ScatteringHeadStart Value="0"/>
 </Preset>
 <Preset Name="engine_small">
 <Nodes>
 <Node>
 <NormalizedIntensity Value="0"/>
 <Opacity Value="0"/>
-<Diffuse G="160" R="160" B="164"/>
-<Specular G="255" R="255" B="255"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="255" R="255" G="255"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="0"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.334088"/>
 <Opacity Value="0"/>
-<Diffuse G="10" R="10" B="10"/>
-<Specular G="14" R="40" B="170"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="10" R="10" G="10"/>
+<Specular B="170" R="40" G="14"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.334128"/>
 <Opacity Value="1"/>
-<Diffuse G="200" R="200" B="200"/>
-<Specular G="170" R="255" B="127"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="200" R="200" G="200"/>
+<Specular B="127" R="255" G="170"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="1"/>
 <Opacity Value="1"/>
-<Diffuse G="200" R="200" B="200"/>
-<Specular G="170" R="255" B="127"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="200" R="200" G="200"/>
+<Specular B="127" R="255" G="170"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 </Nodes>
@@ -144,47 +150,50 @@
 <ScatterType Value="0"/>
 <NrOfBounces Value="1"/>
 <PostProcessingSteps Value="31"/>
+<PrimaryStepSize Value="3"/>
+<SecondaryStepSize Value="3"/>
+<ScatteringHeadStart Value="0"/>
 </Preset>
 <Preset Name="backpack_small">
 <Nodes>
 <Node>
 <NormalizedIntensity Value="0"/>
 <Opacity Value="0"/>
-<Diffuse G="0" R="0" B="0"/>
-<Specular G="10" R="10" B="10"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="0" R="0" G="0"/>
+<Specular B="10" R="10" G="10"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.0355731"/>
 <Opacity Value="0"/>
-<Diffuse G="177" R="88" B="212"/>
-<Specular G="50" R="50" B="50"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="212" R="88" G="177"/>
+<Specular B="50" R="50" G="50"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="100"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.0356126"/>
 <Opacity Value="1"/>
-<Diffuse G="60" R="60" B="60"/>
-<Specular G="50" R="50" B="50"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="60" R="60" G="60"/>
+<Specular B="50" R="50" G="50"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="100"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.136822"/>
 <Opacity Value="1"/>
-<Diffuse G="119" R="255" B="0"/>
-<Specular G="72" R="72" B="36"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="0" R="255" G="119"/>
+<Specular B="36" R="72" G="72"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="1"/>
 <Opacity Value="1"/>
-<Diffuse G="160" R="160" B="164"/>
-<Specular G="10" R="10" B="10"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="10" R="10" G="10"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 </Nodes>
@@ -195,47 +204,50 @@
 <ScatterType Value="0"/>
 <NrOfBounces Value="1"/>
 <PostProcessingSteps Value="31"/>
+<PrimaryStepSize Value="3"/>
+<SecondaryStepSize Value="3"/>
+<ScatteringHeadStart Value="0"/>
 </Preset>
 <Preset Name="artifix_small">
 <Nodes>
 <Node>
 <NormalizedIntensity Value="0"/>
 <Opacity Value="0"/>
-<Diffuse G="160" R="160" B="164"/>
-<Specular G="0" R="0" B="0"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="0" R="0" G="0"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.266535"/>
 <Opacity Value="0"/>
-<Diffuse G="0" R="68" B="0"/>
-<Specular G="5" R="8" B="3"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="0" R="68" G="0"/>
+<Specular B="3" R="8" G="5"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.310104"/>
 <Opacity Value="0.0588235"/>
-<Diffuse G="104" R="143" B="54"/>
-<Specular G="50" R="50" B="50"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="54" R="143" G="104"/>
+<Specular B="50" R="50" G="50"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="0.2975"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.453057"/>
 <Opacity Value="1"/>
-<Diffuse G="9" R="18" B="0"/>
-<Specular G="85" R="170" B="0"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="0" R="18" G="9"/>
+<Specular B="0" R="170" G="85"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="0.0331"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="1"/>
 <Opacity Value="1"/>
-<Diffuse G="160" R="160" B="164"/>
-<Specular G="10" R="10" B="10"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="10" R="10" G="10"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 </Nodes>
@@ -246,47 +258,50 @@
 <ScatterType Value="2"/>
 <NrOfBounces Value="1"/>
 <PostProcessingSteps Value="31"/>
+<PrimaryStepSize Value="3"/>
+<SecondaryStepSize Value="3"/>
+<ScatteringHeadStart Value="0"/>
 </Preset>
 <Preset Name="macoessix_small">
 <Nodes>
 <Node>
 <NormalizedIntensity Value="0"/>
 <Opacity Value="0"/>
-<Diffuse G="160" R="160" B="164"/>
-<Specular G="10" R="10" B="10"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="10" R="10" G="10"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.426616"/>
 <Opacity Value="0"/>
-<Diffuse G="60" R="170" B="10"/>
-<Specular G="10" R="10" B="10"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="10" R="170" G="60"/>
+<Specular B="10" R="10" G="10"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.426656"/>
 <Opacity Value="1"/>
-<Diffuse G="0" R="96" B="1"/>
-<Specular G="18" R="27" B="13"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="1" R="96" G="0"/>
+<Specular B="13" R="27" G="18"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="0.8595"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.502371"/>
 <Opacity Value="1"/>
-<Diffuse G="160" R="160" B="164"/>
-<Specular G="10" R="10" B="10"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="10" R="10" G="10"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="1"/>
 <Opacity Value="1"/>
-<Diffuse G="160" R="160" B="164"/>
-<Specular G="10" R="10" B="10"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="10" R="10" G="10"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 </Nodes>
@@ -297,55 +312,58 @@
 <ScatterType Value="2"/>
 <NrOfBounces Value="1"/>
 <PostProcessingSteps Value="31"/>
+<PrimaryStepSize Value="3"/>
+<SecondaryStepSize Value="3"/>
+<ScatteringHeadStart Value="0"/>
 </Preset>
 <Preset Name="manix_small-multi">
 <Nodes>
 <Node>
 <NormalizedIntensity Value="0"/>
 <Opacity Value="0"/>
-<Diffuse G="160" R="160" B="164"/>
-<Specular G="10" R="10" B="10"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="10" R="10" G="10"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="100"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.23597"/>
 <Opacity Value="0"/>
-<Diffuse G="0" R="45" B="0"/>
-<Specular G="170" R="255" B="127"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="0" R="45" G="0"/>
+<Specular B="127" R="255" G="170"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="0"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.288538"/>
 <Opacity Value="0.0179028"/>
-<Diffuse G="0" R="255" B="0"/>
-<Specular G="0" R="255" B="0"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="0" R="255" G="0"/>
+<Specular B="0" R="255" G="0"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="0.5868"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.288578"/>
 <Opacity Value="0.563502"/>
-<Diffuse G="0" R="255" B="0"/>
-<Specular G="0" R="255" B="0"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="0" R="255" G="0"/>
+<Specular B="0" R="255" G="0"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="0.0744"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.35417"/>
 <Opacity Value="1"/>
-<Diffuse G="199" R="199" B="199"/>
-<Specular G="199" R="199" B="199"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="199" R="199" G="199"/>
+<Specular B="199" R="199" G="199"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="0.1322"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="1"/>
 <Opacity Value="1"/>
-<Diffuse G="199" R="199" B="199"/>
-<Specular G="199" R="199" B="199"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="199" R="199" G="199"/>
+<Specular B="199" R="199" G="199"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="100"/>
 </Node>
 </Nodes>
@@ -356,55 +374,120 @@
 <ScatterType Value="2"/>
 <NrOfBounces Value="8"/>
 <PostProcessingSteps Value="31"/>
+<PrimaryStepSize Value="3"/>
+<SecondaryStepSize Value="3"/>
+<ScatteringHeadStart Value="0"/>
 </Preset>
 <Preset Name="cornell_box">
 <Nodes>
 <Node>
 <NormalizedIntensity Value="0"/>
 <Opacity Value="0"/>
-<Diffuse G="160" R="160" B="164"/>
-<Specular G="0" R="0" B="0"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="0" R="0" G="0"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
-<NormalizedIntensity Value="0.424031"/>
+<NormalizedIntensity Value="0.48"/>
 <Opacity Value="0"/>
-<Diffuse G="160" R="160" B="164"/>
-<Specular G="0" R="0" B="0"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="0" R="255" G="0"/>
+<Specular B="0" R="0" G="0"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
-<NormalizedIntensity Value="0.42407"/>
+<NormalizedIntensity Value="0.49"/>
 <Opacity Value="1"/>
-<Diffuse G="0" R="255" B="0"/>
-<Specular G="0" R="0" B="0"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="0" R="255" G="0"/>
+<Specular B="0" R="0" G="0"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="100"/>
 </Node>
 <Node>
-<NormalizedIntensity Value="0.542636"/>
+<NormalizedIntensity Value="0.51"/>
 <Opacity Value="1"/>
-<Diffuse G="0" R="255" B="4"/>
-<Specular G="0" R="0" B="0"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="4" R="255" G="0"/>
+<Specular B="0" R="0" G="0"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
-<NormalizedIntensity Value="0.565892"/>
+<NormalizedIntensity Value="0.52"/>
 <Opacity Value="1"/>
-<Diffuse G="255" R="255" B="255"/>
-<Specular G="0" R="0" B="0"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="255" R="255" G="255"/>
+<Specular B="0" R="0" G="0"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="100"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="1"/>
 <Opacity Value="1"/>
-<Diffuse G="249" R="249" B="255"/>
-<Specular G="0" R="0" B="0"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="255" R="249" G="249"/>
+<Specular B="0" R="0" G="0"/>
+<Emission B="0" R="0" G="0"/>
+<Roughness Value="1"/>
+</Node>
+</Nodes>
+<DensityScale Value="10"/>
+<ShadingType Value="2"/>
+<GradientFactor Value="10"/>
+<AlgorithmType Value="1"/>
+<ScatterType Value="2"/>
+<NrOfBounces Value="8"/>
+<PostProcessingSteps Value="31"/>
+<PrimaryStepSize Value="0.5"/>
+<SecondaryStepSize Value="1"/>
+<ScatteringHeadStart Value="0"/>
+</Preset>
+<Preset Name="cornell_box-2">
+<Nodes>
+<Node>
+<NormalizedIntensity Value="0"/>
+<Opacity Value="0"/>
+<Diffuse B="255" R="255" G="255"/>
+<Specular B="0" R="0" G="0"/>
+<Emission B="0" R="0" G="0"/>
+<Roughness Value="1"/>
+</Node>
+<Node>
+<NormalizedIntensity Value="0.489961"/>
+<Opacity Value="0"/>
+<Diffuse B="255" R="255" G="255"/>
+<Specular B="0" R="0" G="0"/>
+<Emission B="0" R="0" G="0"/>
+<Roughness Value="1"/>
+</Node>
+<Node>
+<NormalizedIntensity Value="0.49"/>
+<Opacity Value="1"/>
+<Diffuse B="255" R="255" G="255"/>
+<Specular B="0" R="0" G="0"/>
+<Emission B="0" R="0" G="0"/>
+<Roughness Value="100"/>
+</Node>
+<Node>
+<NormalizedIntensity Value="0.501"/>
+<Opacity Value="1"/>
+<Diffuse B="255" R="255" G="255"/>
+<Specular B="0" R="0" G="0"/>
+<Emission B="0" R="0" G="0"/>
+<Roughness Value="0"/>
+</Node>
+<Node>
+<NormalizedIntensity Value="0.5011"/>
+<Opacity Value="1"/>
+<Diffuse B="0" R="255" G="0"/>
+<Specular B="0" R="0" G="0"/>
+<Emission B="0" R="0" G="0"/>
+<Roughness Value="100"/>
+</Node>
+<Node>
+<NormalizedIntensity Value="1"/>
+<Opacity Value="1"/>
+<Diffuse B="0" R="255" G="0"/>
+<Specular B="0" R="0" G="0"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 </Nodes>
@@ -415,55 +498,58 @@
 <ScatterType Value="2"/>
 <NrOfBounces Value="8"/>
 <PostProcessingSteps Value="31"/>
+<PrimaryStepSize Value="1"/>
+<SecondaryStepSize Value="1"/>
+<ScatteringHeadStart Value="0"/>
 </Preset>
-<Preset Name="cornell_box-2">
+<Preset Name="tunnelDiagonal">
 <Nodes>
 <Node>
 <NormalizedIntensity Value="0"/>
 <Opacity Value="0"/>
-<Diffuse G="255" R="255" B="255"/>
-<Specular G="0" R="0" B="0"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="10" R="10" G="10"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
-<NormalizedIntensity Value="0.489961"/>
+<NormalizedIntensity Value="0.499"/>
 <Opacity Value="0"/>
-<Diffuse G="255" R="255" B="255"/>
-<Specular G="0" R="0" B="0"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="255" R="255" G="255"/>
+<Specular B="255" R="255" G="255"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 <Node>
-<NormalizedIntensity Value="0.49"/>
-<Opacity Value="1"/>
-<Diffuse G="255" R="255" B="255"/>
-<Specular G="0" R="0" B="0"/>
-<Emission G="0" R="0" B="0"/>
+<NormalizedIntensity Value="0.5"/>
+<Opacity Value="0.97561"/>
+<Diffuse B="255" R="255" G="255"/>
+<Specular B="255" R="255" G="255"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="100"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="0.501"/>
-<Opacity Value="1"/>
-<Diffuse G="255" R="255" B="255"/>
-<Specular G="0" R="0" B="0"/>
-<Emission G="0" R="0" B="0"/>
-<Roughness Value="0"/>
+<Opacity Value="0"/>
+<Diffuse B="255" R="255" G="255"/>
+<Specular B="255" R="255" G="255"/>
+<Emission B="0" R="0" G="0"/>
+<Roughness Value="100"/>
 </Node>
 <Node>
-<NormalizedIntensity Value="0.5011"/>
-<Opacity Value="1"/>
-<Diffuse G="0" R="255" B="0"/>
-<Specular G="0" R="0" B="0"/>
-<Emission G="0" R="0" B="0"/>
-<Roughness Value="100"/>
+<NormalizedIntensity Value="0.963566"/>
+<Opacity Value="0"/>
+<Diffuse B="164" R="160" G="160"/>
+<Specular B="10" R="10" G="10"/>
+<Emission B="0" R="0" G="0"/>
+<Roughness Value="1"/>
 </Node>
 <Node>
 <NormalizedIntensity Value="1"/>
 <Opacity Value="1"/>
-<Diffuse G="0" R="255" B="0"/>
-<Specular G="0" R="0" B="0"/>
-<Emission G="0" R="0" B="0"/>
+<Diffuse B="0" R="0" G="0"/>
+<Specular B="0" R="0" G="0"/>
+<Emission B="0" R="0" G="0"/>
 <Roughness Value="1"/>
 </Node>
 </Nodes>
@@ -471,8 +557,11 @@
 <ShadingType Value="2"/>
 <GradientFactor Value="10"/>
 <AlgorithmType Value="0"/>
-<ScatterType Value="0"/>
+<ScatterType Value="2"/>
 <NrOfBounces Value="1"/>
-<PostProcessingSteps Value="0"/>
+<PostProcessingSteps Value="31"/>
+<PrimaryStepSize Value="3"/>
+<SecondaryStepSize Value="3"/>
+<ScatteringHeadStart Value="0"/>
 </Preset>
 </Presets>
