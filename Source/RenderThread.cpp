@@ -121,7 +121,7 @@ void QFrameBuffer::Set(unsigned char* pPixels, const int& Width, const int& Heig
 		m_pPixels = (unsigned char*)malloc(Size);
 	}
 
-	memcpy(m_pPixels, pPixels, Size); 
+	memcpy(m_pPixels, pPixels, Size);
 }
 
 QRenderThread::QRenderThread(const QString& FileName, QObject* pParent /*= NULL*/) :
@@ -581,8 +581,6 @@ bool QRenderThread::Load(QString& FileName)
 					int id = col + row * width + dep * width * height;
 					
 					img[id] = 0;
-
-					short voxelIntensity = 0;
 
 					if (dep > 0) {
 						const bool wall = (row < wt || row >= size - wt) || (col < wt || col >= size - wt) || dep >= size - wt;

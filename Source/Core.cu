@@ -367,7 +367,11 @@ void BindConstants(CScene* pScene)
 	//std::cout << "StepSize: " << StepSize << ", StepSizeShadow: " << StepSizeShadow << ", GradientDelta: "
 	//	<< pScene->m_GradientDelta << ", DensityScale: " << pScene->m_DensityScale << ", GradientFactor: " << pScene->m_GradientFactor
 	//	<< std::endl;
-	
+	/*CColorXyz tem = (CColorRgbHdr(1.0f).ToXYZ() * INV_4_PI_F) / INV_4_PI_F;
+	CColorRgbHdr asdf;
+	asdf.FromXYZ(tem.c[0], tem.c[1], tem.c[2]);*/
+	//CColorRgbHdr asdf = CColorRgbHdr(INV_4_PI_F);
+	//std::cout << asdf.r << ", " << asdf.g << ", " << asdf.b << std::endl;
 
 	HandleCudaError(cudaMemcpyToSymbol(gStepSize, &StepSize, sizeof(float)));
 	HandleCudaError(cudaMemcpyToSymbol(gStepSizeShadow, &StepSizeShadow, sizeof(float)));
@@ -448,6 +452,7 @@ void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& Po
 	HandleCudaError(cudaMalloc(&pDevView, sizeof(CCudaView)));
 	HandleCudaError(cudaMemcpy(pDevView, &gRenderCanvasView, sizeof(CCudaView), cudaMemcpyHostToDevice));
 
+	//std::cout << INV_4_PI_F << std::endl;
 	
 	CCudaTimer TmrRender;
 	
@@ -460,6 +465,21 @@ void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& Po
 		case 0:
 		{
 			SingleScattering(&Scene, pDevScene, pDevView);
+			break;
+		}
+
+		case 5: {
+			MultipleScattering(&Scene, pDevScene, pDevView);
+			break;
+		}
+
+		case 6: {
+			MultipleScattering(&Scene, pDevScene, pDevView);
+			break;
+		}
+
+		case 7: {
+			MultipleScattering(&Scene, pDevScene, pDevView);
 			break;
 		}
 
@@ -577,7 +597,6 @@ break;
 	}
 	else {
 		EstimateCopy(&Scene, pDevScene, pDevView);
-		//pDevView->m_RunningEstimateXyza = pDevView->m_FrameEstimateXyza;
 	}
 	PostProcessImage.AddDuration(TmrPostProcess.ElapsedTime());
 

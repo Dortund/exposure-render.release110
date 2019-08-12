@@ -72,10 +72,10 @@ public:
 		return *this;
 	}
 
-	HOD CColorRgbHdr operator * (float f) const
-	{
-		return CColorRgbHdr(r * f, g * f, b * f);
-	}
+	//HOD CColorRgbHdr operator * (float f) const
+	//{
+	//	return CColorRgbHdr(r * f, g * f, b * f);
+	//}
 
 	HOD CColorRgbHdr& operator *= (float f)
 	{
@@ -1826,7 +1826,7 @@ HOD inline CColorRgbHdr Lerp(float T, const CColorRgbHdr& C1, const CColorRgbHdr
 HOD inline CColorXyz Lerp(float T, const CColorXyz& C1, const CColorXyz& C2)
 {
 	const float OneMinusT = 1.0f - T;
-	return CColorXyz(OneMinusT * C1.c[0] + T * C2[0], OneMinusT * C1.c[0] + T * C2[0], OneMinusT * C1.c[0] + T * C2[0]);
+	return CColorXyz(OneMinusT * C1.c[0] + T * C2[0], OneMinusT * C1.c[1] + T * C2[1], OneMinusT * C1.c[2] + T * C2[2]);
 }
 
 // ToDo: Add description

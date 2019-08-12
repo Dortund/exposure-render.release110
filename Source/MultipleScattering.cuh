@@ -64,17 +64,15 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 	CColorXyz F = SPEC_BLACK;
 	CLightingSample LS;
 	CVolumeShader Shader = CVolumeShader(CVolumeShader::Phase, Vec3f(0), Vec3f(0), CColorXyz(0), CColorXyz(0), 0.0f, 0.0f);
-	int temp = 0;
-
-	auto throughput = 1.0f;
-
+	
+	int bouncesDone = 0;
+	CColorXyz order = SPEC_BLACK;
 
 	for (int i = 0; i < pScene->m_MaxBounces; i++)
 	{
-		
 		if (SampleDistanceRM(Re, RNG, Pe))
 		{
-			
+			bouncesDone = i+1;
 			const float D = GetNormalizedIntensity(Pe);
 
 			Lv += Tr * GetEmission(D).ToXYZ();
@@ -92,7 +90,7 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 				// Phase Function Only
 				case 1:
 				{
-					Lv += Tr * 0.5f * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
+					Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
 					break;
 				}
 
@@ -104,99 +102,98 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 					if (RNG.Get1() < PdfBrdf)
 						Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::Brdf, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
 					else
-						Lv += Tr * 0.5f * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
+						Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
 
 					break;
 				}
 			}
 
 			// Lets see if we can use the same trick for the direction as for calculating the light
-			LS.LargeStep(RNG);
+			if (i < pScene->m_MaxBounces - 1) {
+				LS.LargeStep(RNG);
 
-			// Switch Depending on the scattering type
-			switch (pScene->m_ScatterType)
-			{
-				// BRDF Only (Bidirectional Reflectance Distribution Function)
-				case 0:
+				// Switch Depending on the scattering type
+				switch (pScene->m_ScatterType)
 				{
-					Shader = CVolumeShader(CVolumeShader::Brdf, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
-					
-					F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
-
-					if (!F.IsBlack() && ShaderPdf > 0)
-						Tr *= F * AbsDot(Wi, NormalizedGradient(Pe)) / ShaderPdf;
-					break;
-				}
-
-				// Phase Function Only
-				case 1:
-				{
-					Shader = CVolumeShader(CVolumeShader::Phase, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
-
-					F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
-
-					if (!F.IsBlack() && ShaderPdf > 0)
-						Tr *= F / ShaderPdf;
-					break;
-				}
-
-				// Hybrid (BDRF & Phase Function)
-				case 2:
-				{
-					const float GradMag = GradientMagnitude(Pe) * gIntensityInvRange;
-					const float PdfBrdf = (1.0f - __expf(-pScene->m_GradientFactor * GradMag));
-					if (RNG.Get1() < PdfBrdf) {
+					// BRDF Only (Bidirectional Reflectance Distribution Function)
+					case 0:
+					{
 						Shader = CVolumeShader(CVolumeShader::Brdf, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
 
 						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
 
 						if (!F.IsBlack() && ShaderPdf > 0)
 							Tr *= F * AbsDot(Wi, NormalizedGradient(Pe)) / ShaderPdf;
+
+						break;
 					}
-					else {
+
+					// Phase Function Only
+					case 1:
+					{
 						Shader = CVolumeShader(CVolumeShader::Phase, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
 
 						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
 
 						if (!F.IsBlack() && ShaderPdf > 0)
 							Tr *= F / ShaderPdf;
+
+						break;
 					}
+
+					// Hybrid (BDRF & Phase Function)
+					case 2:
+					{
+						const float GradMag = GradientMagnitude(Pe) * gIntensityInvRange;
+						const float PdfBrdf = (1.0f - __expf(-pScene->m_GradientFactor * GradMag));
+						if (RNG.Get1() < PdfBrdf) {
+							Shader = CVolumeShader(CVolumeShader::Brdf, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+
+							F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+							if (!F.IsBlack() && ShaderPdf > 0)
+								Tr *= F * AbsDot(Wi, NormalizedGradient(Pe)) / ShaderPdf;
+
+							if (i < 3)
+								order.c[i] = 0;
+						}
+						else {
+							Shader = CVolumeShader(CVolumeShader::Phase, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+
+							F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+							if (!F.IsBlack() && ShaderPdf > 0)
+								Tr *= F / ShaderPdf;
+
+							if (i < 3)
+								order.c[i] = 1;
+						}
+						break;
+					}
+
+					// Scatter following light paths
+					case 3:
+					{
+						//TODO implement
+						break;
+					}
+				}
+
+				// If F is black or the probability is 0, terminate ray since throughput is now 0;
+				if (F.IsBlack() || ShaderPdf <= 0)
+					break;
+
+				// Russion Roulette to end path
+				if (Terminate(Tr, RNG, 0.5)) {
 					break;
 				}
 
-				// Scatter following light paths
-				case 3:
-				{
-					//TODO implement
-					break;
-				}
+				// Update ray direction
+				Re.m_O = Pe;
+				Re.m_D = Wi;
+				Re.m_MinT = gScatteringHeadstart;
+				Re.m_MaxT = INF_MAX;
 			}
-
-			// If F is black or the probability is 0, terminate ray since throughput is now 0;
-			if (F.IsBlack() || ShaderPdf == 0)
-				break;
-
-			// Russion Roulette to end path
-			if (Terminate(Tr, RNG, 0.5)) {
-				break;
-			}
-
-			/*temp = i;
-
-			throughput *= 0.9;
-
-			Lv += throughput * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, false);
-			*/
-			// Update ray direction
-			Re.m_O = Pe;
-			//Re.m_D = UniformSampleSphere(RNG.Get2());
-			Re.m_D = Wi;
-			Re.m_MinT = pScene->m_ScatteringHeadstart;
-			Re.m_MaxT = INF_MAX;
-
-			//if (throughput < 0.05)
-			//	break;
-
 		}
 		else
 		{
@@ -209,9 +206,15 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 	}
 
 	__syncthreads();
-	
 	pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
-	//pView->m_FrameEstimateXyza.Set(CColorXyza(temp/10.0f, temp/10.0f, temp/10.0f), X, Y);
+	if (pScene->m_AlgorithmType == 5) {
+		CColorXyz c = Lerp(bouncesDone / (float)pScene->m_MaxBounces, CColorRgbHdr(0, 1, 0), CColorRgbHdr(1, 0, 0)).ToXYZ();
+		pView->m_FrameEstimateXyza.Set(CColorXyza(c.c[0], c.c[1], c.c[2]), X, Y);
+	}
+	if (pScene->m_AlgorithmType == 6)
+		pView->m_FrameEstimateXyza.Set(CColorXyza(Tr.c[0], Tr.c[1], Tr.c[2]), X, Y);
+	if (pScene->m_AlgorithmType == 7)
+		pView->m_FrameEstimateXyza.Set(CColorXyza(order.c[0], order.c[1], order.c[2]), X, Y);
 }
 
 //void MultipleScattering(CScene* pScene, CScene* pDevScene, int* pSeeds)

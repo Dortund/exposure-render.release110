@@ -196,6 +196,7 @@ public:
 
 		  CColorXyz F = SPEC_WHITE;//m_Fresnel.Evaluate(cosThetaH);
 
+		  //probably Torrance–Sparrow BRDF
 		  return m_R * m_Blinn.D(wh) * G(wo, wi, wh) * F / (4.f * cosThetaI * cosThetaO);
 	  }
 
@@ -247,7 +248,7 @@ public:
 
 	HOD CColorXyz F(const Vec3f& Wo, const Vec3f& Wi)
 	{
-		return m_Kd * INV_PI_F;
+		return m_Kd * INV_4_PI_F;
 	}
 
 	HOD CColorXyz SampleF(const Vec3f& Wo, Vec3f& Wi, float& Pdf, const Vec2f& U)

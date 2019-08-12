@@ -432,9 +432,9 @@ public:
 
 	HOD static CColorXyz FromRGB(float r, float g, float b)
 	{
-		const float CoeffX[3] = { 0.4124f, 0.3576f, 0.1805f };
-		const float CoeffY[3] = { 0.2126f, 0.7152f, 0.0722f };
-		const float CoeffZ[3] = { 0.0193f, 0.1192f, 0.9505f };
+		const float CoeffX[3] = { 0.412453f, 0.357580f, 0.180423f };
+		const float CoeffY[3] = { 0.212671f, 0.715160f, 0.072169f };
+		const float CoeffZ[3] = { 0.019334f, 0.119193f, 0.950227f };
 
 		float XYZ[3];
 
@@ -691,9 +691,9 @@ public:
 
 	HOD static CColorXyza FromRGB(float r, float g, float b)
 	{
-		const float CoeffX[3] = { 0.4124f, 0.3576f, 0.1805f };
-		const float CoeffY[3] = { 0.2126f, 0.7152f, 0.0722f };
-		const float CoeffZ[3] = { 0.0193f, 0.1192f, 0.9505f };
+		const float CoeffX[3] = { 0.412453f, 0.357580f, 0.180423f };
+		const float CoeffY[3] = { 0.212671f, 0.715160f, 0.072169f };
+		const float CoeffZ[3] = { 0.019334f, 0.119193f, 0.950227f };
 
 		float XYZ[3];
 
