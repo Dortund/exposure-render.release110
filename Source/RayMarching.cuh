@@ -22,6 +22,53 @@
 #define KRNL_SS_BLOCK_H		8
 #define KRNL_SS_BLOCK_SIZE	KRNL_SS_BLOCK_W * KRNL_SS_BLOCK_H
 
+DEV inline bool SampleDistanceRMpropertyBased(CRay& R, CRNG& RNG, Vec3f& Ps)
+{
+	const int TID = threadIdx.y * blockDim.x + threadIdx.x;
+
+	__shared__ float MinT[KRNL_SS_BLOCK_SIZE];
+	__shared__ float MaxT[KRNL_SS_BLOCK_SIZE];
+
+	// Check if the ray intersects the volume's bounding box. If not, there's no use calculating anything
+	if (!IntersectBox(R, &MinT[TID], &MaxT[TID]))
+		return false;
+
+	// Upated values to stay within bounds specified in the ray.
+	MinT[TID] = max(MinT[TID], R.m_MinT);
+	MaxT[TID] = min(MaxT[TID], R.m_MaxT);
+
+
+	const float S = -log(RNG.Get1()) / gDensityScale;
+	float Sum = 0.0f;
+	float SigmaT = 0.0f;
+
+	// Increase MinT by a random factor of the stepsize, to create the first POSSIBLE scattering point
+	MinT[TID] += RNG.Get1() * gStepSize;
+
+	while (Sum < S)
+	{
+		// Scattering point is MinT (distance) * ray direction from ray origin
+		Ps = R.m_O + MinT[TID] * R.m_D;
+
+		// If MinT exceeds MaxT, where out of the volume and should stop looking for more points
+		if (MinT[TID] > MaxT[TID])
+			return false;
+
+		// Calculate SigmaT
+		// TODO What exactly is SigmaT???
+		materialProperties properties;
+		sampleProperties(properties, nullptr, nullptr, Ps);
+		SigmaT = gDensityScale * properties.opacity;
+
+		// Increase Sum by the calculated SigmaT * Stepsize
+		Sum += SigmaT * gStepSize;
+		// Increase MinT so it can be used to calculate the next possible scattering point in the next loop
+		MinT[TID] += gStepSize;
+	}
+
+	return true;
+}
+
 DEV inline bool SampleDistanceRM(CRay& R, curandState state, Vec3f& Ps) {
 	const int TID = threadIdx.y * blockDim.x + threadIdx.x;
 
@@ -115,6 +162,44 @@ DEV inline bool SampleDistanceRM(CRay& R, CRNG& RNG, Vec3f& Ps)
 	return true;
 }
 
+DEV inline bool FreePathRMpropertyBased(CRay& R, CRNG& RNG)
+{
+	const int TID = threadIdx.y * blockDim.x + threadIdx.x;
+
+	__shared__ float MinT[KRNL_SS_BLOCK_SIZE];
+	__shared__ float MaxT[KRNL_SS_BLOCK_SIZE];
+	__shared__ Vec3f Ps[KRNL_SS_BLOCK_SIZE];
+
+	if (!IntersectBox(R, &MinT[TID], &MaxT[TID]))
+		return false;
+
+	MinT[TID] = max(MinT[TID], R.m_MinT);
+	MaxT[TID] = min(MaxT[TID], R.m_MaxT);
+
+	const float S = -log(RNG.Get1()) / gDensityScale;
+	float Sum = 0.0f;
+	float SigmaT = 0.0f;
+
+	MinT[TID] += RNG.Get1() * gStepSizeShadow;
+
+	while (Sum < S)
+	{
+		Ps[TID] = R.m_O + MinT[TID] * R.m_D;
+
+		if (MinT[TID] > MaxT[TID])
+			return false;
+
+		materialProperties properties;
+		sampleProperties(properties, nullptr, nullptr, Ps[TID]);
+		SigmaT = gDensityScale * properties.opacity;
+
+		Sum += SigmaT * gStepSizeShadow;
+		MinT[TID] += gStepSizeShadow;
+	}
+
+	return true;
+}
+
 DEV inline bool FreePathRM(CRay& R, CRNG& RNG)
 {
 	const int TID = threadIdx.y * blockDim.x + threadIdx.x;
@@ -142,7 +227,7 @@ DEV inline bool FreePathRM(CRay& R, CRNG& RNG)
 		if (MinT[TID] > MaxT[TID])
 			return false;
 		
-		SigmaT	= gDensityScale * GetOpacity(GetNormalizedIntensity(Ps[TID]));
+		SigmaT = gDensityScale * GetOpacity(GetNormalizedIntensity(Ps[TID]));
 
 		Sum			+= SigmaT * gStepSizeShadow;
 		MinT[TID]	+= gStepSizeShadow;

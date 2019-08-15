@@ -97,3 +97,88 @@ DEV CColorXyz UniformSampleOneLight(CScene* pScene, const CVolumeShader::EType& 
 	
 	return (float)NumLights * EstimateDirectLight(pScene, Type, Density, Light, LS, Wo, Pe, N, RNG);
 }
+
+
+
+// Density Property based transport
+DEV CColorXyz EstimateDirectLightPropertyBased(CScene* pScene, const CVolumeShader::EType& Type, CLight& Light, CLightingSample& LS, materialProperties &properties, const Vec3f& Wo, const Vec3f& Pe, const Vec3f& N, CRNG& RNG)
+{
+	CColorXyz Ld = SPEC_BLACK, Li = SPEC_BLACK, F = SPEC_BLACK;
+
+	CVolumeShader Shader(Type, N, Wo, properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+
+	CRay Rl;
+
+	float LightPdf = 1.0f, ShaderPdf = 1.0f;
+
+	Vec3f Wi, P, Pl;
+
+	// Take a sample of the light.
+	// Also generate a ray 'Rl from a point on the light towards the scattering point
+	// Also register the PDF for the light
+	// 'LS' ??
+	Li = Light.SampleL(Pe, Rl, LightPdf, LS);
+
+	CLight* pLight = NULL;
+
+	// Create vector pointing from scattering point to point on light (direction already normalized)
+	Wi = -Rl.m_D;
+
+	F = Shader.F(Wo, Wi);
+
+	ShaderPdf = Shader.Pdf(Wo, Wi);
+
+	// if the light has a color, PDF's are greater then zero and there is a free enough path between the light point and scattering point
+	if (!Li.IsBlack() && ShaderPdf > 0.0f && LightPdf > 0.0f && !FreePathRM(Rl, RNG))
+	{
+		const float WeightMIS = PowerHeuristic(1.0f, LightPdf, 1.0f, ShaderPdf);
+
+		if (Type == CVolumeShader::Brdf)
+			Ld += F * Li * AbsDot(Wi, N) * WeightMIS / LightPdf;
+
+		if (Type == CVolumeShader::Phase)
+			Ld += F * Li * WeightMIS / LightPdf;
+	}
+
+	F = Shader.SampleF(Wo, Wi, ShaderPdf, LS.m_BsdfSample);
+
+	if (!F.IsBlack() && ShaderPdf > 0.0f)
+	{
+		if (NearestLight(pScene, CRay(Pe, Wi, 0.0f), Li, Pl, pLight, &LightPdf))
+		{
+			LightPdf = pLight->Pdf(Pe, Wi);
+
+			if (LightPdf > 0.0f && !Li.IsBlack() && !FreePathRM(CRay(Pl, Normalize(Pe - Pl), 0.0f, (Pe - Pl).Length()), RNG))
+			{
+				const float WeightMIS = PowerHeuristic(1.0f, ShaderPdf, 1.0f, LightPdf);
+
+				if (Type == CVolumeShader::Brdf)
+					Ld += F * Li * AbsDot(Wi, N) * WeightMIS / ShaderPdf;
+
+				if (Type == CVolumeShader::Phase)
+					Ld += F * Li * WeightMIS / ShaderPdf;
+			}
+		}
+	}
+
+	return Ld;
+}
+
+DEV CColorXyz UniformSampleOneLightPropertyBased(CScene* pScene, const CVolumeShader::EType& Type, materialProperties &properties, const Vec3f& Wo, const Vec3f& Pe, const Vec3f& N, CRNG& RNG, const bool& Brdf)
+{
+
+	const int NumLights = pScene->m_Lighting.m_NoLights;
+
+	if (NumLights == 0)
+		return SPEC_BLACK;
+
+	CLightingSample LS;
+
+	LS.LargeStep(RNG);
+
+	const int WhichLight = (int)floorf(LS.m_LightNum * (float)NumLights);
+
+	CLight& Light = pScene->m_Lighting.m_Lights[WhichLight];
+
+	return (float)NumLights * EstimateDirectLightPropertyBased(pScene, Type, Light, LS, properties, Wo, Pe, N, RNG);
+}

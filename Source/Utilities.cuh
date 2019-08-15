@@ -22,13 +22,36 @@ DEV inline Vec3f ToVec3f(const float3& V)
 
 DEV float GetNormalizedIntensity(const Vec3f& P)
 {
-	const float Intensity = ((float)SHRT_MAX * tex3D(gTexDensity, P.x * gInvAaBbMax.x, P.y * gInvAaBbMax.y, P.z * gInvAaBbMax.z));
+	float3 coord = {
+		P.x * gInvAaBbMax.x,
+		P.y * gInvAaBbMax.y,
+		P.z * gInvAaBbMax.z
+	};
+
+	if (coord.x <= 0 || coord.x >= 1 || coord.y <= 0 || coord.y >= 1 || coord.z <= 0 || coord.z >= 1)
+		return NAN;
+
+	const float Intensity = ((float)SHRT_MAX * tex3D(gTexDensity, coord.x, coord.y, coord.z));
+
+	return (Intensity - gIntensityMin) * gIntensityInvRange;
+}
+DEV float GetNormalizedIntensity(const float3& P)
+{
+	float3 coord = P * gInvAaBbMax;
+
+	if (coord.x < 0 || coord.x > 1 || coord.y < 0 || coord.y > 1 || coord.z < 0 || coord.z > 1)
+		return NAN;
+
+	const float Intensity = ((float)SHRT_MAX * tex3D(gTexDensity, coord.x, coord.y, coord.z));
 
 	return (Intensity - gIntensityMin) * gIntensityInvRange;
 }
 
 DEV float GetOpacity(const float& NormalizedIntensity)
 {
+	if (isnan(NormalizedIntensity))
+		return 0;
+
 	return tex1D(gTexOpacity, NormalizedIntensity);
 }
 
@@ -69,6 +92,244 @@ DEV inline Vec3f NormalizedGradient(const Vec3f& P)
 DEV float GradientMagnitude(const Vec3f& P)
 {
 	return ((float)SHRT_MAX * tex3D(gTexGradientMagnitude, P.x * gInvAaBbMax.x, P.y * gInvAaBbMax.y, P.z * gInvAaBbMax.z));
+}
+
+DEV inline float biLinear(float tx, float ty, float c00, float c10, float c01, float c11) {
+	return (1 - tx) * (1 - ty) * c00 +
+		tx * (1 - ty) * c10 +
+		(1 - tx) * ty * c01 +
+		tx * ty * c11;
+}
+
+DEV inline CColorRgbHdr biLinear(float tx, float ty,const CColorRgbHdr& c00, const CColorRgbHdr& c10, const CColorRgbHdr& c01, const CColorRgbHdr& c11) {
+	CColorRgbHdr  a = Lerp(tx, c00, c10);
+	CColorRgbHdr  b = Lerp(tx, c01, c11);
+	return Lerp(ty, a, b);
+}
+
+struct materialProperties {
+	float opacity;
+	float roughness;
+	CColorRgbHdr diffuse;
+	CColorRgbHdr specular;
+	CColorRgbHdr emission;
+};
+
+DEV void blendMaterialProperties(materialProperties &result, materialProperties &a, materialProperties &b, float amount)
+{
+	result.opacity = lerp(a.opacity, b.opacity, amount);
+	result.roughness = lerp(a.roughness, b.roughness, amount);
+	result.diffuse = Lerp(amount, a.diffuse, b.diffuse);
+	result.specular = Lerp(amount, a.specular, b.specular);
+	result.emission = Lerp(amount, a.emission, b.emission);
+}
+
+DEV void sampleRawProperties(materialProperties &properties, const float3& P)
+{
+	float intensity = GetNormalizedIntensity(P);
+	properties.opacity = GetOpacity(intensity);
+	properties.roughness = GetRoughness(intensity);
+	properties.diffuse = GetDiffuse(intensity);
+	properties.specular = GetSpecular(intensity);
+	properties.emission = GetEmission(intensity);
+}
+
+DEV void sampleProperties(materialProperties &properties, float3 *opacityGradient, float3 *fractions, const Vec3f& P)
+{
+	/*
+	   F________G
+	   /      /|
+	  /      / |
+    E_______/H |
+	 |   B |  /C
+	 |     | /
+	 |_____|/
+	 A     D
+	 bottom
+	*/
+
+	float3 coord;
+	coord.x = P.x;
+	coord.y = P.y;
+	coord.z = P.z;
+
+	//coord = (coord - 0.5 * gGradientDelta) / (1 - gGradientDelta);
+
+	//A is reference
+	float3 mins = floor(coord / gGradientDelta) * gGradientDelta;
+	float3 fraction = (coord - mins) / gGradientDelta;
+
+	if (fractions) {
+		fractions->x = fraction.x;
+		fractions->y = fraction.y;
+		fractions->z = fraction.z;
+	}
+
+	materialProperties A, B, C, D, E, F, G, H;
+	sampleRawProperties(A, mins);
+	sampleRawProperties(B, mins + gGradientDeltaZ);
+	sampleRawProperties(C, mins + gGradientDeltaZ + gGradientDeltaX);
+	sampleRawProperties(D, mins + gGradientDeltaX);
+
+	sampleRawProperties(E, mins + gGradientDeltaY);
+	sampleRawProperties(F, mins + gGradientDeltaZ + gGradientDeltaY);
+	sampleRawProperties(G, mins + gGradientDeltaZ + gGradientDeltaX + gGradientDeltaY);
+	sampleRawProperties(H, mins + gGradientDeltaX + gGradientDeltaY);
+
+	materialProperties AD, BC, EH, FG;
+	blendMaterialProperties(AD, A, D, fraction.x);
+	blendMaterialProperties(BC, B, C, fraction.x);
+	blendMaterialProperties(EH, E, H, fraction.x);
+	blendMaterialProperties(FG, F, G, fraction.x);
+
+	materialProperties ADBC, EHFG;
+	blendMaterialProperties(ADBC, AD, BC, fraction.z);
+	blendMaterialProperties(EHFG, EH, FG, fraction.z);
+
+	blendMaterialProperties(properties, ADBC, EHFG, fraction.y);
+	
+	if (opacityGradient)
+	{
+		opacityGradient->y = EHFG.opacity - ADBC.opacity;
+		
+		float AB, EF, DC, HG, ABEF, DCHG;
+		AB = lerp(A.opacity, B.opacity, fraction.z);
+		EF = lerp(E.opacity, F.opacity, fraction.z);
+		DC = lerp(D.opacity, C.opacity, fraction.z);
+		HG = lerp(H.opacity, G.opacity, fraction.z);
+		ABEF = lerp(AB, EF, fraction.y);
+		DCHG = lerp(DC, HG, fraction.y);
+		opacityGradient->x = DCHG - ABEF;
+
+		float ADEH, BCFG;
+		//AD = lerp(A.opacity, D.opacity, fraction.x);
+		//EH = lerp(E.opacity, H.opacity, fraction.x);
+		//BC = lerp(B.opacity, C.opacity, fraction.x);
+		//FG = lerp(F.opacity, G.opacity, fraction.x);
+		ADEH = lerp(AD.opacity, EH.opacity, fraction.y);
+		BCFG = lerp(BC.opacity, FG.opacity, fraction.y);
+		opacityGradient->z = BCFG - ADEH;
+	}
+}
+
+
+
+DEV float GetOpacityProperty(const Vec3f& P) {
+	float gxi, gyi, gzi, tx, ty, tz;
+	gxi = int(P.x / gGradientDeltaX.x) * gGradientDeltaX.x; tx = (P.x - gxi) / gGradientDeltaX.x;
+	gyi = int(P.y / gGradientDeltaY.y) * gGradientDeltaY.y; ty = (P.y - gyi) / gGradientDeltaY.y;
+	gzi = int(P.z / gGradientDeltaZ.z) * gGradientDeltaZ.z; tz = (P.z - gzi) / gGradientDeltaZ.z;
+	const float c000 = GetOpacity(GetNormalizedIntensity(Vec3f(gxi, gyi, gzi)));
+	const float c100 = GetOpacity(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi, gzi)));
+	const float c010 = GetOpacity(GetNormalizedIntensity(Vec3f(gxi, gyi + gGradientDeltaY.y, gzi)));
+	const float c110 = GetOpacity(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi + gGradientDeltaY.y, gzi)));
+	const float c001 = GetOpacity(GetNormalizedIntensity(Vec3f(gxi, gyi, gzi + gGradientDeltaZ.z)));
+	const float c101 = GetOpacity(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi, gzi + gGradientDeltaZ.z)));
+	const float c011 = GetOpacity(GetNormalizedIntensity(Vec3f(gxi, gyi + gGradientDeltaY.y, gzi + gGradientDeltaZ.z)));
+	const float c111 = GetOpacity(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi + gGradientDeltaY.y, gzi + gGradientDeltaZ.z)));
+
+	float e = biLinear(tx, ty, c000, c100, c010, c110);
+	float f = biLinear(tx, ty, c001, c101, c011, c111);
+	//return lerp(tz, f, e);
+	return e * (1 - tz) + f * tz;
+}
+
+DEV inline Vec3f GetNormalizedOpacityGradientProperty(const Vec3f& P)
+{
+	Vec3f Gradient;
+
+	Gradient.x = (GetOpacityProperty(P + ToVec3f(gGradientDeltaX)) - GetOpacityProperty(P - ToVec3f(gGradientDeltaX))) * gInvGradientDelta;
+	Gradient.y = (GetOpacityProperty(P + ToVec3f(gGradientDeltaY)) - GetOpacityProperty(P - ToVec3f(gGradientDeltaY))) * gInvGradientDelta;
+	Gradient.z = (GetOpacityProperty(P + ToVec3f(gGradientDeltaZ)) - GetOpacityProperty(P - ToVec3f(gGradientDeltaZ))) * gInvGradientDelta;
+
+	return Normalize(Gradient);
+}
+
+DEV inline float GetOpacityGradientMagnitudeProperty(const Vec3f& P)
+{
+	Vec3f Gradient;
+
+	Gradient.x = (GetOpacityProperty(P + ToVec3f(gGradientDeltaX)) - GetOpacityProperty(P - ToVec3f(gGradientDeltaX))) * gInvGradientDelta;
+	Gradient.y = (GetOpacityProperty(P + ToVec3f(gGradientDeltaY)) - GetOpacityProperty(P - ToVec3f(gGradientDeltaY))) * gInvGradientDelta;
+	Gradient.z = (GetOpacityProperty(P + ToVec3f(gGradientDeltaZ)) - GetOpacityProperty(P - ToVec3f(gGradientDeltaZ))) * gInvGradientDelta;
+
+	return Gradient.Length();
+}
+
+DEV CColorRgbHdr GetDiffuseProperty(const Vec3f& P) {
+	float gxi, gyi, gzi, tx, ty, tz;
+	gxi = int(P.x / gGradientDeltaX.x) * gGradientDeltaX.x; tx = (P.x - gxi) / gGradientDeltaX.x;
+	gyi = int(P.y / gGradientDeltaY.y) * gGradientDeltaY.y; ty = (P.y - gyi) / gGradientDeltaY.y;
+	gzi = int(P.z / gGradientDeltaZ.z) * gGradientDeltaZ.z; tz = (P.z - gzi) / gGradientDeltaZ.z;
+	const CColorRgbHdr c000 = GetDiffuse(GetNormalizedIntensity(Vec3f(gxi, gyi, gzi)));
+	const CColorRgbHdr c100 = GetDiffuse(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi, gzi)));
+	const CColorRgbHdr c010 = GetDiffuse(GetNormalizedIntensity(Vec3f(gxi, gyi + gGradientDeltaY.y, gzi)));
+	const CColorRgbHdr c110 = GetDiffuse(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi + gGradientDeltaY.y, gzi)));
+	const CColorRgbHdr c001 = GetDiffuse(GetNormalizedIntensity(Vec3f(gxi, gyi, gzi + gGradientDeltaZ.z)));
+	const CColorRgbHdr c101 = GetDiffuse(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi, gzi + gGradientDeltaZ.z)));
+	const CColorRgbHdr c011 = GetDiffuse(GetNormalizedIntensity(Vec3f(gxi, gyi + gGradientDeltaY.y, gzi + gGradientDeltaZ.z)));
+	const CColorRgbHdr c111 = GetDiffuse(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi + gGradientDeltaY.y, gzi + gGradientDeltaZ.z)));
+
+	CColorRgbHdr e = biLinear(tx, ty, c000, c100, c010, c110);
+	CColorRgbHdr f = biLinear(tx, ty, c001, c101, c011, c111);
+	return e * (1 - tz) + f * tz;
+}
+
+DEV CColorRgbHdr GetSpecularProperty(const Vec3f& P) {
+	float gxi, gyi, gzi, tx, ty, tz;
+	gxi = int(P.x / gGradientDeltaX.x) * gGradientDeltaX.x; tx = (P.x - gxi) / gGradientDeltaX.x;
+	gyi = int(P.y / gGradientDeltaY.y) * gGradientDeltaY.y; ty = (P.y - gyi) / gGradientDeltaY.y;
+	gzi = int(P.z / gGradientDeltaZ.z) * gGradientDeltaZ.z; tz = (P.z - gzi) / gGradientDeltaZ.z;
+	const CColorRgbHdr c000 = GetSpecular(GetNormalizedIntensity(Vec3f(gxi, gyi, gzi)));
+	const CColorRgbHdr c100 = GetSpecular(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi, gzi)));
+	const CColorRgbHdr c010 = GetSpecular(GetNormalizedIntensity(Vec3f(gxi, gyi + gGradientDeltaY.y, gzi)));
+	const CColorRgbHdr c110 = GetSpecular(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi + gGradientDeltaY.y, gzi)));
+	const CColorRgbHdr c001 = GetSpecular(GetNormalizedIntensity(Vec3f(gxi, gyi, gzi + gGradientDeltaZ.z)));
+	const CColorRgbHdr c101 = GetSpecular(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi, gzi + gGradientDeltaZ.z)));
+	const CColorRgbHdr c011 = GetSpecular(GetNormalizedIntensity(Vec3f(gxi, gyi + gGradientDeltaY.y, gzi + gGradientDeltaZ.z)));
+	const CColorRgbHdr c111 = GetSpecular(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi + gGradientDeltaY.y, gzi + gGradientDeltaZ.z)));
+
+	CColorRgbHdr e = biLinear(tx, ty, c000, c100, c010, c110);
+	CColorRgbHdr f = biLinear(tx, ty, c001, c101, c011, c111);
+	return e * (1 - tz) + f * tz;
+}
+
+DEV float GetRoughnessProperty(const Vec3f& P) {
+	float gxi, gyi, gzi, tx, ty, tz;
+	gxi = int(P.x / gGradientDeltaX.x) * gGradientDeltaX.x; tx = (P.x - gxi) / gGradientDeltaX.x;
+	gyi = int(P.y / gGradientDeltaY.y) * gGradientDeltaY.y; ty = (P.y - gyi) / gGradientDeltaY.y;
+	gzi = int(P.z / gGradientDeltaZ.z) * gGradientDeltaZ.z; tz = (P.z - gzi) / gGradientDeltaZ.z;
+	const float c000 = GetRoughness(GetNormalizedIntensity(Vec3f(gxi, gyi, gzi)));
+	const float c100 = GetRoughness(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi, gzi)));
+	const float c010 = GetRoughness(GetNormalizedIntensity(Vec3f(gxi, gyi + gGradientDeltaY.y, gzi)));
+	const float c110 = GetRoughness(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi + gGradientDeltaY.y, gzi)));
+	const float c001 = GetRoughness(GetNormalizedIntensity(Vec3f(gxi, gyi, gzi + gGradientDeltaZ.z)));
+	const float c101 = GetRoughness(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi, gzi + gGradientDeltaZ.z)));
+	const float c011 = GetRoughness(GetNormalizedIntensity(Vec3f(gxi, gyi + gGradientDeltaY.y, gzi + gGradientDeltaZ.z)));
+	const float c111 = GetRoughness(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi + gGradientDeltaY.y, gzi + gGradientDeltaZ.z)));
+
+	float e = biLinear(tx, ty, c000, c100, c010, c110);
+	float f = biLinear(tx, ty, c001, c101, c011, c111);
+	return e * (1 - tz) + f * tz;
+}
+
+DEV CColorRgbHdr GetEmmisionProperty(const Vec3f& P) {
+	float gxi, gyi, gzi, tx, ty, tz;
+	gxi = int(P.x / gGradientDeltaX.x) * gGradientDeltaX.x; tx = (P.x - gxi) / gGradientDeltaX.x;
+	gyi = int(P.y / gGradientDeltaY.y) * gGradientDeltaY.y; ty = (P.y - gyi) / gGradientDeltaY.y;
+	gzi = int(P.z / gGradientDeltaZ.z) * gGradientDeltaZ.z; tz = (P.z - gzi) / gGradientDeltaZ.z;
+	const CColorRgbHdr c000 = GetEmission(GetNormalizedIntensity(Vec3f(gxi, gyi, gzi)));
+	const CColorRgbHdr c100 = GetEmission(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi, gzi)));
+	const CColorRgbHdr c010 = GetEmission(GetNormalizedIntensity(Vec3f(gxi, gyi + gGradientDeltaY.y, gzi)));
+	const CColorRgbHdr c110 = GetEmission(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi + gGradientDeltaY.y, gzi)));
+	const CColorRgbHdr c001 = GetEmission(GetNormalizedIntensity(Vec3f(gxi, gyi, gzi + gGradientDeltaZ.z)));
+	const CColorRgbHdr c101 = GetEmission(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi, gzi + gGradientDeltaZ.z)));
+	const CColorRgbHdr c011 = GetEmission(GetNormalizedIntensity(Vec3f(gxi, gyi + gGradientDeltaY.y, gzi + gGradientDeltaZ.z)));
+	const CColorRgbHdr c111 = GetEmission(GetNormalizedIntensity(Vec3f(gxi + gGradientDeltaX.x, gyi + gGradientDeltaY.y, gzi + gGradientDeltaZ.z)));
+
+	CColorRgbHdr e = biLinear(tx, ty, c000, c100, c010, c110);
+	CColorRgbHdr f = biLinear(tx, ty, c001, c101, c011, c111);
+	return e * (1 - tz) + f * tz;
 }
 
 // TODO is called NearestLight, but seems to take the last of all lights in the list it had a hit with

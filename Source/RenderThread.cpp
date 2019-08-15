@@ -531,19 +531,19 @@ bool QRenderThread::Load(QString& FileName)
 
 	// Try to save our own file
 	// adapt path !
-	std::string filePath = "../exposure-render.release110/Source/Examples/tunnelDiagonal.mhd";
-	std::string filePathRaw = "../exposure-render.release110/Source/Examples/tunnelDiagonal.raw";
+	std::string filePath = "../exposure-render.release110/Source/Examples/cross56.mhd";
+	std::string filePathRaw = "../exposure-render.release110/Source/Examples/cross56.raw";
 
 	struct stat buffer;
 	if (!((stat(filePath.c_str(), &buffer) == 0))) {
-		/*
-		// Create an image
-		const int width = 28;
-		const int height = 28;
-		const int depth = 28;
+		
+		// Create an 3D cross
+		const int width = 56;
+		const int height = 56;
+		const int depth = 56;
+		//multiples of 7 work best here
 
-		short* img;
-		img = (short*)malloc(width*height*depth*sizeof(short));
+		std::unique_ptr<short[]> img(new short[width * height * depth]);
 		for (int row = 0; row < height; row++) {
 			for (int col = 0; col < width; col++) {
 				for (int dep = 0; dep < depth; dep++) {
@@ -564,7 +564,7 @@ bool QRenderThread::Load(QString& FileName)
 				}
 			}
 		}
-		*/
+		
 
 		// Create an Cornell box image
 		/*const int size = 128;
@@ -628,7 +628,7 @@ bool QRenderThread::Load(QString& FileName)
 				}
 			}
 		}*/
-
+		/*
 		//Tunnel
 		const int size = 64;
 		const int width = size;
@@ -684,6 +684,47 @@ bool QRenderThread::Load(QString& FileName)
 				}
 			}
 		}
+		*/
+		
+		/*
+		//Chekerbox
+		const int size = 128;
+		const int width = size;
+		const int height = size;
+		const int depth = size;
+
+		std::unique_ptr<short[]> img(new short[width * height * depth]);
+		for (int row = 0; row < height; row++) {
+			for (int col = 0; col < width; col++) {
+				for (int dep = 0; dep < depth; dep++) {
+					int id = col + row * width + dep * width * height;
+
+					img[id] = ((row+col) % 2) * 1000;
+					if (row + col < size)
+						img[id] = 0;
+				}
+			}
+		}
+		*/
+
+		/*
+		//Chekerbox
+		const int size = 2;
+		const int width = size;
+		const int height = size;
+		const int depth = size;
+
+		std::unique_ptr<short[]> img(new short[width * height * depth]);
+		for (int row = 0; row < height; row++) {
+			for (int col = 0; col < width; col++) {
+				for (int dep = 0; dep < depth; dep++) {
+					int id = col + row * width + dep * width * height;
+
+					img[id] = ((row + col) % 2) * 1000;
+				}
+			}
+		}
+		*/
 
 		// Convert the c-style image to a vtkImageData
 		vtkSmartPointer<vtkImageImport> imageImport =

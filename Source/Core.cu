@@ -112,7 +112,8 @@ void BindDensityBuffer(short* pBuffer, cudaExtent Extent)
 	HandleCudaError(cudaMemcpy3D(&CopyParams));
 
 	gTexDensity.normalized		= true;
-	gTexDensity.filterMode		= cudaFilterModeLinear;      
+	//gTexDensity.filterMode		= cudaFilterModeLinear;      cudaFilterModePoint
+	gTexDensity.filterMode		= cudaFilterModePoint;
 	gTexDensity.addressMode[0]	= cudaAddressModeClamp;  
 	gTexDensity.addressMode[1]	= cudaAddressModeClamp;
   	gTexDensity.addressMode[2]	= cudaAddressModeClamp;
@@ -480,6 +481,15 @@ void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& Po
 
 		case 7: {
 			MultipleScattering(&Scene, pDevScene, pDevView);
+			break;
+		}
+
+		case 8:
+		case 9:
+		case 10:
+		case 11:
+		{
+			MultipleScatteringPropertyBased(&Scene, pDevScene, pDevView);
 			break;
 		}
 
