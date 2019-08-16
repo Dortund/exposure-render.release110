@@ -53,6 +53,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_AlgorithmType.addItem("Nr of Bounces", 5);
 	m_AlgorithmType.addItem("Final Throughput", 6);
 	m_AlgorithmType.addItem("Bounce Type Order", 7);
+	m_AlgorithmType.addItem("Normals", 8);
 	m_MainLayout.addWidget(&m_AlgorithmType, i++, 1, 1, 2);
 
 	QObject::connect(&m_AlgorithmType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetAlgorithmType(int)));

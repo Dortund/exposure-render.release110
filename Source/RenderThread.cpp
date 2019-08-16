@@ -531,19 +531,19 @@ bool QRenderThread::Load(QString& FileName)
 
 	// Try to save our own file
 	// adapt path !
-	std::string filePath = "../exposure-render.release110/Source/Examples/tunnelDiagonal.mhd";
-	std::string filePathRaw = "../exposure-render.release110/Source/Examples/tunnelDiagonal.raw";
+	std::string filePath = "../exposure-render.release110/Source/Examples/cross56.mhd";
+	std::string filePathRaw = "../exposure-render.release110/Source/Examples/cross56.raw";
 
 	struct stat buffer;
 	if (!((stat(filePath.c_str(), &buffer) == 0))) {
-		/*
-		// Create an image
-		const int width = 28;
-		const int height = 28;
-		const int depth = 28;
+		
+		// Create an cross shaped image
+		const int size = 56;
+		const int width = size;
+		const int height = size;
+		const int depth = size;
 
-		short* img;
-		img = (short*)malloc(width*height*depth*sizeof(short));
+		std::unique_ptr<short[]> img(new short[width * height * depth]);
 		for (int row = 0; row < height; row++) {
 			for (int col = 0; col < width; col++) {
 				for (int dep = 0; dep < depth; dep++) {
@@ -555,7 +555,8 @@ bool QRenderThread::Load(QString& FileName)
 							) {
 						img[id] = 100;
 					}
-					if (dep == depth / 2
+					//if (dep == depth / 2
+					if ((dep >= 3 * depth / 7 && dep < 4 * depth / 7)
 						&& (row >= 5 * height / 7 && row < 6 * height / 7)
 						&& ((col >= 1 * width / 7 && col < 2 * width / 7) || (col >= 5 * width / 7 && col < 6 * width / 7))
 						) {
@@ -564,7 +565,7 @@ bool QRenderThread::Load(QString& FileName)
 				}
 			}
 		}
-		*/
+		
 
 		// Create an Cornell box image
 		/*const int size = 128;
@@ -573,8 +574,7 @@ bool QRenderThread::Load(QString& FileName)
 		const int depth = size;
 		int wt = 8;
 
-		short* img;
-		img = (short*)malloc(width*height*depth*sizeof(short));
+		std::unique_ptr<short[]> img(new short[width * height * depth]);
 		for (int row = 0; row < height; row++) {
 			for (int col = 0; col < width; col++) {
 				for (int dep = 0; dep < depth; dep++) {
@@ -629,6 +629,7 @@ bool QRenderThread::Load(QString& FileName)
 			}
 		}*/
 
+		/*
 		//Tunnel
 		const int size = 64;
 		const int width = size;
@@ -656,7 +657,7 @@ bool QRenderThread::Load(QString& FileName)
 						}
 					}
 					else {
-						int c = dep - 8;
+						int c = dep - wallThickness;
 						if (c < (depth - wallThickness) / 2) {
 							if (col >= c)
 								img[id] = 500;
@@ -684,6 +685,7 @@ bool QRenderThread::Load(QString& FileName)
 				}
 			}
 		}
+		*/
 
 		// Convert the c-style image to a vtkImageData
 		vtkSmartPointer<vtkImageImport> imageImport =

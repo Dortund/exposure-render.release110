@@ -468,6 +468,11 @@ void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& Po
 			break;
 		}
 
+		case 8: {
+			MultipleScattering(&Scene, pDevScene, pDevView);
+			break;
+		}
+
 		case 5: {
 			MultipleScattering(&Scene, pDevScene, pDevView);
 			break;

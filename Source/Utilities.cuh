@@ -22,7 +22,16 @@ DEV inline Vec3f ToVec3f(const float3& V)
 
 DEV float GetNormalizedIntensity(const Vec3f& P)
 {
-	const float Intensity = ((float)SHRT_MAX * tex3D(gTexDensity, P.x * gInvAaBbMax.x, P.y * gInvAaBbMax.y, P.z * gInvAaBbMax.z));
+	float3 coord = {
+		P.x * gInvAaBbMax.x,
+		P.y * gInvAaBbMax.y,
+		P.z * gInvAaBbMax.z
+	};
+
+	if (coord.x <= 0 || coord.x > 1 || coord.y <= 0 || coord.y > 1 || coord.z <= 0 || coord.z > 1)
+		return NAN;
+
+	const float Intensity = ((float)SHRT_MAX * tex3D(gTexDensity, coord.x, coord.y, coord.z));
 
 	return (Intensity - gIntensityMin) * gIntensityInvRange;
 }
@@ -63,7 +72,7 @@ DEV inline Vec3f NormalizedGradient(const Vec3f& P)
 	Gradient.y = (GetOpacity(GetNormalizedIntensity(P + ToVec3f(gGradientDeltaY))) - GetOpacity(GetNormalizedIntensity(P - ToVec3f(gGradientDeltaY)))) * gInvGradientDelta;
 	Gradient.z = (GetOpacity(GetNormalizedIntensity(P + ToVec3f(gGradientDeltaZ))) - GetOpacity(GetNormalizedIntensity(P - ToVec3f(gGradientDeltaZ)))) * gInvGradientDelta;
 
-	return Normalize(Gradient);
+	return Normalize(-1 * Gradient);
 }
 
 DEV float GradientMagnitude(const Vec3f& P)

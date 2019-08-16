@@ -75,6 +75,13 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 			bouncesDone = i+1;
 			const float D = GetNormalizedIntensity(Pe);
 
+
+			if (pScene->m_AlgorithmType == 8) {
+				Vec3f gradientNormal = NormalizedGradient(Pe);
+				pView->m_FrameEstimateXyza.Set(CColorXyza(gradientNormal.x / 2 + 0.5, gradientNormal.y / 2 + 0.5, gradientNormal.z / 2 + 0.5), X, Y);
+				return;
+			}
+
 			Lv += Tr * GetEmission(D).ToXYZ();
 
 			// Switch Depending on the shading type
