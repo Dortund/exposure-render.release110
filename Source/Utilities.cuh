@@ -23,12 +23,14 @@ DEV inline Vec3f ToVec3f(const float3& V)
 DEV float GetNormalizedIntensity(const Vec3f& P)
 {
 	float3 coord = {
-		P.x * gInvAaBbMax.x,
-		P.y * gInvAaBbMax.y,
-		P.z * gInvAaBbMax.z
+		P.x * gInvTextureSize.x,
+		P.y * gInvTextureSize.y,
+		P.z * gInvTextureSize.z
 	};
 
-	if (coord.x <= 0 || coord.x >= 1 || coord.y <= 0 || coord.y >= 1 || coord.z <= 0 || coord.z >= 1)
+	if (coord.x < 0 || coord.x > gInvTextureSize.x ||
+		coord.y < 0 || coord.y > gInvTextureSize.y ||
+		coord.z < 0 || coord.z > gInvTextureSize.z)
 		return NAN;
 
 	const float Intensity = ((float)SHRT_MAX * tex3D(gTexDensity, coord.x, coord.y, coord.z));
@@ -37,9 +39,11 @@ DEV float GetNormalizedIntensity(const Vec3f& P)
 }
 DEV float GetNormalizedIntensity(const float3& P)
 {
-	float3 coord = P * gInvAaBbMax;
+	float3 coord = P * gInvTextureSize;
 
-	if (coord.x < 0 || coord.x > 1 || coord.y < 0 || coord.y > 1 || coord.z < 0 || coord.z > 1)
+	if (coord.x < 0 || coord.x > gInvTextureSize.x ||
+		coord.y < 0 || coord.y > gInvTextureSize.y ||
+		coord.z < 0 || coord.z > gInvTextureSize.z)
 		return NAN;
 
 	const float Intensity = ((float)SHRT_MAX * tex3D(gTexDensity, coord.x, coord.y, coord.z));

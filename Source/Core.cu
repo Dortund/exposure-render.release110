@@ -37,6 +37,7 @@ CD float3		gAaBbMin;
 CD float3		gAaBbMax;
 CD float3		gInvAaBbMin;
 CD float3		gInvAaBbMax;
+CD float3		gInvTextureSize;
 CD float		gIntensityMin;
 CD float		gIntensityMax;
 CD float		gIntensityRange;
@@ -112,7 +113,7 @@ void BindDensityBuffer(short* pBuffer, cudaExtent Extent)
 	HandleCudaError(cudaMemcpy3D(&CopyParams));
 
 	gTexDensity.normalized		= true;
-	//gTexDensity.filterMode		= cudaFilterModeLinear;      cudaFilterModePoint
+	//gTexDensity.filterMode		= cudaFilterModeLinear;
 	gTexDensity.filterMode		= cudaFilterModePoint;
 	gTexDensity.addressMode[0]	= cudaAddressModeClamp;  
 	gTexDensity.addressMode[1]	= cudaAddressModeClamp;
@@ -346,9 +347,15 @@ void BindConstants(CScene* pScene)
 
 	const float3 InvAaBbMin = make_float3(pScene->m_BoundingBox.GetInvMinP().x, pScene->m_BoundingBox.GetInvMinP().y, pScene->m_BoundingBox.GetInvMinP().z);
 	const float3 InvAaBbMax = make_float3(pScene->m_BoundingBox.GetInvMaxP().x, pScene->m_BoundingBox.GetInvMaxP().y, pScene->m_BoundingBox.GetInvMaxP().z);
+	const float3 InvTextureSize = make_float3(
+		1.f / (1.f - 1.f / pScene->m_Resolution.GetResX()),
+		1.f / (1.f - 1.f / pScene->m_Resolution.GetResY()),
+		1.f / (1.f - 1.f / pScene->m_Resolution.GetResZ())
+	);
 
 	HandleCudaError(cudaMemcpyToSymbol(gInvAaBbMin, &InvAaBbMin, sizeof(float3)));
 	HandleCudaError(cudaMemcpyToSymbol(gInvAaBbMax, &InvAaBbMax, sizeof(float3)));
+	HandleCudaError(cudaMemcpyToSymbol(gInvTextureSize, &InvTextureSize, sizeof(float3)));
 
 	const float IntensityMin		= pScene->m_IntensityRange.GetMin();
 	const float IntensityMax		= pScene->m_IntensityRange.GetMax();
@@ -373,6 +380,8 @@ void BindConstants(CScene* pScene)
 	asdf.FromXYZ(tem.c[0], tem.c[1], tem.c[2]);*/
 	//CColorRgbHdr asdf = CColorRgbHdr(INV_4_PI_F);
 	//std::cout << asdf.r << ", " << asdf.g << ", " << asdf.b << std::endl;
+
+	//std::cout << pScene->m_BoundingBox.GetMaxP().x << ", " << pScene->m_BoundingBox.GetMaxP().y << ", " << pScene->m_BoundingBox.GetMaxP().z << std::endl;
 
 	HandleCudaError(cudaMemcpyToSymbol(gStepSize, &StepSize, sizeof(float)));
 	HandleCudaError(cudaMemcpyToSymbol(gStepSizeShadow, &StepSizeShadow, sizeof(float)));
