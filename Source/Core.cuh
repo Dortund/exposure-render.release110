@@ -23,7 +23,7 @@
 class CScene;
 class CVariance;
 
-extern "C" void BindDensityBuffer(short* pBuffer, cudaExtent Extent);
+extern "C" void BindDensityBuffer(short* pBuffer, cudaExtent Extent, cudaTextureFilterMode filtermode);
 extern "C" void BindGradientMagnitudeBuffer(short* pBuffer, cudaExtent Extent);
 extern "C" void UnbindDensityBuffer(void);
 extern "C" void UnbindGradientMagnitudeBuffer(void);
@@ -51,3 +51,10 @@ extern "C" void random_ints(int* a, int N);
 extern "C" void overridDensity(Vec3i* points, CResolution3D resolution, int nrPoits);
 extern "C" Vec3i* getPointsOpacityGradientMagnitudeBased(float* opacityGradientMagnitudes, CResolution3D resolution, int nrPoints);
 extern "C" void CreateIlluminanceTextureCore(CScene& Scene, float* pIlluminanceBuffer);
+
+enum AlgorithmType
+{
+	SINGLE_SCATTERING = 0,
+	MULTIPLE_SCATTERING = 1,
+	PROPERTY_BASED = 8
+};

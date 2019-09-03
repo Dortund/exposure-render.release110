@@ -37,7 +37,8 @@ CD float3		gAaBbMin;
 CD float3		gAaBbMax;
 CD float3		gInvAaBbMin;
 CD float3		gInvAaBbMax;
-CD float3		gInvTextureSize;
+CD float3		gWorldToTextureTransform;
+CD float3		gVoxelTextureOffset;
 CD float		gIntensityMin;
 CD float		gIntensityMax;
 CD float		gIntensityRange;
@@ -45,11 +46,11 @@ CD float		gIntensityInvRange;
 CD float		gStepSize;
 CD float		gStepSizeShadow;
 CD float		gDensityScale;
-CD float		gGradientDelta;
-CD float		gInvGradientDelta;
-CD float3		gGradientDeltaX;
-CD float3		gGradientDeltaY;
-CD float3		gGradientDeltaZ;
+CD float3		gVoxelSizeWorld;
+CD float3		gInvGradientDelta;
+CD float3		gVoxelSizeWorldX;
+CD float3		gVoxelSizeWorldY;
+CD float3		gVoxelSizeWorldZ;
 CD int			gFilmWidth;
 CD int			gFilmHeight;
 CD int			gFilmNoPixels;
@@ -69,6 +70,7 @@ CD float		gDenoiseLerpC;
 CD float		gNoIterations;
 CD float		gInvNoIterations;
 CD float		gScatteringHeadstart;
+CD float3		gSpacings;
 
 #define TF_NO_SAMPLES		128
 #define INV_TF_NO_SAMPLES	1.0f / (float)TF_NO_SAMPLES
@@ -97,7 +99,7 @@ Vec3f* m_DevPoints = NULL;
 CColorXyza* m_DevColours = NULL;
 float* m_DevConnections = NULL;
 
-void BindDensityBuffer(short* pBuffer, cudaExtent Extent)
+void BindDensityBuffer(short* pBuffer, cudaExtent Extent, cudaTextureFilterMode filtermode)
 {
 	cudaChannelFormatDesc ChannelDesc = cudaCreateChannelDesc<short>();
 
@@ -114,7 +116,8 @@ void BindDensityBuffer(short* pBuffer, cudaExtent Extent)
 
 	gTexDensity.normalized		= true;
 	//gTexDensity.filterMode		= cudaFilterModeLinear;
-	gTexDensity.filterMode		= cudaFilterModePoint;
+	//gTexDensity.filterMode		= cudaFilterModePoint;
+	gTexDensity.filterMode		= filtermode;
 	gTexDensity.addressMode[0]	= cudaAddressModeClamp;  
 	gTexDensity.addressMode[1]	= cudaAddressModeClamp;
   	gTexDensity.addressMode[2]	= cudaAddressModeClamp;
@@ -347,15 +350,33 @@ void BindConstants(CScene* pScene)
 
 	const float3 InvAaBbMin = make_float3(pScene->m_BoundingBox.GetInvMinP().x, pScene->m_BoundingBox.GetInvMinP().y, pScene->m_BoundingBox.GetInvMinP().z);
 	const float3 InvAaBbMax = make_float3(pScene->m_BoundingBox.GetInvMaxP().x, pScene->m_BoundingBox.GetInvMaxP().y, pScene->m_BoundingBox.GetInvMaxP().z);
-	const float3 InvTextureSize = make_float3(
-		1.f / (1.f - 1.f / pScene->m_Resolution.GetResX()),
-		1.f / (1.f - 1.f / pScene->m_Resolution.GetResY()),
-		1.f / (1.f - 1.f / pScene->m_Resolution.GetResZ())
-	);
 
 	HandleCudaError(cudaMemcpyToSymbol(gInvAaBbMin, &InvAaBbMin, sizeof(float3)));
 	HandleCudaError(cudaMemcpyToSymbol(gInvAaBbMax, &InvAaBbMax, sizeof(float3)));
-	HandleCudaError(cudaMemcpyToSymbol(gInvTextureSize, &InvTextureSize, sizeof(float3)));
+
+	const float3 WorldToTextureTransform = make_float3(
+		((pScene->m_Resolution.GetResX() + 2.f - 1.f) / pScene->m_Resolution.GetResX()),
+		((pScene->m_Resolution.GetResY() + 2.f - 1.f) / pScene->m_Resolution.GetResY()),
+		((pScene->m_Resolution.GetResZ() + 2.f - 1.f) / pScene->m_Resolution.GetResZ())
+	);
+	const float3 VoxelTextureOffset = make_float3(
+		(1.f / (2 * pScene->m_Resolution.GetResX())),
+		(1.f / (2 * pScene->m_Resolution.GetResY())),
+		(1.f / (2 * pScene->m_Resolution.GetResZ()))
+	);
+	/*const float3 WorldToTextureTransform = make_float3(
+		1 - 1.f / pScene->m_Resolution.GetResX(),
+		1 - 1.f / pScene->m_Resolution.GetResY(),
+		1 - 1.f / pScene->m_Resolution.GetResZ()
+	);
+	const float3 VoxelSizeTexture = make_float3(
+		0,
+		0,
+		0
+	);*/
+
+	HandleCudaError(cudaMemcpyToSymbol(gWorldToTextureTransform, &WorldToTextureTransform, sizeof(float3)));
+	HandleCudaError(cudaMemcpyToSymbol(gVoxelTextureOffset, &VoxelTextureOffset, sizeof(float3)));
 
 	const float IntensityMin		= pScene->m_IntensityRange.GetMin();
 	const float IntensityMax		= pScene->m_IntensityRange.GetMax();
@@ -367,9 +388,11 @@ void BindConstants(CScene* pScene)
 	HandleCudaError(cudaMemcpyToSymbol(gIntensityRange, &IntensityRange, sizeof(float)));
 	HandleCudaError(cudaMemcpyToSymbol(gIntensityInvRange, &IntensityInvRange, sizeof(float)));
 
-	const float StepSize		= pScene->m_StepSizeFactor * pScene->m_GradientDelta;
-	const float StepSizeShadow	= pScene->m_StepSizeFactorShadow * pScene->m_GradientDelta;
-	const float ScatteringHeadstart = pScene->m_ScatteringHeadstart * pScene->m_GradientDelta;
+	// First we find the shortest voxel axis, so a stepsize of 1 is always equal to at most 1 entire voxel along any of its axis
+	float smallestVoxelAxis = fminf(fminf(pScene->m_VoxelSizeWorld.x, pScene->m_VoxelSizeWorld.y), pScene->m_VoxelSizeWorld.z);
+	const float StepSize		= pScene->m_StepSizeFactor * smallestVoxelAxis;
+	const float StepSizeShadow	= pScene->m_StepSizeFactorShadow * smallestVoxelAxis;
+	const float ScatteringHeadstart = pScene->m_ScatteringHeadstart * smallestVoxelAxis;
 
 	//TODO remove
 	//std::cout << "StepSize: " << StepSize << ", StepSizeShadow: " << StepSizeShadow << ", GradientDelta: "
@@ -383,6 +406,12 @@ void BindConstants(CScene* pScene)
 
 	//std::cout << pScene->m_BoundingBox.GetMaxP().x << ", " << pScene->m_BoundingBox.GetMaxP().y << ", " << pScene->m_BoundingBox.GetMaxP().z << std::endl;
 
+	//CColorRgbHdr c = CColorRgbHdr(1, 1, 1);
+	//std::cout << c.ToXYZ().c[0] << ", " << c.ToXYZ().c[1] << ", " << c.ToXYZ().c[2] << std::endl;
+	//CColorRgbHdr c2;
+	//c2.FromXYZ(1, 1, 1);
+	//std::cout << c2.r << ", " << c2.g << ", " << c2.b << std::endl;
+
 	HandleCudaError(cudaMemcpyToSymbol(gStepSize, &StepSize, sizeof(float)));
 	HandleCudaError(cudaMemcpyToSymbol(gStepSizeShadow, &StepSizeShadow, sizeof(float)));
 	HandleCudaError(cudaMemcpyToSymbol(gScatteringHeadstart, &ScatteringHeadstart, sizeof(float)));
@@ -392,17 +421,30 @@ void BindConstants(CScene* pScene)
 
 	HandleCudaError(cudaMemcpyToSymbol(gDensityScale, &DensityScale, sizeof(float)));
 	
-	const float GradientDelta		= 1.0f * pScene->m_GradientDelta;
-	const float InvGradientDelta	= 1.0f / GradientDelta;
-	const Vec3f GradientDeltaX(GradientDelta, 0.0f, 0.0f);
-	const Vec3f GradientDeltaY(0.0f, GradientDelta, 0.0f);
-	const Vec3f GradientDeltaZ(0.0f, 0.0f, GradientDelta);
+	const float3 VoxelSizeWorld		= make_float3(pScene->m_VoxelSizeWorld.x, pScene->m_VoxelSizeWorld.y, pScene->m_VoxelSizeWorld.z);
+	// InvGradientDelta is only used in an old and flawed NormalizedGradient function a the moment
+	const float3 InvGradientDelta	= make_float3(1, 1, 1);
+	//float textureFloorAvoidance = 1.2;
+	float textureFloorAvoidance = 1.f;
+	const Vec3f VoxelSizeWorldX(textureFloorAvoidance*VoxelSizeWorld.x, 0.0f, 0.0f);
+	const Vec3f VoxelSizeWorldY(0.0f, textureFloorAvoidance*VoxelSizeWorld.y, 0.0f);
+	const Vec3f VoxelSizeWorldZ(0.0f, 0.0f, textureFloorAvoidance*VoxelSizeWorld.z);
+	const float3 Spacings = make_float3(pScene->m_Spacing.x, pScene->m_Spacing.y, pScene->m_Spacing.z);
 	
-	HandleCudaError(cudaMemcpyToSymbol(gGradientDelta, &GradientDelta, sizeof(float)));
-	HandleCudaError(cudaMemcpyToSymbol(gInvGradientDelta, &InvGradientDelta, sizeof(float)));
-	HandleCudaError(cudaMemcpyToSymbol(gGradientDeltaX, &GradientDeltaX, sizeof(Vec3f)));
-	HandleCudaError(cudaMemcpyToSymbol(gGradientDeltaY, &GradientDeltaY, sizeof(Vec3f)));
-	HandleCudaError(cudaMemcpyToSymbol(gGradientDeltaZ, &GradientDeltaZ, sizeof(Vec3f)));
+	HandleCudaError(cudaMemcpyToSymbol(gVoxelSizeWorld, &VoxelSizeWorld, sizeof(float3)));
+	HandleCudaError(cudaMemcpyToSymbol(gInvGradientDelta, &InvGradientDelta, sizeof(float3)));
+	HandleCudaError(cudaMemcpyToSymbol(gVoxelSizeWorldX, &VoxelSizeWorldX, sizeof(Vec3f)));
+	HandleCudaError(cudaMemcpyToSymbol(gVoxelSizeWorldY, &VoxelSizeWorldY, sizeof(Vec3f)));
+	HandleCudaError(cudaMemcpyToSymbol(gVoxelSizeWorldZ, &VoxelSizeWorldZ, sizeof(Vec3f)));
+	HandleCudaError(cudaMemcpyToSymbol(gSpacings, &Spacings, sizeof(float3)));
+
+	// write test case for world to texture space
+	/*for (int i = 0; i < pScene->m_Resolution.GetResY() + 2; i++) {
+		float world = i * VoxelSizeWorld.y;
+		float texture = world * InvAaBbMax.y * WorldToTextureTransform.y - VoxelTextureOffset.y;
+		float textureExp = (i - 1) * (VoxelTextureOffset.y * 2) + VoxelTextureOffset.y;
+		std::cout << "i: " << i << ", World: " << world << ", Texture: " << texture << ", Texture Exp.: " << textureExp << ", Diff: " << (textureExp - texture) << std::endl;
+	}*/
 	
 	const int FilmWidth		= pScene->m_Camera.m_Film.GetWidth();
 	const int Filmheight	= pScene->m_Camera.m_Film.GetHeight();
@@ -461,8 +503,6 @@ void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& Po
 
 	HandleCudaError(cudaMalloc(&pDevView, sizeof(CCudaView)));
 	HandleCudaError(cudaMemcpy(pDevView, &gRenderCanvasView, sizeof(CCudaView), cudaMemcpyHostToDevice));
-
-	//std::cout << INV_4_PI_F << std::endl;
 	
 	CCudaTimer TmrRender;
 	
@@ -472,7 +512,7 @@ void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& Po
 			GiveGreen(&Scene, pDevScene, pDevView);
 			break;
 		}
-		case 0:
+		case SINGLE_SCATTERING:
 		{
 			SingleScattering(&Scene, pDevScene, pDevView);
 			break;
@@ -488,21 +528,27 @@ void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& Po
 			break;
 		}
 
-		case 7: {
+		case 7:
+		case 15:
+		{
 			MultipleScattering(&Scene, pDevScene, pDevView);
 			break;
 		}
 
-		case 8:
+		case PROPERTY_BASED:
 		case 9:
 		case 10:
 		case 11:
+		case 12:
+		case 13:
+		case 14:
+		case 16:
 		{
 			MultipleScatteringPropertyBased(&Scene, pDevScene, pDevView);
 			break;
 		}
 
-		case 1:
+		case MULTIPLE_SCATTERING:
 		{
 			//MultipleScattering(&Scene, pDevScene);
 			MultipleScattering(&Scene, pDevScene, pDevView);
@@ -790,7 +836,7 @@ void overridDensity(Vec3i* points, CResolution3D resolution, int nrPoits) {
 	Extent.height = resolution[1];
 	Extent.depth = resolution[2];
 
-	BindDensityBuffer(pFakeDensityBuffer, Extent);
+	BindDensityBuffer(pFakeDensityBuffer, Extent, cudaFilterModeLinear);
 
 	cout << "Replacing Texture: " << TmrReplaceTexture.ElapsedTime() << " ms" << endl;
 }

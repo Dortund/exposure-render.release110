@@ -41,7 +41,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 {
 	setLayout(&m_MainLayout);
 
-	int i = 1;
+	int i = 0;
 
 	m_MainLayout.addWidget(new QLabel("Algorithm Type"), i, 0);
 
@@ -57,6 +57,10 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_AlgorithmType.addItem("Property Based Normal", 9);
 	m_AlgorithmType.addItem("Property Based Opacity/roughness/magnitude", 10);
 	m_AlgorithmType.addItem("Property Based Fractions", 11);
+	m_AlgorithmType.addItem("Property Based Voxels", 12);
+	m_AlgorithmType.addItem("Property Based Intensity", 13);
+	m_AlgorithmType.addItem("Property Based Coordinate", 14);
+	m_AlgorithmType.addItem("Multi Coordinate", 15);
 	m_MainLayout.addWidget(&m_AlgorithmType, i++, 1, 1, 2);
 
 	QObject::connect(&m_AlgorithmType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetAlgorithmType(int)));
@@ -87,11 +91,11 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_MainLayout.addWidget(lblDensityScale, i, 0);
 
 	m_DensityScaleSlider.setOrientation(Qt::Horizontal);
-	m_DensityScaleSlider.setRange(0.001, 100.0);
+	m_DensityScaleSlider.setRange(0.001, 100000.0);
 	m_DensityScaleSlider.setValue(1.0);
 	m_MainLayout.addWidget(&m_DensityScaleSlider, i, 1);
 
-	m_DensityScaleSpinner.setRange(0.001, 100.0);
+	m_DensityScaleSpinner.setRange(0.001, 100000.0);
 	m_DensityScaleSpinner.setDecimals(3);
 	m_MainLayout.addWidget(&m_DensityScaleSpinner, i++, 2);
 
@@ -296,7 +300,8 @@ void QAppearanceSettingsWidget::OnSetShadingType(int Index)
 
 void QAppearanceSettingsWidget::OnSetAlgorithmType(int Index)
 {
-	gTransferFunction.SetAlgorithmType(Index);
+	int val = m_AlgorithmType.itemData(Index).toInt();
+	gTransferFunction.SetAlgorithmType(val);
 }
 
 void QAppearanceSettingsWidget::OnSetGradientFactor(double GradientFactor)

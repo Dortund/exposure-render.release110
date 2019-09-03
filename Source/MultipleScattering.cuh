@@ -72,6 +72,11 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 	{
 		if (SampleDistanceRM(Re, RNG, Pe))
 		{
+			if (pScene->m_AlgorithmType == 15) {
+				pView->m_FrameEstimateXyza.Set(CColorXyza(Pe.x, Pe.y, Pe.z), X, Y);
+				return;
+			}
+
 			bouncesDone = i+1;
 			const float D = GetNormalizedIntensity(Pe);
 

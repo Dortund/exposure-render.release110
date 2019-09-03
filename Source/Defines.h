@@ -67,3 +67,4 @@
 	__FILE__, __LINE__, cudaGetErrorString( err) );              \
 	exit(EXIT_FAILURE);                                                  \
 	} }
+

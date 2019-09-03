@@ -410,7 +410,7 @@ KERNEL void KrnlCreateOpacityGradientTexture(CResolution3D Resolution, float4* p
 
 	__shared__ float opacityStored[OPACITY_BLOCK_DIM + 2][OPACITY_BLOCK_DIM + 2][OPACITY_BLOCK_DIM + 2];
 
-	Vec3f realPos = gGradientDelta * Vec3f(X, Y, Z);
+	Vec3f realPos = Vec3f(gVoxelSizeWorld.x, gVoxelSizeWorld.y, gVoxelSizeWorld.z) * Vec3f(X, Y, Z);
 
 	// Position in shared memory
 	int memoryX = threadIdx.x + 1;
@@ -421,26 +421,26 @@ KERNEL void KrnlCreateOpacityGradientTexture(CResolution3D Resolution, float4* p
 
 	// Get the extra points for the x edges
 	if (memoryX == 1) {
-		opacityStored[0][memoryY][memoryZ] = GetOpacity(GetNormalizedIntensity(realPos - ToVec3f(gGradientDeltaX)));
+		opacityStored[0][memoryY][memoryZ] = GetOpacity(GetNormalizedIntensity(realPos - ToVec3f(gVoxelSizeWorldX)));
 	}
 	else if (memoryX == blockDim.x) {
-		opacityStored[memoryX + 1][memoryY][memoryZ] = GetOpacity(GetNormalizedIntensity(realPos + ToVec3f(gGradientDeltaX)));
+		opacityStored[memoryX + 1][memoryY][memoryZ] = GetOpacity(GetNormalizedIntensity(realPos + ToVec3f(gVoxelSizeWorldX)));
 	}
 
 	// Get the extra points for the y edges
 	if (memoryY == 1) {
-		opacityStored[memoryX][0][memoryZ] = GetOpacity(GetNormalizedIntensity(realPos - ToVec3f(gGradientDeltaY)));
+		opacityStored[memoryX][0][memoryZ] = GetOpacity(GetNormalizedIntensity(realPos - ToVec3f(gVoxelSizeWorldY)));
 	}
 	else if (memoryY == blockDim.y) {
-		opacityStored[memoryX][memoryY + 1][memoryZ] = GetOpacity(GetNormalizedIntensity(realPos + ToVec3f(gGradientDeltaY)));
+		opacityStored[memoryX][memoryY + 1][memoryZ] = GetOpacity(GetNormalizedIntensity(realPos + ToVec3f(gVoxelSizeWorldY)));
 	}
 
 	// Get the extra points for the z edges
 	if (memoryZ == 1) {
-		opacityStored[memoryX][memoryY][0] = GetOpacity(GetNormalizedIntensity(realPos - ToVec3f(gGradientDeltaZ)));
+		opacityStored[memoryX][memoryY][0] = GetOpacity(GetNormalizedIntensity(realPos - ToVec3f(gVoxelSizeWorldZ)));
 	}
 	else if (memoryZ == blockDim.z) {
-		opacityStored[memoryX][memoryY][memoryZ + 1] = GetOpacity(GetNormalizedIntensity(realPos + ToVec3f(gGradientDeltaZ)));
+		opacityStored[memoryX][memoryY][memoryZ + 1] = GetOpacity(GetNormalizedIntensity(realPos + ToVec3f(gVoxelSizeWorldZ)));
 	}
 
 	// Sync all threads to ensure memory is filled
@@ -479,7 +479,7 @@ KERNEL void KrnlCreateIlluminationTexture(CScene* pScene, float* pDevIlluminatio
 	if (X >= pScene->m_Resolution.GetResX() || Y >= pScene->m_Resolution.GetResY() || Z >= pScene->m_Resolution.GetResZ())
 		return;
 
-	Vec3f realPos = gGradientDelta * Vec3f(X, Y, Z);
+	Vec3f realPos = Vec3f(gVoxelSizeWorld.x, gVoxelSizeWorld.y, gVoxelSizeWorld.z) * Vec3f(X, Y, Z);
 
 	//__shared__ CRNG rngTest[OPACITY_BLOCK_DIM][OPACITY_BLOCK_DIM];
 	//rngTest[threadIdx.x][threadIdx.y] = CRNG(rng1->GetPtr(X, Y), rng2->GetPtr(X, Y));
@@ -811,8 +811,21 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 	CVolumeShader Shader = CVolumeShader(CVolumeShader::Phase, Vec3f(0), Vec3f(0), CColorXyz(0), CColorXyz(0), 0.0f, 0.0f);
 	Vec3f gradientNormal = Vec3f(0);
 
+	//pView->m_FrameEstimateXyza.Set(CColorXyza(-log(RNG.Get1())), X, Y);
+	//return;
+
 	for (int i = 0; i < pScene->m_MaxBounces; i++)
 	{
+		Vec3f steps = SampleDistanceRMpropertyBased(Re, RNG, Pe);
+		
+		//pView->m_FrameEstimateXyza.Set(CColorXyza(steps, steps / 10.f, steps / 100.f), X, Y);
+		/*if (steps.x > steps.y)
+		pView->m_FrameEstimateXyza.Set(CColorXyza(steps.x, steps.y, steps.z), X, Y);
+		else
+			pView->m_FrameEstimateXyza.Set(CColorXyza(steps.x, steps.y, steps.z), X, Y);
+		return;
+
+		if (steps > 0)*/
 		if (SampleDistanceRMpropertyBased(Re, RNG, Pe))
 		{
 			//CColorRgbHdr temp = GetOpacityProperty(Pe);
@@ -826,7 +839,7 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 			float gradientMagnitude = ToVec3f(gradient).Length();
 			Vec3f gradientNormal = ToVec3f(-gradient / gradientMagnitude);
 			if (gradientMagnitude == 0)
-				gradientNormal = Vec3f(0,0,0);
+				gradientNormal = Vec3f(1,1,1);
 			
 			if (pScene->m_AlgorithmType == 9) {
 				pView->m_FrameEstimateXyza.Set(CColorXyza(gradientNormal.x / 2 + 0.5, gradientNormal.y / 2 + 0.5, gradientNormal.z / 2 + 0.5), X, Y);
@@ -840,6 +853,30 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 
 			if (pScene->m_AlgorithmType == 11) {
 				pView->m_FrameEstimateXyza.Set(CColorXyza(fractions.x, fractions.y, fractions.z), X, Y);
+				return;
+			}
+
+			if (pScene->m_AlgorithmType == 12) {
+				float3 mins = floor(make_float3(Pe.x, Pe.y, Pe.z) / gVoxelSizeWorld);
+				/*pView->m_FrameEstimateXyza.Set(CColorXyza(
+					mins.x / (pScene->m_Resolution.GetResX()),
+					mins.y / (pScene->m_Resolution.GetResY()),
+					mins.z / (pScene->m_Resolution.GetResZ())), X, Y);*/
+				pView->m_FrameEstimateXyza.Set(CColorXyza(
+					((int)mins.x % 5) / 5.f,
+					((int)mins.y % 5) / 5.f,
+					((int)mins.z % 5) / 5.f
+				), X, Y);
+				return;
+			}
+			if (pScene->m_AlgorithmType == 13) {
+				float3 p = { Pe.x, Pe.y, Pe.z };
+				float density = GetNormalizedIntensity(p + 0.5 * gVoxelSizeWorld);
+				pView->m_FrameEstimateXyza.Set(CColorXyza(density), X, Y);
+				return;
+			}
+			if (pScene->m_AlgorithmType == 14) {
+				pView->m_FrameEstimateXyza.Set(CColorXyza(Pe.x, Pe.y, Pe.z), X, Y);
 				return;
 			}
 
@@ -860,6 +897,8 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 			case 1:
 			{
 				Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Phase, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, false);
+				//pView->m_FrameEstimateXyza.Set(CColorXyza(properties.diffuse.r, properties.diffuse.g, properties.diffuse.b), X, Y);
+				//return;
 				break;
 			}
 
@@ -868,11 +907,16 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 			{
 				const float GradMag = gradientMagnitude * gIntensityInvRange;
 				const float PdfBrdf = (1.0f - __expf(-pScene->m_GradientFactor * GradMag));
-				if (RNG.Get1() < PdfBrdf)
+				if (RNG.Get1() < PdfBrdf) {
 					Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Brdf, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
-				else
+					//pView->m_FrameEstimateXyza.Set(CColorXyza(0,1,0), X, Y);
+					//return;
+				}
+				else {
 					Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Phase, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, false);
-
+					//pView->m_FrameEstimateXyza.Set(CColorXyza(0,0,1), X, Y);
+					//return;
+				}
 				break;
 			}
 			}
@@ -925,7 +969,7 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 								Tr *= F * AbsDot(Wi, gradientNormal) / ShaderPdf;
 						}
 						else {
-							Shader = CVolumeShader(CVolumeShader::Phase, GetNormalizedOpacityGradientProperty(Pe), Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+							Shader = CVolumeShader(CVolumeShader::Phase, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
 
 							F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
 

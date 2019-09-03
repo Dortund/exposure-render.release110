@@ -68,6 +68,7 @@ private:
 	CColorRgbLdr*		m_pRenderImage;
 	short*				m_pDensityBuffer;
 	short*				m_pGradientMagnitudeBuffer;
+	cudaTextureFilterMode m_CurFilterMode;
 
 
 public:

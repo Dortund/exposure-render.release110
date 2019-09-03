@@ -78,7 +78,7 @@ public:
 	int					m_ShadingType;
 	float				m_StepSizeFactor;
 	float				m_StepSizeFactorShadow;
-	float				m_GradientDelta;
+	float3				m_VoxelSizeWorld;
 	float				m_GradientFactor;
 	float				m_GradMagMean;
 	int					m_AlgorithmType;

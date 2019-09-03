@@ -129,7 +129,7 @@ DEV CColorXyz EstimateDirectLightPropertyBased(CScene* pScene, const CVolumeShad
 	ShaderPdf = Shader.Pdf(Wo, Wi);
 
 	// if the light has a color, PDF's are greater then zero and there is a free enough path between the light point and scattering point
-	if (!Li.IsBlack() && ShaderPdf > 0.0f && LightPdf > 0.0f && !FreePathRM(Rl, RNG))
+	if (!Li.IsBlack() && ShaderPdf > 0.0f && LightPdf > 0.0f && !FreePathRMPropertyBased(Rl, RNG))
 	{
 		const float WeightMIS = PowerHeuristic(1.0f, LightPdf, 1.0f, ShaderPdf);
 
@@ -148,7 +148,7 @@ DEV CColorXyz EstimateDirectLightPropertyBased(CScene* pScene, const CVolumeShad
 		{
 			LightPdf = pLight->Pdf(Pe, Wi);
 
-			if (LightPdf > 0.0f && !Li.IsBlack() && !FreePathRM(CRay(Pl, Normalize(Pe - Pl), 0.0f, (Pe - Pl).Length()), RNG))
+			if (LightPdf > 0.0f && !Li.IsBlack() && !FreePathRMPropertyBased(CRay(Pl, Normalize(Pe - Pl), 0.0f, (Pe - Pl).Length()), RNG))
 			{
 				const float WeightMIS = PowerHeuristic(1.0f, ShaderPdf, 1.0f, LightPdf);
 
@@ -179,6 +179,6 @@ DEV CColorXyz UniformSampleOneLightPropertyBased(CScene* pScene, const CVolumeSh
 	const int WhichLight = (int)floorf(LS.m_LightNum * (float)NumLights);
 
 	CLight& Light = pScene->m_Lighting.m_Lights[WhichLight];
-
+	
 	return (float)NumLights * EstimateDirectLightPropertyBased(pScene, Type, Light, LS, properties, Wo, Pe, N, RNG);
 }

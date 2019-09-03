@@ -189,7 +189,8 @@ void QRenderThread::run()
 	// Bind density buffer to texture
 	Log("Copying density volume to device", "grid");
 	gStatus.SetStatisticChanged("CUDA Memory", "Density Buffer", QString::number(gScene.m_Resolution.GetNoElements() * sizeof(short) / MB, 'f', 2), "MB");
-	BindDensityBuffer((short*)m_pDensityBuffer, Res);
+	BindDensityBuffer((short*)m_pDensityBuffer, Res, cudaFilterModeLinear);
+	m_CurFilterMode = cudaFilterModeLinear;
 
 	// Bind gradient magnitude buffer to texture
 	Log("Copying gradient magnitude to device", "grid");
@@ -374,6 +375,27 @@ void QRenderThread::run()
 	ResetDevice();
 }
 
+struct DataSpaceRawCoordinate {
+	Vec3f coord;
+	DataSpaceRawCoordinate(int x, int y, int z) :
+		coord(x, y, z)
+	{}
+};
+
+struct DataSpaceRawSpacing {
+	Vec3f coord;
+	explicit DataSpaceRawSpacing(Vec3f coord) :
+		coord(coord)
+	{}
+};
+
+struct DataSpaceRawSpaced {
+	Vec3f coord;
+	DataSpaceRawSpaced(DataSpaceRawCoordinate coord, DataSpaceRawSpacing spacing) :
+		coord(coord.coord * spacing.coord)
+	{}
+};
+
 bool QRenderThread::Load(QString& FileName)
 {
 	m_FileName = FileName;
@@ -428,6 +450,8 @@ bool QRenderThread::Load(QString& FileName)
 
 	Log("Resolution: " + FormatSize(gScene.m_Resolution.GetResXYZ()) + "", "grid");
 
+	DataSpaceRawCoordinate dataResolution(gScene.m_Resolution.GetResX(), gScene.m_Resolution.GetResY(), gScene.m_Resolution.GetResZ());
+
 	// Intensity range
 	double* pIntensityRange = ImageCast->GetOutput()->GetScalarRange();
 	gScene.m_IntensityRange.SetMin((float)pIntensityRange[0]);
@@ -444,6 +468,10 @@ bool QRenderThread::Load(QString& FileName)
 
 	Log("Spacing: " + FormatSize(gScene.m_Spacing, 2), "grid");
 
+	DataSpaceRawSpacing dataSpacing(gScene.m_Spacing);
+
+	DataSpaceRawSpaced dataPhysicalSize(dataResolution, dataSpacing);
+
 	// Compute physical size
 	const Vec3f PhysicalSize(Vec3f(gScene.m_Spacing.x * (float)gScene.m_Resolution.GetResX(), gScene.m_Spacing.y * (float)gScene.m_Resolution.GetResY(), gScene.m_Spacing.z * (float)gScene.m_Resolution.GetResZ()));
 
@@ -451,7 +479,18 @@ bool QRenderThread::Load(QString& FileName)
 	gScene.m_BoundingBox.m_MinP	= Vec3f(0.0f);
 	gScene.m_BoundingBox.m_MaxP	= PhysicalSize / PhysicalSize.Max();
 
-	gScene.m_GradientDelta = 1.0f / (float)gScene.m_Resolution.GetMax();
+	// Define the size of the respective voxel axis in world coordinates
+	// +2 is added to the resolution to account for the two extra virtual voxel we add around the existing volume
+	// -1 is substracted, because we need to see voxels as fenceposts instead of fences (fencepost problem)
+	gScene.m_VoxelSizeWorld = make_float3(
+		gScene.m_BoundingBox.m_MaxP.x / (gScene.m_Resolution.GetResX() + 2 - 1),
+		gScene.m_BoundingBox.m_MaxP.y / (gScene.m_Resolution.GetResY() + 2 - 1),
+		gScene.m_BoundingBox.m_MaxP.z / (gScene.m_Resolution.GetResZ() + 2 - 1));
+	
+	/*gScene.m_VoxelSizeWorld = make_float3(
+		gScene.m_BoundingBox.m_MaxP.x / (gScene.m_Resolution.GetResX() - 1),
+		gScene.m_BoundingBox.m_MaxP.y / (gScene.m_Resolution.GetResY() - 1),
+		gScene.m_BoundingBox.m_MaxP.z / (gScene.m_Resolution.GetResZ() - 1));*/
 	
 	Log("Bounding box: " + FormatVector(gScene.m_BoundingBox.m_MinP, 2) + " - " + FormatVector(gScene.m_BoundingBox.m_MaxP), "grid");
 	
@@ -531,17 +570,18 @@ bool QRenderThread::Load(QString& FileName)
 
 	// Try to save our own file
 	// adapt path !
-	std::string filePath = "../exposure-render.release110/Source/Examples/cross56.mhd";
-	std::string filePathRaw = "../exposure-render.release110/Source/Examples/cross56.raw";
+	std::string filePath = "../exposure-render.release110/Source/Examples/gradient10.mhd";
+	std::string filePathRaw = "../exposure-render.release110/Source/Examples/gradient10.raw";
 
 	struct stat buffer;
 	if (!((stat(filePath.c_str(), &buffer) == 0))) {
 		
 		// Create an 3D cross
-		const int width = 56;
-		const int height = 56;
-		const int depth = 56;
-		//multiples of 7 work best here
+		/*const int parts = 7;
+		const int partSize = 2; //change this value for bigger volumes
+		const int width = parts * partSize;
+		const int height = parts * partSize;
+		const int depth = parts * partSize;
 
 		std::unique_ptr<short[]> img(new short[width * height * depth]);
 		for (int row = 0; row < height; row++) {
@@ -549,18 +589,37 @@ bool QRenderThread::Load(QString& FileName)
 				for (int dep = 0; dep < depth; dep++) {
 					int id = col + row * width + dep * width * height;
 					img[id] = 0;
-					if ((row >=  3 * height / 7 && row < 4 * height / 7)
-						|| (col >= 3 * width / 7 && col < 4 * width / 7)
-						|| (dep >= 3 * depth / 7 && dep < 4 * depth / 7)
+					if ((row >=  3 * partSize && row < 4 * partSize)
+						|| (col >= 3 * partSize && col < 4 * partSize)
+						|| (dep >= 3 * partSize && dep < 4 * partSize)
 							) {
 						img[id] = 100;
 					}
-					if (dep == depth / 2
-						&& (row >= 5 * height / 7 && row < 6 * height / 7)
-						&& ((col >= 1 * width / 7 && col < 2 * width / 7) || (col >= 5 * width / 7 && col < 6 * width / 7))
+					if ((dep >= 3 * partSize && dep < 4 * partSize)
+						&& (row >= 5 * partSize && row < 6 * partSize)
+						&& ((col >= 1 * partSize && col < 2 * partSize) || (col >= 5 * partSize && col < 6 * partSize))
 						) {
 						img[id] = 50;
 					}
+				}
+			}
+		}*/
+
+		// gradient
+		const int N = 10;
+		const int width = N;
+		const int height = 4;
+		const int depth = 4;
+
+		std::unique_ptr<short[]> img(new short[width * height * depth]);
+		for (int row = 0; row < height; row++) {
+			for (int col = 0; col < N; col++) {
+				for (int dep = 0; dep < depth; dep++) {
+					int id = col + row * width + dep * width * height;
+					img[id] = col + 1;
+					if (row == 0 || row == height - 1
+						|| dep == 0 || dep == depth - 1)
+						img[id] = 0;
 				}
 			}
 		}
@@ -764,90 +823,90 @@ void QRenderThread::OnUpdateTransferFunction(void)
 	gScene.m_TransferFunctions.m_Opacity.m_NoNodes		= TransferFunction.GetNodes().size();
 	gScene.m_TransferFunctions.m_Diffuse.m_NoNodes		= TransferFunction.GetNodes().size();
 	gScene.m_TransferFunctions.m_Specular.m_NoNodes		= TransferFunction.GetNodes().size();
-	gScene.m_TransferFunctions.m_Emission.m_NoNodes		= TransferFunction.GetNodes().size();
-	gScene.m_TransferFunctions.m_Roughness.m_NoNodes	= TransferFunction.GetNodes().size();
+gScene.m_TransferFunctions.m_Emission.m_NoNodes = TransferFunction.GetNodes().size();
+gScene.m_TransferFunctions.m_Roughness.m_NoNodes = TransferFunction.GetNodes().size();
 
-	for (int i = 0; i < TransferFunction.GetNodes().size(); i++)
+for (int i = 0; i < TransferFunction.GetNodes().size(); i++)
+{
+	QNode& Node = TransferFunction.GetNode(i);
+
+	const float Intensity = Node.GetIntensity();
+
+	// Positions
+	gScene.m_TransferFunctions.m_Opacity.m_P[i] = Intensity;
+	gScene.m_TransferFunctions.m_Diffuse.m_P[i] = Intensity;
+	gScene.m_TransferFunctions.m_Specular.m_P[i] = Intensity;
+	gScene.m_TransferFunctions.m_Emission.m_P[i] = Intensity;
+	gScene.m_TransferFunctions.m_Roughness.m_P[i] = Intensity;
+
+	// Colors
+	gScene.m_TransferFunctions.m_Opacity.m_C[i] = CColorRgbHdr(Node.GetOpacity());
+	gScene.m_TransferFunctions.m_Diffuse.m_C[i] = CColorRgbHdr(Node.GetDiffuse().redF(), Node.GetDiffuse().greenF(), Node.GetDiffuse().blueF());
+	gScene.m_TransferFunctions.m_Specular.m_C[i] = CColorRgbHdr(Node.GetSpecular().redF(), Node.GetSpecular().greenF(), Node.GetSpecular().blueF());
+	gScene.m_TransferFunctions.m_Emission.m_C[i] = 500.0f * CColorRgbHdr(Node.GetEmission().redF(), Node.GetEmission().greenF(), Node.GetEmission().blueF());
+
+	const float Roughness = 1.0f - expf(-Node.GetGlossiness());
+
+	gScene.m_TransferFunctions.m_Roughness.m_C[i] = CColorRgbHdr(Roughness * 250.0f);
+}
+
+gScene.m_DensityScale = TransferFunction.GetDensityScale();
+gScene.m_GradientFactor = TransferFunction.GetGradientFactor();
+
+gScene.m_DirtyFlags.SetFlag(TransferFunctionDirty);
+
+/*
+FILE * pFile;
+int n;
+char name [100];
+
+pFile = fopen ("c:\\tf.txt","w");
+
+if (pFile)
+{
+	for (int i = 0; i < 255; i++)
 	{
-		QNode& Node = TransferFunction.GetNode(i);
-
-		const float Intensity = Node.GetIntensity();
-
-		// Positions
-		gScene.m_TransferFunctions.m_Opacity.m_P[i]		= Intensity;
-		gScene.m_TransferFunctions.m_Diffuse.m_P[i]		= Intensity;
-		gScene.m_TransferFunctions.m_Specular.m_P[i]	= Intensity;
-		gScene.m_TransferFunctions.m_Emission.m_P[i]	= Intensity;
-		gScene.m_TransferFunctions.m_Roughness.m_P[i]	= Intensity;
-
-		// Colors
-		gScene.m_TransferFunctions.m_Opacity.m_C[i]		= CColorRgbHdr(Node.GetOpacity());
-		gScene.m_TransferFunctions.m_Diffuse.m_C[i]		= CColorRgbHdr(Node.GetDiffuse().redF(), Node.GetDiffuse().greenF(), Node.GetDiffuse().blueF());
-		gScene.m_TransferFunctions.m_Specular.m_C[i]	= CColorRgbHdr(Node.GetSpecular().redF(), Node.GetSpecular().greenF(), Node.GetSpecular().blueF());
-		gScene.m_TransferFunctions.m_Emission.m_C[i]	= 500.0f * CColorRgbHdr(Node.GetEmission().redF(), Node.GetEmission().greenF(), Node.GetEmission().blueF());
-
-		const float Roughness = 1.0f - expf(-Node.GetGlossiness());
-
-		gScene.m_TransferFunctions.m_Roughness.m_C[i] = CColorRgbHdr(Roughness * 250.0f);
+		fprintf(pFile, "%0.2f\n", gScene.m_TransferFunctions.m_Roughness.F((float)i / 255.0f));
 	}
+}
 
-	gScene.m_DensityScale	= TransferFunction.GetDensityScale();
-	gScene.m_GradientFactor	= TransferFunction.GetGradientFactor();
+fclose (pFile);
+*/
 
-	gScene.m_DirtyFlags.SetFlag(TransferFunctionDirty);
+//if (gscene.m_algorithmtype == 2) {
+//	std::random_device rd;
 
-	/*
-	FILE * pFile;
-	int n;
-	char name [100];
+//	//
+//	// engines 
+//	//
+//	std::mt19937 e2(rd());
+//	//std::knuth_b e2(rd());
+//	//std::default_random_engine e2(rd()) ;
 
-	pFile = fopen ("c:\\tf.txt","w");
+//	//
+//	// distribtuions
+//	//
+//	std::uniform_real_distribution<> dist(0, 10);
+//	//std::normal_distribution<> dist(2, 2);
+//	//std::student_t_distribution<> dist(5);
+//	//std::poisson_distribution<> dist(2);
+//	//std::extreme_value_distribution<> dist(0,2);
 
-	if (pFile)
-	{
-		for (int i = 0; i < 255; i++)
-		{
-			fprintf(pFile, "%0.2f\n", gScene.m_TransferFunctions.m_Roughness.F((float)i / 255.0f));
-		}
-	}
+//	int n = gscene.m_resolution.getnoelements() / 100;
 
-	fclose (pFile);
-	*/
+//	std::cout << "n = " << n << std::endl;
 
-	//if (gscene.m_algorithmtype == 2) {
-	//	std::random_device rd;
+//	for (int i = 0; i < n; i++) {
+//		//int x = rand() % (gscene.m_resolution.getresx() - 1);
+//		//int y = rand() % (gscene.m_resolution.getresy() - 1);
+//		//int z = rand() % (gscene.m_resolution.getresz() - 1);
+//		float x = dist(e2) * gscene.m_boundingbox.lengthx();
+//		float y = dist(e2) * gscene.m_boundingbox.lengthy();
+//		float z = dist(e2) * gscene.m_boundingbox.lengthz();
 
-	//	//
-	//	// engines 
-	//	//
-	//	std::mt19937 e2(rd());
-	//	//std::knuth_b e2(rd());
-	//	//std::default_random_engine e2(rd()) ;
-
-	//	//
-	//	// distribtuions
-	//	//
-	//	std::uniform_real_distribution<> dist(0, 10);
-	//	//std::normal_distribution<> dist(2, 2);
-	//	//std::student_t_distribution<> dist(5);
-	//	//std::poisson_distribution<> dist(2);
-	//	//std::extreme_value_distribution<> dist(0,2);
-
-	//	int n = gscene.m_resolution.getnoelements() / 100;
-
-	//	std::cout << "n = " << n << std::endl;
-
-	//	for (int i = 0; i < n; i++) {
-	//		//int x = rand() % (gscene.m_resolution.getresx() - 1);
-	//		//int y = rand() % (gscene.m_resolution.getresy() - 1);
-	//		//int z = rand() % (gscene.m_resolution.getresz() - 1);
-	//		float x = dist(e2) * gscene.m_boundingbox.lengthx();
-	//		float y = dist(e2) * gscene.m_boundingbox.lengthy();
-	//		float z = dist(e2) * gscene.m_boundingbox.lengthz();
-
-	//		std::cout << i << "-- x: " << x << ", y: " << y << ", z:" << z << std::endl;
-	//	}
-	//}
+//		std::cout << i << "-- x: " << x << ", y: " << y << ", z:" << z << std::endl;
+//	}
+//}
 }
 
 void QRenderThread::OnUpdateTransferFunctionSettings(void) {
@@ -864,6 +923,21 @@ void QRenderThread::OnUpdateTransferFunctionSettings(void) {
 	gScene.m_StepSizeFactorShadow = TransferFunction.GetSecondarStepSize();
 	gScene.m_ScatteringHeadstart = TransferFunction.GetScatteringHeadstart();
 
+	if ((gScene.m_AlgorithmType == SINGLE_SCATTERING || gScene.m_AlgorithmType == MULTIPLE_SCATTERING)
+		&& m_CurFilterMode != cudaFilterModeLinear) {
+		cudaExtent Res;
+		Res.width = gScene.m_Resolution[0];
+		Res.height = gScene.m_Resolution[1];
+		Res.depth = gScene.m_Resolution[2];
+
+		// Bind density buffer to texture
+		Log("Copying density volume to device with FilterModeLinear", "grid");
+
+		UnbindDensityBuffer();
+		BindDensityBuffer((short*)m_pDensityBuffer, Res, cudaFilterModeLinear);
+		m_CurFilterMode = cudaFilterModeLinear;
+	}
+
 	if (gScene.m_AlgorithmType == 2) {
 		InitPreCalculated();
 	}
@@ -872,6 +946,19 @@ void QRenderThread::OnUpdateTransferFunctionSettings(void) {
 	}
 	else if (gScene.m_AlgorithmType == 4) {
 		InitFloodFill();
+	}
+	else if (gScene.m_AlgorithmType == PROPERTY_BASED && m_CurFilterMode != cudaFilterModePoint) {
+		cudaExtent Res;
+		Res.width = gScene.m_Resolution[0];
+		Res.height = gScene.m_Resolution[1];
+		Res.depth = gScene.m_Resolution[2];
+
+		// Bind density buffer to texture
+		Log("Copying density volume to device with FilterModePoint", "grid");
+
+		UnbindDensityBuffer();
+		BindDensityBuffer((short*)m_pDensityBuffer, Res, cudaFilterModePoint);
+		m_CurFilterMode = cudaFilterModePoint;
 	}
 
 	gScene.m_DirtyFlags.SetFlag(TransferFunctionDirty);

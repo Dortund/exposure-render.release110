@@ -39,33 +39,42 @@ DEV inline bool SampleDistanceRMpropertyBased(CRay& R, CRNG& RNG, Vec3f& Ps)
 
 
 	const float S = -log(RNG.Get1()) / gDensityScale;
+	//const float S = 1.f;
 	float Sum = 0.0f;
 	float SigmaT = 0.0f;
 
 	// Increase MinT by a random factor of the stepsize, to create the first POSSIBLE scattering point
 	MinT[TID] += RNG.Get1() * gStepSize;
-
+	//int steps = -1;
+	//float maxOp = -1;
 	while (Sum < S)
 	{
+		//steps++;
 		// Scattering point is MinT (distance) * ray direction from ray origin
 		Ps = R.m_O + MinT[TID] * R.m_D;
 
 		// If MinT exceeds MaxT, where out of the volume and should stop looking for more points
 		if (MinT[TID] > MaxT[TID])
 			return false;
+			//return Vec3f(S, Sum, maxOp);
 
 		// Calculate SigmaT
 		// TODO What exactly is SigmaT???
 		materialProperties properties;
 		sampleProperties(properties, nullptr, nullptr, Ps);
-		SigmaT = gDensityScale * properties.opacity;
+		//SigmaT = gDensityScale * properties.opacity;
+		SigmaT = properties.opacity;
+
+		//maxOp = Fmaxf(maxOp, properties.opacity);
 
 		// Increase Sum by the calculated SigmaT * Stepsize
 		Sum += SigmaT * gStepSize;
+		
 		// Increase MinT so it can be used to calculate the next possible scattering point in the next loop
 		MinT[TID] += gStepSize;
 	}
 
+	//return Vec3f(S, Sum, maxOp);
 	return true;
 }
 
@@ -162,7 +171,7 @@ DEV inline bool SampleDistanceRM(CRay& R, CRNG& RNG, Vec3f& Ps)
 	return true;
 }
 
-DEV inline bool FreePathRMpropertyBased(CRay& R, CRNG& RNG)
+DEV inline bool FreePathRMPropertyBased(CRay& R, CRNG& RNG)
 {
 	const int TID = threadIdx.y * blockDim.x + threadIdx.x;
 
@@ -191,7 +200,8 @@ DEV inline bool FreePathRMpropertyBased(CRay& R, CRNG& RNG)
 
 		materialProperties properties;
 		sampleProperties(properties, nullptr, nullptr, Ps[TID]);
-		SigmaT = gDensityScale * properties.opacity;
+		//SigmaT = gDensityScale * properties.opacity;
+		SigmaT = properties.opacity;
 
 		Sum += SigmaT * gStepSizeShadow;
 		MinT[TID] += gStepSizeShadow;

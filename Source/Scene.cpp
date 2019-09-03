@@ -32,7 +32,7 @@ CScene::CScene(void) :
 	m_ShadingType(2),
 	m_StepSizeFactor(3.0f),
 	m_StepSizeFactorShadow(3.0f),
-	m_GradientDelta(4.0f),
+	m_VoxelSizeWorld({ 4.f , 4.f, 4.f}),
 	m_GradientFactor(4.0f),
 	m_GradMagMean(1.0f),
 	m_AlgorithmType(0),
@@ -65,7 +65,7 @@ HOD CScene& CScene::operator=(const CScene& Other)
 	m_ShadingType				= Other.m_ShadingType;
 	m_StepSizeFactor			= Other.m_StepSizeFactor;
 	m_StepSizeFactorShadow		= Other.m_StepSizeFactorShadow;
-	m_GradientDelta				= Other.m_GradientDelta;
+	m_VoxelSizeWorld				= Other.m_VoxelSizeWorld;
 	m_GradientMagnitudeRange	= Other.m_GradientMagnitudeRange;
 	m_GradientFactor			= Other.m_GradientFactor;
 	m_GradMagMean				= Other.m_GradMagMean;
