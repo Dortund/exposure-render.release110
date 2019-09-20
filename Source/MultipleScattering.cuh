@@ -63,7 +63,7 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 	float ShaderPdf = 1.0f;
 	CColorXyz F = SPEC_BLACK;
 	CLightingSample LS;
-	CVolumeShader Shader = CVolumeShader(CVolumeShader::Phase, Vec3f(0), Vec3f(0), CColorXyz(0), CColorXyz(0), 0.0f, 0.0f);
+	CVolumeShader Shader = CVolumeShader(CVolumeShader::Phase, Vec3f(0), Vec3f(0), Vec3f(0), CColorXyz(0), CColorXyz(0), 0.0f, 0.0f);
 	
 	int bouncesDone = 0;
 	CColorXyz order = SPEC_BLACK;
@@ -123,7 +123,7 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 					// BRDF Only (Bidirectional Reflectance Distribution Function)
 					case 0:
 					{
-						Shader = CVolumeShader(CVolumeShader::Brdf, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+						Shader = CVolumeShader(CVolumeShader::Brdf, Pe, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
 
 						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
 
@@ -136,7 +136,7 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 					// Phase Function Only
 					case 1:
 					{
-						Shader = CVolumeShader(CVolumeShader::Phase, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+						Shader = CVolumeShader(CVolumeShader::Phase, Pe, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
 
 						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
 
@@ -152,7 +152,7 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 						const float GradMag = GradientMagnitude(Pe) * gIntensityInvRange;
 						const float PdfBrdf = (1.0f - __expf(-pScene->m_GradientFactor * GradMag));
 						if (RNG.Get1() < PdfBrdf) {
-							Shader = CVolumeShader(CVolumeShader::Brdf, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+							Shader = CVolumeShader(CVolumeShader::Brdf, Pe, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
 
 							F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
 
@@ -163,7 +163,7 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 								order.c[i] = 0;
 						}
 						else {
-							Shader = CVolumeShader(CVolumeShader::Phase, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+							Shader = CVolumeShader(CVolumeShader::Phase, Pe, NormalizedGradient(Pe), Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
 
 							F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
 

@@ -76,7 +76,7 @@ DEV float GetOpacity(const float& NormalizedIntensity)
 DEV CColorRgbHdr GetDiffuse(const float& NormalizedIntensity)
 {
 	if (isnan(NormalizedIntensity))
-		return CColorRgbHdr(0,1,0);
+		return CColorRgbHdr(0,0,0);
 
 	float4 Diffuse = tex1D(gTexDiffuse, NormalizedIntensity);
 	return CColorRgbHdr(Diffuse.x, Diffuse.y, Diffuse.z);
@@ -123,6 +123,18 @@ DEV float GradientMagnitude(const Vec3f& P)
 {
 	return ((float)SHRT_MAX * tex3D(gTexGradientMagnitude, P.x * gInvAaBbMax.x, P.y * gInvAaBbMax.y, P.z * gInvAaBbMax.z));
 }
+
+DEV int GetLightPathValue(const float3 P) {
+	float3 coord = P * gInvAaBbMax * gWorldToTextureTransform - gVoxelTextureOffset;
+
+	/*if (coord.x < 0 || coord.x >= 1.f ||
+		coord.y < 0 || coord.y >= 1.f ||
+		coord.z < 0 || coord.z >= 1.f)
+		return NAN;*/
+
+	return tex3D(gTexLightPaths, coord.x, coord.y, coord.z);
+}
+
 /*
 DEV inline float biLinear(float tx, float ty, float c00, float c10, float c01, float c11) {
 	return (1 - tx) * (1 - ty) * c00 +
@@ -145,7 +157,7 @@ struct materialProperties {
 	CColorRgbHdr emission;
 };
 
-DEV void blendMaterialProperties(materialProperties &result, materialProperties &a, materialProperties &b, float amount)
+DEV inline void blendMaterialProperties(materialProperties &result, materialProperties &a, materialProperties &b, float amount)
 {
 	//float c = 100;
 	//float powAmount = pow(amount, ((c * gDensityScale * b.opacity + 1) / (c * gDensityScale * a.opacity + 1)));
@@ -154,13 +166,36 @@ DEV void blendMaterialProperties(materialProperties &result, materialProperties 
 	//result.opacity = lerp(a.opacity, b.opacity, powAmount);
 	
 
-	if (gFilmWidth > 500) {
+	/*if (gFilmWidth == 500) {
 		result.opacity = lerp(a.opacity, b.opacity, amount);
 		result.roughness = lerp(a.roughness * a.opacity, b.roughness * b.opacity, powAmount);
 		result.diffuse = Lerp(powAmount, a.diffuse * a.opacity, b.diffuse * b.opacity);
 		result.specular = Lerp(powAmount, a.specular * a.opacity, b.specular * b.opacity);
 		result.emission = Lerp(powAmount, a.emission * a.opacity, b.emission * b.opacity);
 	}
+	else if (gFilmWidth == 501) {
+		result.opacity = lerp(a.opacity, b.opacity, amount);
+		result.roughness = lerp(a.roughness, b.roughness, powAmount);
+		result.diffuse = Lerp(powAmount, a.diffuse, b.diffuse);
+		result.specular = Lerp(powAmount, a.specular, b.specular);
+		result.emission = Lerp(powAmount, a.emission, b.emission);
+	}
+	else if (gFilmWidth == 502) {
+		//float opMin = fmin(a.opacity, b.opacity);
+		//float opMax = fmax(a.opacity, b.opacity);
+		*/
+		//powAmount = (a.opacity - opMin) / (opMax - opMin);
+		if (a.opacity > 0 || b.opacity > 0) {
+			float opAmount = b.opacity / (a.opacity + b.opacity);
+			powAmount = lerp(powAmount, opAmount, abs(opAmount - 0.5) * 2);
+		}
+
+		result.opacity = lerp(a.opacity, b.opacity, amount);
+		result.roughness = lerp(a.roughness, b.roughness, powAmount);
+		result.diffuse = Lerp(powAmount, a.diffuse, b.diffuse);
+		result.specular = Lerp(powAmount, a.specular, b.specular);
+		result.emission = Lerp(powAmount, a.emission, b.emission);
+	/*}
 	else {
 		if (a.opacity == 0)
 			powAmount = 1;
@@ -172,10 +207,10 @@ DEV void blendMaterialProperties(materialProperties &result, materialProperties 
 		result.diffuse = Lerp(powAmount, a.diffuse, b.diffuse);
 		result.specular = Lerp(powAmount, a.specular, b.specular);
 		result.emission = Lerp(powAmount, a.emission, b.emission);
-	}
+	}*/
 }
 
-DEV void sampleRawProperties(materialProperties &properties, const float3& P)
+DEV inline void sampleRawProperties(materialProperties &properties, const float3& P)
 {
 	float intensity = GetNormalizedIntensity(P);
 	properties.opacity = GetOpacity(intensity);
@@ -207,7 +242,7 @@ DEV void sampleProperties(materialProperties &properties, float3 *opacityGradien
 
 	//A is reference
 	float3 mins = floor(coord / gVoxelSizeWorld) * gVoxelSizeWorld;
-	float3 fraction = (coord - mins) / gVoxelSizeWorld;
+	float3 fraction = clamp((coord - mins) / gVoxelSizeWorld, 0, 1);
 	//mins += gVoxelSizeWorld *0.2;
 
 	if (fractions) {

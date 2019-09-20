@@ -53,7 +53,7 @@ public:
 
 	bool			Load(QString& FileName);
 	void			InitPreCalculated(void);
-	void			InitFloodFill(void);
+	int*			InitFloodFill(void);
 
 	QString			GetFileName(void) const						{	return m_FileName;		}
 	void			SetFileName(const QString& FileName)		{	m_FileName = FileName;	}
@@ -69,6 +69,7 @@ private:
 	short*				m_pDensityBuffer;
 	short*				m_pGradientMagnitudeBuffer;
 	cudaTextureFilterMode m_CurFilterMode;
+	bool				IntersectBox(const Vec3f Pe, const Vec3f& Dir, float* pNearT, float* pFarT);
 
 
 public:

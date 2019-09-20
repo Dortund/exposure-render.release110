@@ -61,6 +61,12 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_AlgorithmType.addItem("Property Based Intensity", 13);
 	m_AlgorithmType.addItem("Property Based Coordinate", 14);
 	m_AlgorithmType.addItem("Multi Coordinate", 15);
+	m_AlgorithmType.addItem("Travel Distance", 16);
+	m_AlgorithmType.addItem("Likeliest Light Direction", 17);
+	m_AlgorithmType.addItem("Likeliest Light Direction Cube", 18);
+	m_AlgorithmType.addItem("Light Path Values", 19);
+	m_AlgorithmType.addItem("Chosen Light Path", 20);
+	m_AlgorithmType.addItem("Light Path Variance", 21);
 	m_MainLayout.addWidget(&m_AlgorithmType, i++, 1, 1, 2);
 
 	QObject::connect(&m_AlgorithmType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetAlgorithmType(int)));
@@ -91,11 +97,11 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_MainLayout.addWidget(lblDensityScale, i, 0);
 
 	m_DensityScaleSlider.setOrientation(Qt::Horizontal);
-	m_DensityScaleSlider.setRange(0.001, 100000.0);
+	m_DensityScaleSlider.setRange(0.001, 1000.0);
 	m_DensityScaleSlider.setValue(1.0);
 	m_MainLayout.addWidget(&m_DensityScaleSlider, i, 1);
 
-	m_DensityScaleSpinner.setRange(0.001, 100000.0);
+	m_DensityScaleSpinner.setRange(0.001, 1000.0);
 	m_DensityScaleSpinner.setDecimals(3);
 	m_MainLayout.addWidget(&m_DensityScaleSpinner, i++, 2);
 

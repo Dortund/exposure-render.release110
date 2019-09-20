@@ -68,7 +68,7 @@ DEV inline bool SampleDistanceRMpropertyBased(CRay& R, CRNG& RNG, Vec3f& Ps)
 		//maxOp = Fmaxf(maxOp, properties.opacity);
 
 		// Increase Sum by the calculated SigmaT * Stepsize
-		Sum += SigmaT * gStepSize;
+		Sum += SigmaT * (gStepSize / fminf(gVoxelSizeWorld.x, fminf(gVoxelSizeWorld.y, gVoxelSizeWorld.z)));
 		
 		// Increase MinT so it can be used to calculate the next possible scattering point in the next loop
 		MinT[TID] += gStepSize;

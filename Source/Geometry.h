@@ -1880,7 +1880,7 @@ public:
 			}
 		}
 
-		return CColorRgbHdr(0.0f);
+		return m_P[m_NoNodes - 1];
 	}
 };
 

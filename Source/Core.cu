@@ -24,8 +24,10 @@ texture<float4, cudaTextureType1D, cudaReadModeElementType>			gTexEmission;
 texture<uchar4, cudaTextureType2D, cudaReadModeNormalizedFloat>		gTexRunningEstimateRgba;
 texture<float4, cudaTextureType3D, cudaReadModeElementType>			gTexOpacityGradient;
 texture<float, cudaTextureType3D, cudaReadModeNormalizedFloat>		gTexOpacityMagnitudeNormalized;
+texture<int, cudaTextureType3D, cudaReadModeElementType>			gTexLightPaths;
 
 cudaArray* gpDensityArray				= NULL;
+cudaArray* gpLightPathsArray			= NULL;
 cudaArray* gpGradientMagnitudeArray		= NULL;
 cudaArray* gpOpacityArray				= NULL;
 cudaArray* gpDiffuseArray				= NULL;
@@ -73,7 +75,7 @@ CD float		gScatteringHeadstart;
 CD float3		gSpacings;
 
 #define TF_NO_SAMPLES		128
-#define INV_TF_NO_SAMPLES	1.0f / (float)TF_NO_SAMPLES
+#define INV_TF_NO_SAMPLES	(1.0f / (float)TF_NO_SAMPLES)
 
 #include "Model.cuh"
 #include "View.cuh"
@@ -160,6 +162,37 @@ void UnbindGradientMagnitudeBuffer(void)
 	HandleCudaError(cudaFreeArray(gpGradientMagnitudeArray));
 	gpGradientMagnitudeArray = NULL;
 	HandleCudaError(cudaUnbindTexture(gTexGradientMagnitude));
+}
+
+void BindLightPathsBuffer(int* pBuffer, cudaExtent Extent)
+{
+	cudaChannelFormatDesc ChannelDesc = cudaCreateChannelDesc<int>();
+
+	HandleCudaError(cudaMalloc3DArray(&gpLightPathsArray, &ChannelDesc, Extent));
+
+	cudaMemcpy3DParms CopyParams = { 0 };
+
+	CopyParams.srcPtr = make_cudaPitchedPtr(pBuffer, Extent.width * sizeof(int), Extent.width, Extent.height);
+	CopyParams.dstArray = gpLightPathsArray;
+	CopyParams.extent = Extent;
+	CopyParams.kind = cudaMemcpyHostToDevice;
+
+	HandleCudaError(cudaMemcpy3D(&CopyParams));
+
+	gTexLightPaths.normalized = true;
+	gTexLightPaths.filterMode		= cudaFilterModePoint;
+	gTexLightPaths.addressMode[0] = cudaAddressModeClamp;
+	gTexLightPaths.addressMode[1] = cudaAddressModeClamp;
+	gTexLightPaths.addressMode[2] = cudaAddressModeClamp;
+
+	HandleCudaError(cudaBindTextureToArray(gTexLightPaths, gpLightPathsArray, ChannelDesc));
+}
+
+void UnbindLightPathsBuffer(void)
+{
+	HandleCudaError(cudaFreeArray(gpLightPathsArray));
+	gpLightPathsArray = NULL;
+	HandleCudaError(cudaUnbindTexture(gTexLightPaths));
 }
 
 void BindRenderCanvasView(const CResolution2D& Resolution)
@@ -543,6 +576,11 @@ void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& Po
 		case 13:
 		case 14:
 		case 16:
+		case 17:
+		case 18:
+		case 19:
+		case 20:
+		case 21:
 		{
 			MultipleScatteringPropertyBased(&Scene, pDevScene, pDevView);
 			break;

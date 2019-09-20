@@ -234,6 +234,211 @@ public:
 
 };
 
+class CLightPaths
+{
+public:
+	DEV CLightPaths(const Vec3f& Pe, const CColorXyz& Kd) :
+		m_Kd(Kd),
+		m_Pe(Pe)
+	{
+	}
+
+	DEV ~CLightPaths(void)
+	{
+	}
+
+	DEV CColorXyz F(const Vec3f& Wo, const Vec3f& Wi)
+	{
+		return m_Kd * INV_4_PI_F;
+	}
+
+	DEV CColorXyz SampleF(const Vec3f& Wo, Vec3f& Wi, float& Pdf, const Vec3f& U)
+	{
+		/*float3 mins = floor(make_float3(m_Pe.x, m_Pe.y, m_Pe.z) / gVoxelSizeWorld) * gVoxelSizeWorld;
+		float A, B, C, D, E, F, G, H;
+		A = (1 + GetLightPathValue(mins));
+		B = (1 + GetLightPathValue(mins + gVoxelSizeWorldZ));
+		C = (1 + GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX));
+		D = (1 + GetLightPathValue(mins + gVoxelSizeWorldX));
+
+		E = (1 + GetLightPathValue(mins + gVoxelSizeWorldY));
+		F = (1 + GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldY));
+		G = (1 + GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX + gVoxelSizeWorldY));
+		H = (1 + GetLightPathValue(mins + gVoxelSizeWorldX + gVoxelSizeWorldY));
+
+		float minC = fminf(A, fminf(B, fminf(C, fminf(D, fminf(E, fminf(F, fminf(G, H)))))));
+		A = A - (minC - 1);
+		B = B - (minC - 1);
+		C = C - (minC - 1);
+		D = D - (minC - 1);
+		E = E - (minC - 1);
+		F = F - (minC - 1);
+		G = G - (minC - 1);
+		H = H - (minC - 1);
+
+		float ABCD, EFGH, ABFE, DCGH, AEHD, BFGC;
+		ABCD = (A + B + C + D) / 4;
+		EFGH = (E + F + G + H) / 4;
+		ABFE = (A + B + F + E) / 4;
+		DCGH = (D + C + G + H) / 4;
+		AEHD = (A + E + H + D) / 4;
+		BFGC = (B + F + G + C) / 4;
+
+		float sum = ABCD + EFGH + ABFE + DCGH + AEHD + BFGC;
+
+		float rand = U.x * sum;
+		if (rand < ABCD) {
+			Wi = Normalize(Vec3f(U.y, -1, U.z));
+			Pdf = ABCD / sum;
+		}
+		else if (rand < ABCD + EFGH) {
+			Wi = Normalize(Vec3f(U.y, 1, U.z));
+			Pdf = EFGH / sum;
+		}
+		else if (rand < ABCD + EFGH + ABFE) {
+			Wi = Normalize(Vec3f(-1, U.y, U.z));
+			Pdf = ABFE / sum;
+		}
+		else if (rand < ABCD + EFGH + ABFE + DCGH) {
+			Wi = Normalize(Vec3f(1, U.y, U.z));
+			Pdf = DCGH / sum;
+		}
+		else if (rand < ABCD + EFGH + ABFE + DCGH + AEHD) {
+			Wi = Normalize(Vec3f(U.y, U.z, -1));
+			Pdf = AEHD / sum;
+		}
+		else {
+			Wi = Normalize(Vec3f(U.y, U.z, 1));
+			Pdf = BFGC / sum;
+		}
+
+		return this->F(Wo, Wi);*/
+
+		float3 mins = floor(make_float3(m_Pe.x, m_Pe.y, m_Pe.z) / gVoxelSizeWorld) * gVoxelSizeWorld;
+		float A, B, C, D, E, F, G, H;
+		A = GetLightPathValue(mins);
+		B = GetLightPathValue(mins + gVoxelSizeWorldZ);
+		C = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX);
+		D = GetLightPathValue(mins + gVoxelSizeWorldX);
+
+		E = GetLightPathValue(mins + gVoxelSizeWorldY);
+		F = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldY);
+		G = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX + gVoxelSizeWorldY);
+		H = GetLightPathValue(mins + gVoxelSizeWorldX + gVoxelSizeWorldY);
+
+		float gradX, gradY, gradZ;
+		gradX = ((D + C + G + H) / 4.f) - ((A + B + F + E) / 4.f);
+		gradY = ((E + F + G + H) / 4.f) - ((A + B + C + D) / 4.f);
+		gradZ = ((B + F + G + C) / 4.f) - ((A + E + H + D) / 4.f);
+
+		gradX = gradX / 101.f;
+		gradY = gradY / 101.f;
+		gradZ = gradZ / 101.f;
+
+		float ABCD, EFGH, ABFE, DCGH, AEHD, BFGC;
+		ABFE = (1 + gradX);// *(1.f / 6);
+		DCGH = (1 - gradX);// * (1.f / 6);
+		ABCD = (1 + gradY);// * (1.f / 6);
+		EFGH = (1 - gradY);// * (1.f / 6);
+		AEHD = (1 + gradZ);// * (1.f / 6);
+		BFGC = (1 - gradZ);// * (1.f / 6);
+
+		float rand = U.x * 6;
+
+		float face_probability = -1;
+		if (rand < ABCD) {
+			Wi = Normalize(Vec3f(U.y, -1, U.z));
+			face_probability = ABCD;
+			//Pdf = (1.f / 6) / (ABCD * (FOUR_PI_F / 6));
+		}
+		else if (rand < ABCD + EFGH) {
+			Wi = Normalize(Vec3f(U.y, 1, U.z));
+			//Pdf = EFGH;
+			face_probability = EFGH;
+		}
+		else if (rand < ABCD + EFGH + ABFE) {
+			Wi = Normalize(Vec3f(-1, U.y, U.z));
+			//Pdf = ABFE;
+			face_probability = ABFE;
+		}
+		else if (rand < ABCD + EFGH + ABFE + DCGH) {
+			Wi = Normalize(Vec3f(1, U.y, U.z));
+			//Pdf = DCGH;
+			face_probability = DCGH;
+		}
+		else if (rand < ABCD + EFGH + ABFE + DCGH + AEHD) {
+			Wi = Normalize(Vec3f(U.y, U.z, -1));
+			//Pdf = AEHD;
+			face_probability = AEHD;
+		}
+		else {
+			Wi = Normalize(Vec3f(U.y, U.z, 1));
+			//Pdf = BFGC;
+			face_probability = BFGC;
+		}
+		Pdf = face_probability / FOUR_PI_F;
+
+		return this->F(Wo, Wi);
+	}
+
+	DEV float Pdf(const Vec3f& Wo, const Vec3f& Wi)
+	{
+		float3 mins = floor(make_float3(m_Pe.x, m_Pe.y, m_Pe.z) / gVoxelSizeWorld) * gVoxelSizeWorld;
+		float A, B, C, D, E, F, G, H;
+		A = GetLightPathValue(mins);
+		B = GetLightPathValue(mins + gVoxelSizeWorldZ);
+		C = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX);
+		D = GetLightPathValue(mins + gVoxelSizeWorldX);
+
+		E = GetLightPathValue(mins + gVoxelSizeWorldY);
+		F = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldY);
+		G = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX + gVoxelSizeWorldY);
+		H = GetLightPathValue(mins + gVoxelSizeWorldX + gVoxelSizeWorldY);
+
+		float gradX, gradY, gradZ;
+		gradX = ((D + C + G + H) / 4.f) - ((A + B + F + E) / 4.f);
+		gradY = ((E + F + G + H) / 4.f) - ((A + B + C + D) / 4.f);
+		gradZ = ((B + F + G + C) / 4.f) - ((A + E + H + D) / 4.f);
+
+		gradX = gradX / 101.f;
+		gradY = gradY / 101.f;
+		gradZ = gradZ / 101.f;
+
+		float ABCD, EFGH, ABFE, DCGH, AEHD, BFGC;
+		ABFE = (1 + gradX);// *(1.f / 6);
+		DCGH = (1 - gradX);// * (1.f / 6);
+		ABCD = (1 + gradY);// * (1.f / 6);
+		EFGH = (1 - gradY);// * (1.f / 6);
+		AEHD = (1 + gradZ);// * (1.f / 6);
+		BFGC = (1 - gradZ);// * (1.f / 6);
+
+		Vec3f WiAbs(fabsf(Wi.x), fabsf(Wi.y), fabsf(Wi.z));
+		if (WiAbs.x == WiAbs.Max()) {
+			if (Wi.x > 0)
+				return DCGH / FOUR_PI_F;
+			else
+				return ABFE / FOUR_PI_F;
+		}
+		else if (WiAbs.y == WiAbs.Max()) {
+			if (Wi.y > 0)
+				return EFGH / FOUR_PI_F;
+			else
+				return ABCD / FOUR_PI_F;
+		}
+		else if (WiAbs.z == WiAbs.Max()) {
+			if (Wi.z > 0)
+				return BFGC / FOUR_PI_F;
+			else
+				return AEHD / FOUR_PI_F;
+		}
+
+		return 0;
+	}
+
+	Vec3f		m_Pe;
+	CColorXyz	m_Kd;
+};
+
 class CIsotropicPhase
 {
 public:
@@ -361,21 +566,23 @@ public:
 	enum EType
 	{
 		Brdf,
-		Phase
+		Phase,
+		LightPaths
 	};
 
-	HOD CVolumeShader(const EType& Type, const Vec3f& N, const Vec3f& Wo, const CColorXyz& Kd, const CColorXyz& Ks, const float& Ior, const float& Exponent) :
+	DEV CVolumeShader(const EType& Type, const Vec3f& Pe, const Vec3f& N, const Vec3f& Wo, const CColorXyz& Kd, const CColorXyz& Ks, const float& Ior, const float& Exponent) :
 		m_Type(Type),
 		m_Brdf(N, Wo, Kd, Ks, Ior, Exponent),
-		m_IsotropicPhase(Kd)
+		m_IsotropicPhase(Kd),
+		m_LightPaths(Pe, Kd)
 	{
 	}
 
-	HOD ~CVolumeShader(void)
+	DEV ~CVolumeShader(void)
 	{
 	}
 
-	HOD CColorXyz F(const Vec3f& Wo, const Vec3f& Wi)
+	DEV CColorXyz F(const Vec3f& Wo, const Vec3f& Wi)
 	{
 		switch (m_Type)
 		{
@@ -384,12 +591,15 @@ public:
 
 			case Phase:
 				return m_IsotropicPhase.F(Wo, Wi);
+
+			case LightPaths:
+				return m_LightPaths.F(Wo, Wi);
 		}
 
 		return 1.0f;
 	}
 
-	HOD CColorXyz SampleF(const Vec3f& Wo, Vec3f& Wi, float& Pdf, const CBrdfSample& S)
+	DEV CColorXyz SampleF(const Vec3f& Wo, Vec3f& Wi, float& Pdf, const CBrdfSample& S)
 	{
 		switch (m_Type)
 		{
@@ -398,10 +608,13 @@ public:
 
 			case Phase:
 				return m_IsotropicPhase.SampleF(Wo, Wi, Pdf, S.m_Dir);
+
+			case LightPaths:
+				return m_LightPaths.SampleF(Wo, Wi, Pdf, Vec3f(S.m_Component, S.m_Dir.x, S.m_Dir.y));
 		}
 	}
 
-	HOD float Pdf(const Vec3f& Wo, const Vec3f& Wi)
+	DEV float Pdf(const Vec3f& Wo, const Vec3f& Wi)
 	{
 		switch (m_Type)
 		{
@@ -410,6 +623,9 @@ public:
 
 			case Phase:
 				return m_IsotropicPhase.Pdf(Wo, Wi);
+
+			case LightPaths:
+				return m_LightPaths.Pdf(Wo, Wi);
 		}
 
 		return 1.0f;
@@ -418,4 +634,5 @@ public:
 	EType				m_Type;
 	CBRDF				m_Brdf;
 	CIsotropicPhase		m_IsotropicPhase;
+	CLightPaths			m_LightPaths;
 };
