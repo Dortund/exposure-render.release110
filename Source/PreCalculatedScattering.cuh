@@ -835,12 +835,12 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 			materialProperties properties;
 			float3 gradient;
 			float3 fractions;
-			sampleProperties(properties, &gradient, & fractions, Pe);
+			sampleProperties(properties, &gradient, &fractions, Pe);
 			float gradientMagnitude = ToVec3f(gradient).Length();
 			Vec3f gradientNormal = ToVec3f(-gradient / gradientMagnitude);
 			if (gradientMagnitude == 0)
-				gradientNormal = Vec3f(1,1,1);
-			
+				gradientNormal = Vec3f(1, 1, 1);
+
 			if (pScene->m_AlgorithmType == 9) {
 				pView->m_FrameEstimateXyza.Set(CColorXyza(gradientNormal.x / 2 + 0.5, gradientNormal.y / 2 + 0.5, gradientNormal.z / 2 + 0.5), X, Y);
 				return;
@@ -898,7 +898,7 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 				F2 = (1 + GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldY));
 				G = (1 + GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX + gVoxelSizeWorldY));
 				H = (1 + GetLightPathValue(mins + gVoxelSizeWorldX + gVoxelSizeWorldY));
-				
+
 				float minC = fminf(A, fminf(B, fminf(C, fminf(D, fminf(E, fminf(F2, fminf(G, H)))))));
 				A = A - (minC - 1);
 				B = B - (minC - 1);
@@ -938,7 +938,7 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 					else if (E == min) {
 						pView->m_FrameEstimateXyza.Set(CColorXyza(-1, 1, -1), X, Y);
 					}
-					else if (F == min) {
+					else if (F2 == min) {
 						pView->m_FrameEstimateXyza.Set(CColorXyza(-1, 1, 1), X, Y);
 					}
 					else if (G == min) {
@@ -955,6 +955,7 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 						pView->m_FrameEstimateXyza.Get(X, Y) / 2.f + 0.5f, X, Y);
 					return;
 				}
+
 
 				/*float ABCD, EFGH, ABFE, DCGH, AEHD, BFGC;
 				ABCD = (A + B + C + D) / 4;
@@ -974,12 +975,12 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 				gradZ = gradZ / 101.f;
 
 				float ABCD, EFGH, ABFE, DCGH, AEHD, BFGC;
-				ABFE = (1 + gradX) * (1.f / 6);
-				DCGH = (1 - gradX) * (1.f / 6);
-				ABCD = (1 + gradY) * (1.f / 6);
-				EFGH = (1 - gradY) * (1.f / 6);
-				AEHD = (1 + gradZ) * (1.f / 6);
-				BFGC = (1 - gradZ) * (1.f / 6);
+				ABFE = (1 + gradX) * INV_4_PI_F;;
+				DCGH = (1 - gradX) * INV_4_PI_F;;
+				ABCD = (1 + gradY) * INV_4_PI_F;;
+				EFGH = (1 - gradY) * INV_4_PI_F;;
+				AEHD = (1 + gradZ) * INV_4_PI_F;;
+				BFGC = (1 - gradZ) * INV_4_PI_F;;
 
 				if (pScene->m_AlgorithmType == 18) {
 					float max = fmaxf(ABCD, fmaxf(EFGH, fmaxf(ABFE, fmaxf(DCGH, fmaxf(AEHD, BFGC)))));
@@ -1013,11 +1014,29 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 				BFGC = BFGC / sum;
 				*/
 				if (pScene->m_AlgorithmType == 21) {
-					float mean = (ABCD + EFGH + ABFE + DCGH + AEHD + BFGC) / 6.f;
-					float var = (powf(ABCD - mean, 2) + powf(EFGH - mean, 2) + powf(ABFE - mean, 2)
-						+ powf(DCGH - mean, 2) + powf(AEHD - mean, 2) + powf(BFGC - mean, 2)) / 6.f;
-					pView->m_FrameEstimateXyza.Set(CColorXyza(mean, sqrtf(var), 0), X, Y);
-					return;
+					if (pScene->m_ScatterType == 3) {
+						float mean = (ABCD + EFGH + ABFE + DCGH + AEHD + BFGC) / FOUR_PI_F / 6.f;
+						float var = (powf(ABCD - mean, 2) + powf(EFGH - mean, 2) + powf(ABFE - mean, 2)
+							+ powf(DCGH - mean, 2) + powf(AEHD - mean, 2) + powf(BFGC - mean, 2)) / 6.f;
+						pView->m_FrameEstimateXyza.Set(CColorXyza(mean, sqrtf(var), 0), X, Y);
+						return;
+					}
+					else if (pScene->m_ScatterType == 4) {
+						float length = sqrtf(A * A + B * B + C * C + D * D + E * E + F2 * F2 + G * G + H * H);
+						A = A / length * INV_4_PI_F;
+						B = B / length * INV_4_PI_F;
+						C = C / length * INV_4_PI_F;
+						D = D / length * INV_4_PI_F;
+						E = E / length * INV_4_PI_F;
+						F2 = F2 / length * INV_4_PI_F;
+						G = G / length * INV_4_PI_F;
+						H = H / length * INV_4_PI_F;
+						float mean = (A + B + C + D + E + F2 + G + H) / 8.f;
+						float var = (powf(A - mean, 2) + powf(B - mean, 2) + powf(C - mean, 2)
+							+ powf(D - mean, 2) + powf(E - mean, 2) + powf(F2 - mean, 2) + powf(G - mean, 2) + powf(H - mean, 2)) / 8.f;
+						pView->m_FrameEstimateXyza.Set(CColorXyza(mean, sqrtf(var), 0), X, Y);
+						return;
+					}
 				}
 			}
 
@@ -1034,6 +1053,115 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 				pView->m_FrameEstimateXyza.Set(CColorXyza(c.c[0], c.c[1], c.c[2]), X, Y);
 
 				return;
+			}
+
+			if (pScene->m_AlgorithmType == 20 && pScene->m_ScatterType == 4) {
+				float3 mins = floor(make_float3(Pe.x, Pe.y, Pe.z) / gVoxelSizeWorld) * gVoxelSizeWorld;
+				float A, B, C, D, E, F2, G, H;
+				A = GetLightPathValue(mins);
+				B = GetLightPathValue(mins + gVoxelSizeWorldZ);
+				C = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX);
+				D = GetLightPathValue(mins + gVoxelSizeWorldX);
+
+				E = GetLightPathValue(mins + gVoxelSizeWorldY);
+				F2 = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldY);
+				G = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX + gVoxelSizeWorldY);
+				H = GetLightPathValue(mins + gVoxelSizeWorldX + gVoxelSizeWorldY);
+
+				float max = fmaxf(A, fmaxf(B, fmaxf(C, fmaxf(D, fmaxf(E, fmaxf(F2, fmaxf(G, H))))))) + 1;
+
+				// invert values
+				A = max - A;
+				B = max - B;
+				C = max - C;
+				D = max - D;
+				E = max - E;
+				F2 = max - F2;
+				G = max - G;
+				H = max - H;
+
+				float sum = A + B + C + D + E + F2 + G + H;
+
+				float rand = RNG.Get1() * sum;
+
+				float face_probability = -1;
+
+				float S = RNG.Get1();
+				float T = RNG.Get1();
+				if (S + T > 1) {
+					S = 1 - S;
+					T = 1 - T;
+				}
+
+				if (rand < E) {
+					Vec3f v0 = Vec3f(0, 0, 1);
+					Vec3f v1 = Vec3f(0, 1, 0) - v0;
+					Vec3f v2 = Vec3f(-1, 0, 0) - v0;
+					Wi = Normalize(v0 + S * v1 + T * v2);
+					face_probability = E;
+					pView->m_FrameEstimateXyza.Set(CColorXyza(-1, 1, -1), X, Y);
+
+				}
+				else if (rand < E + H) {
+					Vec3f v0 = Vec3f(1, 0, 0);
+					Vec3f v1 = Vec3f(0, 1, 0) - v0;
+					Vec3f v2 = Vec3f(0, 0, -1) - v0;
+					Wi = Normalize(v0 + S * v1 + T * v2);
+					face_probability = H;
+					pView->m_FrameEstimateXyza.Set(CColorXyza(1, 1, -1), X, Y);
+				}
+				else if (rand < E + H + G) {
+					Vec3f v0 = Vec3f(0, 0, 1);
+					Vec3f v1 = Vec3f(0, 1, 0) - v0;
+					Vec3f v2 = Vec3f(1, 0, 0) - v0;
+					Wi = Normalize(v0 + S * v1 + T * v2);
+					face_probability = G;
+					pView->m_FrameEstimateXyza.Set(CColorXyza(1, 1, 1), X, Y);
+				}
+				else if (rand < E + H + G + F2) {
+					Vec3f v0 = Vec3f(-1, 0, 0);
+					Vec3f v1 = Vec3f(0, 1, 0) - v0;
+					Vec3f v2 = Vec3f(0, 0, 1) - v0;
+					Wi = Normalize(v0 + S * v1 + T * v2);
+					face_probability = F2;
+					pView->m_FrameEstimateXyza.Set(CColorXyza(-1, 1, 1), X, Y);
+				}
+				else if (rand < E + H + G + F2 + A) {
+					Vec3f v0 = Vec3f(0, 0, 1);
+					Vec3f v1 = Vec3f(0, -1, 0) - v0;
+					Vec3f v2 = Vec3f(-1, 0, 0) - v0;
+					Wi = Normalize(v0 + S * v1 + T * v2);
+					face_probability = A;
+					pView->m_FrameEstimateXyza.Set(CColorXyza(-1), X, Y);
+				}
+				else if (rand < E + H + G + F2 + A + D) {
+					Vec3f v0 = Vec3f(1, 0, 0);
+					Vec3f v1 = Vec3f(0, -1, 0) - v0;
+					Vec3f v2 = Vec3f(0, 0, -1) - v0;
+					Wi = Normalize(v0 + S * v1 + T * v2);
+					face_probability = D;
+					pView->m_FrameEstimateXyza.Set(CColorXyza(1, -1, -1), X, Y);
+				}
+				else if (rand < E + H + G + F2 + A + D + C) {
+					Vec3f v0 = Vec3f(0, 0, 1);
+					Vec3f v1 = Vec3f(0, -1, 0) - v0;
+					Vec3f v2 = Vec3f(1, 0, 0) - v0;
+					Wi = Normalize(v0 + S * v1 + T * v2);
+					face_probability = C;
+					pView->m_FrameEstimateXyza.Set(CColorXyza(1, -1, 1), X, Y);
+				}
+				else {
+					Vec3f v0 = Vec3f(-1, 0, 0);
+					Vec3f v1 = Vec3f(0, -1, 0) - v0;
+					Vec3f v2 = Vec3f(0, 0, 1) - v0;
+					Wi = Normalize(v0 + S * v1 + T * v2);
+					face_probability = B;
+					pView->m_FrameEstimateXyza.Set(CColorXyza(-1, -1, 1), X, Y);
+				}
+				ShaderPdf = (face_probability * 2) / (PI_F * sum);
+				return pView->m_FrameEstimateXyza.Set(
+					CColorXyza(Wi.x, Wi.y, Wi.z) / 2.f + 0.5f, X, Y);
+				
 			}
 
 			//Lv += Tr * GetEmmisionProperty(Pe).ToXYZ();
@@ -1168,6 +1296,18 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 									return pView->m_FrameEstimateXyza.Set(CColorXyza(0, 0, 1), X, Y);
 							}
 						}
+
+						break;
+					}
+
+					// Scatter following light paths Octohedron
+					case 4:
+					{
+						Shader = CVolumeShader(CVolumeShader::LightPathsOcto, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
 
 						break;
 					}
