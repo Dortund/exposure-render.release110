@@ -87,6 +87,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_ScatterType.addItem("Hybrid", 2);
 	m_ScatterType.addItem("Light Paths", 3);
 	m_ScatterType.addItem("Light Paths Octo", 4);
+	m_ScatterType.addItem("Light Paths Octo Gradient", 5);
 	m_ScatterType.setCurrentIndex(2);
 	m_MainLayout.addWidget(&m_ScatterType, i++, 1, 1, 2);
 

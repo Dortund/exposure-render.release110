@@ -54,6 +54,7 @@ public:
 	bool			Load(QString& FileName);
 	void			InitPreCalculated(void);
 	int*			InitFloodFill(void);
+	void			StartTesting(QString directory);
 
 	QString			GetFileName(void) const						{	return m_FileName;		}
 	void			SetFileName(const QString& FileName)		{	m_FileName = FileName;	}
@@ -61,6 +62,7 @@ public:
 	void			Close(void)									{	m_Abort = true;			}
 	void			PauseRendering(const bool& Pause)			{	m_Pause = Pause;		}
 	void			CreateIlluminanceTexture(void);
+	bool			isTesting()									{	return m_startTesting || m_doTests;	}
 	
 private:
 	QString				m_FileName;
@@ -70,6 +72,8 @@ private:
 	short*				m_pGradientMagnitudeBuffer;
 	cudaTextureFilterMode m_CurFilterMode;
 	bool				IntersectBox(const Vec3f Pe, const Vec3f& Dir, float* pNearT, float* pFarT);
+	bool				m_doTests;
+	bool				m_startTesting;
 
 
 public:
@@ -80,6 +84,7 @@ public:
 public:
 	QList<int>		m_SaveFrames;
 	QString			m_SaveBaseName;
+	QString			m_TestDir;
 
 public slots:
 	void OnUpdateTransferFunction(void);

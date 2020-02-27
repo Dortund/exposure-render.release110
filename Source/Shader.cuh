@@ -528,7 +528,7 @@ public:
 		}
 
 		if (rand < E) {
-			Vec3f v0 = Vec3f(0, 0, 1);
+			Vec3f v0 = Vec3f(0, 0, -1);
 			Vec3f v1 = Vec3f(0, 1, 0) - v0;
 			Vec3f v2 = Vec3f(-1, 0, 0) - v0;
 			Wi = Normalize(v0 + S * v1 + T * v2);
@@ -556,7 +556,7 @@ public:
 			face_probability = F;
 		}
 		else if (rand < E + H + G + F + A) {
-			Vec3f v0 = Vec3f(0, 0, 1);
+			Vec3f v0 = Vec3f(0, 0, -1);
 			Vec3f v1 = Vec3f(0, -1, 0) - v0;
 			Vec3f v2 = Vec3f(-1, 0, 0) - v0;
 			Wi = Normalize(v0 + S * v1 + T * v2);
@@ -676,6 +676,192 @@ public:
 			else
 				return (B / length) * INV_4_PI_F;
 		}*/
+
+		return 0;
+	}
+
+	Vec3f		m_Pe;
+	CColorXyz	m_Kd;
+};
+
+class CLightPathsOctoGradient
+{
+public:
+	DEV CLightPathsOctoGradient(const Vec3f& Pe, const CColorXyz& Kd) :
+		m_Kd(Kd),
+		m_Pe(Pe)
+	{
+	}
+
+	DEV ~CLightPathsOctoGradient(void)
+	{
+	}
+
+	DEV CColorXyz F(const Vec3f& Wo, const Vec3f& Wi)
+	{
+		return m_Kd * INV_4_PI_F;
+	}
+
+	DEV CColorXyz SampleF(const Vec3f& Wo, Vec3f& Wi, float& Pdf, const Vec3f& U)
+	{
+		float3 mins = floor(make_float3(m_Pe.x, m_Pe.y, m_Pe.z) / gVoxelSizeWorld) * gVoxelSizeWorld;
+		float A, B, C, D, E, F, G, H;
+		A = GetLightPathValue(mins);
+		B = GetLightPathValue(mins + gVoxelSizeWorldZ);
+		C = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX);
+		D = GetLightPathValue(mins + gVoxelSizeWorldX);
+
+		E = GetLightPathValue(mins + gVoxelSizeWorldY);
+		F = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldY);
+		G = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX + gVoxelSizeWorldY);
+		H = GetLightPathValue(mins + gVoxelSizeWorldX + gVoxelSizeWorldY);
+
+		float gradAG, gradDF, gradCE, gradBH;
+		gradAG = G - A;
+		gradDF = F - D;
+		gradCE = E - C;
+		gradBH = H - B;
+
+		gradAG = gradAG / 101.f * .99;
+		gradDF = gradDF / 101.f * .99;
+		gradCE = gradCE / 101.f * .99;
+		gradBH = gradBH / 101.f * .99;
+
+		A = (1 + gradAG);
+		G = (1 - gradAG);
+		D = (1 + gradDF);
+		F = (1 - gradDF);
+		C = (1 + gradCE);
+		E = (1 - gradCE);
+		B = (1 + gradBH);
+		H = (1 - gradBH);
+
+		float rand = U.x * 8;
+		float face_probability = -1;
+
+		float S = U.y;
+		float T = U.z;
+		if (S + T > 1) {
+			S = 1 - S;
+			T = 1 - T;
+		}
+
+		if (rand < E) {
+			Vec3f v0 = Vec3f(0, 0, -1);
+			Vec3f v1 = Vec3f(0, 1, 0) - v0;
+			Vec3f v2 = Vec3f(-1, 0, 0) - v0;
+			Wi = Normalize(v0 + S * v1 + T * v2);
+			face_probability = E;
+		}
+		else if (rand < E + H) {
+			Vec3f v0 = Vec3f(1, 0, 0);
+			Vec3f v1 = Vec3f(0, 1, 0) - v0;
+			Vec3f v2 = Vec3f(0, 0, -1) - v0;
+			Wi = Normalize(v0 + S * v1 + T * v2);
+			face_probability = H;
+		}
+		else if (rand < E + H + G) {
+			Vec3f v0 = Vec3f(0, 0, 1);
+			Vec3f v1 = Vec3f(0, 1, 0) - v0;
+			Vec3f v2 = Vec3f(1, 0, 0) - v0;
+			Wi = Normalize(v0 + S * v1 + T * v2);
+			face_probability = G;
+		}
+		else if (rand < E + H + G + F) {
+			Vec3f v0 = Vec3f(-1, 0, 0);
+			Vec3f v1 = Vec3f(0, 1, 0) - v0;
+			Vec3f v2 = Vec3f(0, 0, 1) - v0;
+			Wi = Normalize(v0 + S * v1 + T * v2);
+			face_probability = F;
+		}
+		else if (rand < E + H + G + F + A) {
+			Vec3f v0 = Vec3f(0, 0, -1);
+			Vec3f v1 = Vec3f(0, -1, 0) - v0;
+			Vec3f v2 = Vec3f(-1, 0, 0) - v0;
+			Wi = Normalize(v0 + S * v1 + T * v2);
+			face_probability = A;
+		}
+		else if (rand < E + H + G + F + A + D) {
+			Vec3f v0 = Vec3f(1, 0, 0);
+			Vec3f v1 = Vec3f(0, -1, 0) - v0;
+			Vec3f v2 = Vec3f(0, 0, -1) - v0;
+			Wi = Normalize(v0 + S * v1 + T * v2);
+			face_probability = D;
+		}
+		else if (rand < E + H + G + F + A + D + C) {
+			Vec3f v0 = Vec3f(0, 0, 1);
+			Vec3f v1 = Vec3f(0, -1, 0) - v0;
+			Vec3f v2 = Vec3f(1, 0, 0) - v0;
+			Wi = Normalize(v0 + S * v1 + T * v2);
+			face_probability = C;
+		}
+		else {
+			Vec3f v0 = Vec3f(-1, 0, 0);
+			Vec3f v1 = Vec3f(0, -1, 0) - v0;
+			Vec3f v2 = Vec3f(0, 0, 1) - v0;
+			Wi = Normalize(v0 + S * v1 + T * v2);
+			face_probability = B;
+		}
+		Pdf = face_probability * INV_4_PI_F;
+
+		return this->F(Wo, Wi);
+	}
+
+	DEV float Pdf(const Vec3f& Wo, const Vec3f& Wi)
+	{
+		float3 mins = floor(make_float3(m_Pe.x, m_Pe.y, m_Pe.z) / gVoxelSizeWorld) * gVoxelSizeWorld;
+		float A, B, C, D, E, F, G, H;
+		A = GetLightPathValue(mins);
+		B = GetLightPathValue(mins + gVoxelSizeWorldZ);
+		C = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX);
+		D = GetLightPathValue(mins + gVoxelSizeWorldX);
+
+		E = GetLightPathValue(mins + gVoxelSizeWorldY);
+		F = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldY);
+		G = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX + gVoxelSizeWorldY);
+		H = GetLightPathValue(mins + gVoxelSizeWorldX + gVoxelSizeWorldY);
+
+		float gradAG, gradDF, gradCE, gradBH;
+		gradAG = G - A;
+		gradDF = F - D;
+		gradCE = C - E;
+		gradBH = B - H;
+
+		gradAG = gradAG / 101.f * .99;
+		gradDF = gradDF / 101.f * .99;
+		gradCE = gradCE / 101.f * .99;
+		gradBH = gradBH / 101.f * .99;
+
+		A = (1 + gradAG);
+		G = (1 - gradAG);
+		D = (1 + gradDF);
+		F = (1 - gradDF);
+		C = (1 + gradCE);
+		E = (1 - gradCE);
+		B = (1 + gradBH);
+		H = (1 - gradBH);
+
+		float theta = acosf(Wi.y);
+		if (theta >= 0) {
+			if (Wi.x <= 0 && Wi.z <= 0)
+				return E * INV_4_PI_F;
+			else if (Wi.x > 0 && Wi.z <= 0)
+				return H * INV_4_PI_F;
+			else if (Wi.x > 0 && Wi.z > 0)
+				return G * INV_4_PI_F;
+			else
+				return F * INV_4_PI_F;
+		}
+		else {
+			if (Wi.x <= 0 && Wi.z <= 0)
+				return A * INV_4_PI_F;
+			else if (Wi.x > 0 && Wi.z <= 0)
+				return D * INV_4_PI_F;
+			else if (Wi.x > 0 && Wi.z > 0)
+				return C * INV_4_PI_F;
+			else
+				return B * INV_4_PI_F;
+		}
 
 		return 0;
 	}
@@ -813,7 +999,8 @@ public:
 		Brdf,
 		Phase,
 		LightPaths,
-		LightPathsOcto
+		LightPathsOcto,
+		LightPathsOctoGradient
 	};
 
 	DEV CVolumeShader(const EType& Type, const Vec3f& Pe, const Vec3f& N, const Vec3f& Wo, const CColorXyz& Kd, const CColorXyz& Ks, const float& Ior, const float& Exponent) :
@@ -821,7 +1008,8 @@ public:
 		m_Brdf(N, Wo, Kd, Ks, Ior, Exponent),
 		m_IsotropicPhase(Kd),
 		m_LightPaths(Pe, Kd),
-		m_LightPathsOcto(Pe, Kd)
+		m_LightPathsOcto(Pe, Kd),
+		m_LightPathsOctoGradient(Pe, Kd)
 	{
 	}
 
@@ -844,6 +1032,9 @@ public:
 
 			case LightPathsOcto:
 				return m_LightPathsOcto.F(Wo, Wi);
+
+			case LightPathsOctoGradient:
+				return m_LightPathsOctoGradient.F(Wo, Wi);
 		}
 
 		return 1.0f;
@@ -864,6 +1055,9 @@ public:
 
 			case LightPathsOcto:
 				return m_LightPathsOcto.SampleF(Wo, Wi, Pdf, Vec3f(S.m_Component, S.m_Dir.x, S.m_Dir.y));
+
+			case LightPathsOctoGradient:
+				return m_LightPathsOctoGradient.SampleF(Wo, Wi, Pdf, Vec3f(S.m_Component, S.m_Dir.x, S.m_Dir.y));
 		}
 	}
 
@@ -882,6 +1076,9 @@ public:
 
 			case LightPathsOcto:
 				return m_LightPathsOcto.Pdf(Wo, Wi);
+
+			case LightPathsOctoGradient:
+				return m_LightPathsOctoGradient.Pdf(Wo, Wi);
 		}
 
 		return 1.0f;
@@ -892,4 +1089,5 @@ public:
 	CIsotropicPhase		m_IsotropicPhase;
 	CLightPaths			m_LightPaths;
 	CLightPathsOcto		m_LightPathsOcto;
+	CLightPathsOctoGradient m_LightPathsOctoGradient;
 };

@@ -44,6 +44,7 @@ public slots:
 	void OnVisitWebsite(void);
 	void OnSaveImage(void);
 	void OnCreateIlluminationVolume(void);
+	void onPerformTests(void);
 	void OnCheckForUpdates(void);
 	void VersionInfoDownloaded(void);
 

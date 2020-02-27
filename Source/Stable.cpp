@@ -44,6 +44,18 @@ QString GetSaveFileName(const QString& Caption, const QString& Filter, const QSt
 	return FileDialog.selectedFiles().value(0);
 }
 
+QString getFolderName(const QString& Caption, const QString& Icon) {
+	QFileDialog FileDialog;
+
+	FileDialog.setWindowTitle(Caption);
+	FileDialog.setOption(QFileDialog::DontUseNativeDialog, true);
+	FileDialog.setOption(QFileDialog::ShowDirsOnly, true);
+	FileDialog.setWindowIcon(Icon.isEmpty() ? GetIcon("disk") : GetIcon(Icon));
+	FileDialog.setAcceptMode(QFileDialog::AcceptSave);
+
+	return FileDialog.getExistingDirectory();
+}
+
 void SaveImage(const unsigned char* pImageBuffer, const int& Width, const int& Height, QString FilePath /*= ""*/)
 {
 	if (!pImageBuffer)

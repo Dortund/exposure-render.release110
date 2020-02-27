@@ -99,6 +99,8 @@ void CMainWindow::CreateMenus(void)
 
 	m_pFileMenu->addAction(GetIcon("image-export"), "Create Illumination Volume", this, SLOT(OnCreateIlluminationVolume()));
 
+	m_pFileMenu->addAction(GetIcon("image-export"), "Peform test renders", this, SLOT(onPerformTests()));
+
 	m_pFileMenu->addSeparator();
 
 	m_pFileMenu->addAction(GetIcon("star"), "Welcome screen", this, SLOT(ShowStartupDialog()));
@@ -353,6 +355,18 @@ void CMainWindow::OnCreateIlluminationVolume(void)
 	gpRenderThread->CreateIlluminanceTexture();
 
 	gpRenderThread->PauseRendering(false);
+}
+
+void CMainWindow::onPerformTests(void) {
+
+	QString dir = getFolderName("Select Directory To Save To", "image-export");
+
+	if (!dir.isEmpty()) {
+		gpRenderThread->StartTesting(dir);
+	}
+	else {
+		Log("No directory specified", "control");
+	}
 }
 
 void CMainWindow::OnCheckForUpdates(void)

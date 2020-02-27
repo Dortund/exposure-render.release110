@@ -133,7 +133,9 @@ QRenderThread::QRenderThread(const QString& FileName, QObject* pParent /*= NULL*
 	m_Abort(false),
 	m_Pause(false),
 	m_SaveFrames(),
-	m_SaveBaseName("phase_function")
+	m_SaveBaseName("phase_function"),
+	m_doTests(false),
+	m_startTesting(false)
 {
 //	m_SaveFrames << 0 << 100 << 200;
 }
@@ -160,6 +162,40 @@ QRenderThread& QRenderThread::operator=(const QRenderThread& Other)
 	m_SaveBaseName				= Other.m_SaveBaseName;
 
 	return *this;
+}
+
+void QRenderThread::StartTesting(QString directory) {
+	if (!isTesting()) {
+		PauseRendering(true);
+
+		m_startTesting = true;
+		m_TestDir = directory;
+		m_SaveFrames.append({ 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024 });
+		QDir dir = QDir(m_TestDir);
+		dir.mkdir("images");
+
+		QFile measurements(m_TestDir + "/measurements.csv");
+		if (measurements.open(QIODevice::WriteOnly | QIODevice::Text)) {
+			QTextStream stream(&measurements);
+			QStringList data = {
+				"iterations",
+				"render_time",
+				"blur_time",
+				"postprocessing_time",
+				"denoise_time",
+				"used_memory_mb"
+			};
+			stream << data.join(",");
+			measurements.close();
+		}
+
+		Log("Saving tests to: " + m_TestDir, "control");
+
+		PauseRendering(false);
+	}
+	else {
+		Log("Already performing a test", "control");
+	}
 }
 
 void QRenderThread::run()
@@ -223,12 +259,30 @@ void QRenderThread::run()
 
 	ResetRenderCanvasView();
 
+	float FpsTime;
+
 	try
 	{
 		while (!m_Abort)
 		{
 			if (m_Pause)
 				continue;
+
+			if (m_startTesting) {
+				Log("Resetting render progress for testing", "control");
+
+				FPS.Reset();
+				RenderImage.Reset();
+				BlurImage.Reset();
+				PostProcessImage.Reset();
+				DenoiseImage.Reset();
+
+				gScene.SetNoIterations(0);
+				ResetRenderCanvasView();
+
+				m_doTests = true;
+				m_startTesting = false;
+			}
 
 			gStatus.SetPreRenderFrame();
 
@@ -329,11 +383,40 @@ void QRenderThread::run()
 
 			gFrameBuffer.Set((unsigned char*)m_pRenderImage, SceneCopy.m_Camera.m_Film.GetWidth(), SceneCopy.m_Camera.m_Film.GetHeight());
 
-			if (m_SaveFrames.indexOf(SceneCopy.GetNoIterations()) > 0)
-			{
-				const QString ImageFilePath = QApplication::applicationDirPath() + "/Output/" + m_SaveBaseName + "_" + QString::number(SceneCopy.GetNoIterations()) + ".png";
+			if (m_doTests) {
+				int index = m_SaveFrames.indexOf(SceneCopy.GetNoIterations());
+				if (index >= 0)
+				{
+					//const QString ImageFilePath = QApplication::applicationDirPath() + "/Output/" + m_SaveBaseName + "_" + QString::number(SceneCopy.GetNoIterations()) + ".png";
+					const QString ImageFilePath = m_TestDir + "/images/" + QString::number(SceneCopy.GetNoIterations()) + ".png";
 
-				SaveImage((unsigned char*)m_pRenderImage, SceneCopy.m_Camera.m_Film.m_Resolution.GetResX(), SceneCopy.m_Camera.m_Film.m_Resolution.GetResY(), ImageFilePath);
+					//Log("Saving test to: " + ImageFilePath, "conrol");
+					SaveImage((unsigned char*)m_pRenderImage, SceneCopy.m_Camera.m_Film.m_Resolution.GetResX(), SceneCopy.m_Camera.m_Film.m_Resolution.GetResY(), ImageFilePath);
+
+					m_SaveFrames.removeAt(index);
+
+					QFile measurements(m_TestDir + "/measurements.csv");
+					if (measurements.open(QIODevice::WriteOnly | QIODevice::Append)) {
+						size_t freeMemory = -1;
+						size_t totalMemory = -1;
+						HandleCudaError(cudaMemGetInfo(&freeMemory, &totalMemory));
+						QTextStream stream(&measurements);
+						QStringList data = {
+							QString::number(SceneCopy.GetNoIterations()),
+							QString::number(RenderImage.m_TotalTime),
+							QString::number(BlurImage.m_TotalTime),
+							QString::number(PostProcessImage.m_TotalTime),
+							QString::number(DenoiseImage.m_TotalTime),
+							QString::number((totalMemory - freeMemory) / MB)
+						};
+						stream << "\r\n" << data.join(",");
+						measurements.close();
+					}
+
+					if (m_SaveFrames.length() == 0) {
+						m_doTests = false;
+					}
+				}
 			}
 
  			gStatus.SetPostRenderFrame();
@@ -570,8 +653,8 @@ bool QRenderThread::Load(QString& FileName)
 
 	// Try to save our own file
 	// adapt path !
-	std::string filePath = "../exposure-render.release110/Source/Examples/gradient10.mhd";
-	std::string filePathRaw = "../exposure-render.release110/Source/Examples/gradient10.raw";
+	std::string filePath = "../exposure-render.release110/Source/Examples/tunnelAligned.mhd";
+	std::string filePathRaw = "../exposure-render.release110/Source/Examples/tunnelAligned.raw";
 
 	struct stat buffer;
 	if (!((stat(filePath.c_str(), &buffer) == 0))) {
@@ -606,7 +689,7 @@ bool QRenderThread::Load(QString& FileName)
 		}*/
 
 		// gradient
-		const int N = 10;
+		/*const int N = 10;
 		const int width = N;
 		const int height = 4;
 		const int depth = 4;
@@ -620,6 +703,59 @@ bool QRenderThread::Load(QString& FileName)
 					if (row == 0 || row == height - 1
 						|| dep == 0 || dep == depth - 1)
 						img[id] = 0;
+				}
+			}
+		}*/
+
+		// Tunnel Grid Aligned
+		const int tunnelDiameter = 16;
+		const int tunnelLengths = 32;
+		const int buffer = 16;
+
+		const int width = tunnelLengths + tunnelDiameter * 2 + buffer * 2;
+		const int height = width;
+		const int depth = 2 * tunnelLengths + tunnelDiameter + buffer;
+
+		std::unique_ptr<short[]> img(new short[width * height * depth]);
+		for (int row = 0; row < height; row++) {
+			for (int col = 0; col < width; col++) {
+				for (int dep = 0; dep < depth; dep++) {
+					int id = col + row * width + dep * width * height;
+
+					img[id] = 0;
+
+					if (dep < buffer) {
+						img[id] = 1000;
+						if (col >= buffer && col < buffer + tunnelDiameter + (buffer - dep)) {
+							img[id] = 100;
+							if (row < buffer)
+								img[id] = 600;
+						}
+					}
+					else if (dep < buffer + tunnelLengths) {
+						img[id] = 1000;
+						if (col >= buffer && col < buffer + tunnelDiameter) {
+							img[id] = 100;
+							if (row < buffer)
+								img[id] = 600;
+						}
+					}
+					else if (dep < buffer + tunnelLengths + tunnelDiameter) {
+						img[id] = 1000;
+						if (col >= buffer && col < buffer + tunnelLengths + 2 * tunnelDiameter) {
+							img[id] = 100;
+							if (row < buffer)
+								img[id] = 600;
+						}
+					}
+					else {
+						img[id] = 1000;
+						if (col >= buffer + tunnelLengths + tunnelDiameter && col < buffer + tunnelLengths + 2 * tunnelDiameter) {
+							img[id] = 100;
+							if (row < buffer)
+								img[id] = 600;
+						}
+					}
 				}
 			}
 		}
@@ -746,7 +882,7 @@ bool QRenderThread::Load(QString& FileName)
 		*/
 		
 		/*
-		//Chekerbox
+		//Checkerbox
 		const int size = 128;
 		const int width = size;
 		const int height = size;
@@ -823,90 +959,37 @@ void QRenderThread::OnUpdateTransferFunction(void)
 	gScene.m_TransferFunctions.m_Opacity.m_NoNodes		= TransferFunction.GetNodes().size();
 	gScene.m_TransferFunctions.m_Diffuse.m_NoNodes		= TransferFunction.GetNodes().size();
 	gScene.m_TransferFunctions.m_Specular.m_NoNodes		= TransferFunction.GetNodes().size();
-gScene.m_TransferFunctions.m_Emission.m_NoNodes = TransferFunction.GetNodes().size();
-gScene.m_TransferFunctions.m_Roughness.m_NoNodes = TransferFunction.GetNodes().size();
+	gScene.m_TransferFunctions.m_Emission.m_NoNodes = TransferFunction.GetNodes().size();
+	gScene.m_TransferFunctions.m_Roughness.m_NoNodes = TransferFunction.GetNodes().size();
 
-for (int i = 0; i < TransferFunction.GetNodes().size(); i++)
-{
-	QNode& Node = TransferFunction.GetNode(i);
-
-	const float Intensity = Node.GetIntensity();
-
-	// Positions
-	gScene.m_TransferFunctions.m_Opacity.m_P[i] = Intensity;
-	gScene.m_TransferFunctions.m_Diffuse.m_P[i] = Intensity;
-	gScene.m_TransferFunctions.m_Specular.m_P[i] = Intensity;
-	gScene.m_TransferFunctions.m_Emission.m_P[i] = Intensity;
-	gScene.m_TransferFunctions.m_Roughness.m_P[i] = Intensity;
-
-	// Colors
-	gScene.m_TransferFunctions.m_Opacity.m_C[i] = CColorRgbHdr(Node.GetOpacity());
-	gScene.m_TransferFunctions.m_Diffuse.m_C[i] = CColorRgbHdr(Node.GetDiffuse().redF(), Node.GetDiffuse().greenF(), Node.GetDiffuse().blueF());
-	gScene.m_TransferFunctions.m_Specular.m_C[i] = CColorRgbHdr(Node.GetSpecular().redF(), Node.GetSpecular().greenF(), Node.GetSpecular().blueF());
-	gScene.m_TransferFunctions.m_Emission.m_C[i] = 500.0f * CColorRgbHdr(Node.GetEmission().redF(), Node.GetEmission().greenF(), Node.GetEmission().blueF());
-
-	const float Roughness = 1.0f - expf(-Node.GetGlossiness());
-
-	gScene.m_TransferFunctions.m_Roughness.m_C[i] = CColorRgbHdr(Roughness * 250.0f);
-}
-
-gScene.m_DensityScale = TransferFunction.GetDensityScale();
-gScene.m_GradientFactor = TransferFunction.GetGradientFactor();
-
-gScene.m_DirtyFlags.SetFlag(TransferFunctionDirty);
-
-/*
-FILE * pFile;
-int n;
-char name [100];
-
-pFile = fopen ("c:\\tf.txt","w");
-
-if (pFile)
-{
-	for (int i = 0; i < 255; i++)
+	for (int i = 0; i < TransferFunction.GetNodes().size(); i++)
 	{
-		fprintf(pFile, "%0.2f\n", gScene.m_TransferFunctions.m_Roughness.F((float)i / 255.0f));
+		QNode& Node = TransferFunction.GetNode(i);
+
+		const float Intensity = Node.GetIntensity();
+
+		// Positions
+		gScene.m_TransferFunctions.m_Opacity.m_P[i] = Intensity;
+		gScene.m_TransferFunctions.m_Diffuse.m_P[i] = Intensity;
+		gScene.m_TransferFunctions.m_Specular.m_P[i] = Intensity;
+		gScene.m_TransferFunctions.m_Emission.m_P[i] = Intensity;
+		gScene.m_TransferFunctions.m_Roughness.m_P[i] = Intensity;
+
+		// Colors
+		gScene.m_TransferFunctions.m_Opacity.m_C[i] = CColorRgbHdr(Node.GetOpacity());
+		gScene.m_TransferFunctions.m_Diffuse.m_C[i] = CColorRgbHdr(Node.GetDiffuse().redF(), Node.GetDiffuse().greenF(), Node.GetDiffuse().blueF());
+		gScene.m_TransferFunctions.m_Specular.m_C[i] = CColorRgbHdr(Node.GetSpecular().redF(), Node.GetSpecular().greenF(), Node.GetSpecular().blueF());
+		gScene.m_TransferFunctions.m_Emission.m_C[i] = 500.0f * CColorRgbHdr(Node.GetEmission().redF(), Node.GetEmission().greenF(), Node.GetEmission().blueF());
+
+		const float Roughness = 1.0f - expf(-Node.GetGlossiness());
+
+		gScene.m_TransferFunctions.m_Roughness.m_C[i] = CColorRgbHdr(Roughness * 250.0f);
 	}
-}
 
-fclose (pFile);
-*/
+	gScene.m_DensityScale = TransferFunction.GetDensityScale();
+	gScene.m_GradientFactor = TransferFunction.GetGradientFactor();
 
-//if (gscene.m_algorithmtype == 2) {
-//	std::random_device rd;
-
-//	//
-//	// engines 
-//	//
-//	std::mt19937 e2(rd());
-//	//std::knuth_b e2(rd());
-//	//std::default_random_engine e2(rd()) ;
-
-//	//
-//	// distribtuions
-//	//
-//	std::uniform_real_distribution<> dist(0, 10);
-//	//std::normal_distribution<> dist(2, 2);
-//	//std::student_t_distribution<> dist(5);
-//	//std::poisson_distribution<> dist(2);
-//	//std::extreme_value_distribution<> dist(0,2);
-
-//	int n = gscene.m_resolution.getnoelements() / 100;
-
-//	std::cout << "n = " << n << std::endl;
-
-//	for (int i = 0; i < n; i++) {
-//		//int x = rand() % (gscene.m_resolution.getresx() - 1);
-//		//int y = rand() % (gscene.m_resolution.getresy() - 1);
-//		//int z = rand() % (gscene.m_resolution.getresz() - 1);
-//		float x = dist(e2) * gscene.m_boundingbox.lengthx();
-//		float y = dist(e2) * gscene.m_boundingbox.lengthy();
-//		float z = dist(e2) * gscene.m_boundingbox.lengthz();
-
-//		std::cout << i << "-- x: " << x << ", y: " << y << ", z:" << z << std::endl;
-//	}
-//}
+	gScene.m_DirtyFlags.SetFlag(TransferFunctionDirty);
 }
 
 void QRenderThread::OnUpdateTransferFunctionSettings(void) {
