@@ -170,7 +170,7 @@ void QRenderThread::StartTesting(QString directory) {
 
 		m_startTesting = true;
 		m_TestDir = directory;
-		m_SaveFrames.append({ 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024 });
+		m_SaveFrames.append({ 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048 });
 		QDir dir = QDir(m_TestDir);
 		dir.mkdir("images");
 
