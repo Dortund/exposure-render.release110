@@ -54,7 +54,7 @@ public:
 	bool			Load(QString& FileName);
 	void			InitPreCalculated(void);
 	int*			InitFloodFill(void);
-	void			StartTesting(QString directory);
+	void			StartTesting(QString Directory, bool CurrentOnly);
 
 	QString			GetFileName(void) const						{	return m_FileName;		}
 	void			SetFileName(const QString& FileName)		{	m_FileName = FileName;	}
@@ -85,6 +85,8 @@ public:
 	QList<int>		m_SaveFrames;
 	QString			m_SaveBaseName;
 	QString			m_TestDir;
+	QList<int>		m_TestModi;
+	int				m_ReferenceItterations;
 
 public slots:
 	void OnUpdateTransferFunction(void);

@@ -164,29 +164,23 @@ QRenderThread& QRenderThread::operator=(const QRenderThread& Other)
 	return *this;
 }
 
-void QRenderThread::StartTesting(QString directory) {
+void QRenderThread::StartTesting(QString Directory, bool CurrentOnly) {
 	if (!isTesting()) {
 		PauseRendering(true);
 
 		m_startTesting = true;
-		m_TestDir = directory;
-		m_SaveFrames.append({ 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048 });
-		QDir dir = QDir(m_TestDir);
-		dir.mkdir("images");
-
-		QFile measurements(m_TestDir + "/measurements.csv");
-		if (measurements.open(QIODevice::WriteOnly | QIODevice::Text)) {
-			QTextStream stream(&measurements);
-			QStringList data = {
-				"iterations",
-				"render_time",
-				"blur_time",
-				"postprocessing_time",
-				"denoise_time",
-				"used_memory_mb"
-			};
-			stream << data.join(",");
-			measurements.close();
+		m_TestDir = Directory;
+		m_SaveFrames = {};
+		if (CurrentOnly) {
+			m_TestModi = { gScene.m_ShadingType };
+			m_ReferenceItterations = -1;
+		}
+		else {
+			m_TestModi = { PHASE_FUNCTION_ONLY, BRDF_ONLY, HYBRID, LIGHT_PATHS, LIGHT_PATHS_OCTO, LIGHT_PATHS_OCTO_GRADIENT };
+			// We want a reference image from our first run
+			int refItt = 8192;
+			m_SaveFrames.append(refItt);
+			m_ReferenceItterations = refItt;
 		}
 
 		Log("Saving tests to: " + m_TestDir, "control");
@@ -282,6 +276,32 @@ void QRenderThread::run()
 
 				m_doTests = true;
 				m_startTesting = false;
+
+				int modus = m_TestModi.first();
+				gTransferFunction.SetScatterType(modus);
+				gScene.m_ScatterType = modus;
+				m_TestModi.removeFirst();
+
+				m_SaveFrames.append({ 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048 });
+				QDir(m_TestDir).mkdir(EScatteringTypeNames[modus]);
+				QDir(m_TestDir + "/" + EScatteringTypeNames[modus]).mkdir("images");
+
+				m_SaveBaseName = m_TestDir + "/" + EScatteringTypeNames[modus];
+
+				QFile measurements(m_SaveBaseName + "/measurements.csv");
+				if (measurements.open(QIODevice::WriteOnly | QIODevice::Text)) {
+					QTextStream stream(&measurements);
+					QStringList data = {
+						"iterations",
+						"render_time",
+						"blur_time",
+						"postprocessing_time",
+						"denoise_time",
+						"used_memory_mb"
+					};
+					stream << data.join(",");
+					measurements.close();
+				}
 			}
 
 			gStatus.SetPreRenderFrame();
@@ -323,7 +343,7 @@ void QRenderThread::run()
 			}
 
 			// Restart the rendering when when the camera, lights and render params are dirty
-			if (SceneCopy.m_DirtyFlags.HasFlag(CameraDirty | LightsDirty | RenderParamsDirty | TransferFunctionDirty))
+			if (SceneCopy.m_DirtyFlags.HasFlag(CameraDirty | LightsDirty | RenderParamsDirty | TransferFunctionDirty) && !m_doTests)
 			{
 				ResetRenderCanvasView();
 
@@ -388,14 +408,18 @@ void QRenderThread::run()
 				if (index >= 0)
 				{
 					//const QString ImageFilePath = QApplication::applicationDirPath() + "/Output/" + m_SaveBaseName + "_" + QString::number(SceneCopy.GetNoIterations()) + ".png";
-					const QString ImageFilePath = m_TestDir + "/images/" + QString::number(SceneCopy.GetNoIterations()) + ".png";
+					QString ImageFilePath;
+					if (SceneCopy.GetNoIterations() == m_ReferenceItterations)
+						ImageFilePath = m_TestDir + "/reference-" + QString::number(SceneCopy.GetNoIterations()) + ".png";
+					else
+						ImageFilePath = m_SaveBaseName + "/images/" + QString::number(SceneCopy.GetNoIterations()) + ".png";
 
 					//Log("Saving test to: " + ImageFilePath, "conrol");
 					SaveImage((unsigned char*)m_pRenderImage, SceneCopy.m_Camera.m_Film.m_Resolution.GetResX(), SceneCopy.m_Camera.m_Film.m_Resolution.GetResY(), ImageFilePath);
 
 					m_SaveFrames.removeAt(index);
 
-					QFile measurements(m_TestDir + "/measurements.csv");
+					QFile measurements(m_SaveBaseName + "/measurements.csv");
 					if (measurements.open(QIODevice::WriteOnly | QIODevice::Append)) {
 						size_t freeMemory = -1;
 						size_t totalMemory = -1;
@@ -415,6 +439,10 @@ void QRenderThread::run()
 
 					if (m_SaveFrames.length() == 0) {
 						m_doTests = false;
+						if (m_TestModi.length() > 0)
+							m_startTesting = true;
+						else
+							PauseRendering(true);
 					}
 				}
 			}

@@ -45,6 +45,7 @@ public slots:
 	void OnSaveImage(void);
 	void OnCreateIlluminationVolume(void);
 	void onPerformTests(void);
+	void onPerformTestCycle(void);
 	void OnCheckForUpdates(void);
 	void VersionInfoDownloaded(void);
 

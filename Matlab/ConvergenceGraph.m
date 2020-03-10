@@ -2,10 +2,10 @@ function ConvergenceGraph(name, graph_name)
 
 BaseDirectory           = 'C:\Users\nomen\Documents\Thesis\tests\';
 Directory               = strcat(BaseDirectory, strcat(name, '\'));
-Techniques              = {'PhaseFunctionOnly', 'Hybrid', 'LightPaths', 'LightPathsOcto', 'LightPathsOctoGradient'}; %folder name
+Techniques              = {'PHASE_FUNCTION_ONLY', 'BRDF_ONLY', 'HYBRID', 'LIGHT_PATHS', 'LIGHT_PATHS_OCTO', 'LIGHT_PATHS_OCTO_GRADIENT'}; %folder name
 ID                      = 1;
 TechniqueIDs            = [];
-Series                  = {'PhaseFunctionOnly', 'Hybrid', 'LightPaths', 'LightPathsOcto', 'LightPathsOctoGradient'}; %graph name
+Series                  = {'PhaseFunctionOnly', 'BRDFOnly', 'Hybrid', 'LightPaths', 'LightPathsOcto', 'LightPathsOctoGradient'}; %graph name
 SPP                     = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048];
 MaxSPP                  = 9;
 Errors                  = zeros(1);
@@ -14,7 +14,7 @@ ReferenceImageFile      = dir([Directory 'reference*.png']);
 ReferenceImage          = double(imread(strcat(Directory, ReferenceImageFile.name))) / 255.0;
 Figure                  = figure('Name', name);
 AxisY                   = axes('Parent', Figure, 'YScale', 'log', 'YMinorTick', 'on');
-Markers                 = { 'x', 'v', 'square', '^', '+' }     ;  
+Markers                 = { 'x', 'v', 'square', '^', '+', '*' }     ;  
 Results                 = cell(1, 1);
 
 for i = 1 : length(Series)
@@ -46,7 +46,7 @@ for i = 1 : length(Techniques)
                 
                 if j <= MaxSPP
                     Errors(j, ID) = Error;
-                    Timings(j, ID) = CSV(j,2);
+                    Timings(j, ID) = CSV(j,2) / 1000;
                 end
                 
                 Results(j + 1, ID + 1) = {Error};
@@ -105,7 +105,7 @@ for i = 1 : length(TechniqueIDs)
 end
 title(graph_name, 'FontSize', 12);
 xlabel('Samples per pixel', 'FontSize', 10);
-ylabel('Time in ms', 'FontSize', 10);
+ylabel('Time in seconds', 'FontSize', 10);
 legend('show', 'Location', 'northwest');
 TI = get(gca, 'TightInset');
 

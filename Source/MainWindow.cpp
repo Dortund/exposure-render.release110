@@ -100,6 +100,7 @@ void CMainWindow::CreateMenus(void)
 	m_pFileMenu->addAction(GetIcon("image-export"), "Create Illumination Volume", this, SLOT(OnCreateIlluminationVolume()));
 
 	m_pFileMenu->addAction(GetIcon("image-export"), "Peform test renders", this, SLOT(onPerformTests()));
+	m_pFileMenu->addAction(GetIcon("image-export"), "Peform cycle of test renders", this, SLOT(onPerformTestCycle()));
 
 	m_pFileMenu->addSeparator();
 
@@ -362,7 +363,19 @@ void CMainWindow::onPerformTests(void) {
 	QString dir = getFolderName("Select Directory To Save To", "image-export");
 
 	if (!dir.isEmpty()) {
-		gpRenderThread->StartTesting(dir);
+		gpRenderThread->StartTesting(dir, true);
+	}
+	else {
+		Log("No directory specified", "control");
+	}
+}
+
+void CMainWindow::onPerformTestCycle(void) {
+
+	QString dir = getFolderName("Select Directory To Save To", "image-export");
+
+	if (!dir.isEmpty()) {
+		gpRenderThread->StartTesting(dir, false);
 	}
 	else {
 		Log("No directory specified", "control");

@@ -230,3 +230,22 @@ enum EAxis
 	AxisZ,
 	AxisUndefined
 };
+
+enum EScatteringType
+{
+	BRDF_ONLY,
+	PHASE_FUNCTION_ONLY,
+	HYBRID,
+	LIGHT_PATHS,
+	LIGHT_PATHS_OCTO,
+	LIGHT_PATHS_OCTO_GRADIENT
+};
+
+const static char* EScatteringTypeNames[] = {
+	"BRDF_ONLY",
+	"PHASE_FUNCTION_ONLY",
+	"HYBRID",
+	"LIGHT_PATHS",
+	"LIGHT_PATHS_OCTO",
+	"LIGHT_PATHS_OCTO_GRADIENT"
+};
