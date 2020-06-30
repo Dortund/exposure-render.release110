@@ -788,6 +788,7 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 	CRNG RNG(pView->m_RandomSeeds1.GetPtr(X, Y), pView->m_RandomSeeds2.GetPtr(X, Y));
 
 	CColorXyz Lv = SPEC_BLACK, Li = SPEC_BLACK, Tr = SPEC_WHITE;
+	float LightBalance = 1;
 
 	CRay Re;
 
@@ -1287,14 +1288,14 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 				// BRDF Only (Bidirectional Reflectance Distribution Function)
 			case 0:
 			{
-				Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Brdf, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
+				Lv += Tr * LightBalance * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Brdf, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
 				break;
 			}
 
 			// Phase Function Only
 			case 1:
 			{
-				Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Phase, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, false);
+				Lv += Tr * LightBalance * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Phase, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, false);
 				//pView->m_FrameEstimateXyza.Set(CColorXyza(properties.diffuse.r, properties.diffuse.g, properties.diffuse.b), X, Y);
 				//return;
 				break;
@@ -1306,15 +1307,30 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 				const float GradMag = gradientMagnitude * gIntensityInvRange;
 				const float PdfBrdf = (1.0f - __expf(-pScene->m_GradientFactor * GradMag));
 				if (RNG.Get1() < PdfBrdf) {
-					Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Brdf, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
+					Lv += Tr * LightBalance * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Brdf, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
 					//pView->m_FrameEstimateXyza.Set(CColorXyza(0,1,0), X, Y);
 					//return;
 				}
 				else {
-					Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Phase, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, false);
+					Lv += Tr * LightBalance * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Phase, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, false);
 					//pView->m_FrameEstimateXyza.Set(CColorXyza(0,0,1), X, Y);
 					//return;
 				}
+				break;
+			}
+			case 3:
+			{
+				Lv += Tr * LightBalance * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::LightPaths, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
+				break;
+			}
+			case 4:
+			{
+				Lv += Tr * LightBalance * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::LightPathsOcto, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
+				break;
+			}
+			case 5:
+			{
+				Lv += Tr * LightBalance * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::LightPathsOctoGradient, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
 				break;
 			}
 			}
@@ -1432,8 +1448,11 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 						Shader = CVolumeShader(CVolumeShader::LightPathsOctoGradient, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
 						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
 
-						if (!F.IsBlack() && ShaderPdf > 0)
+						if (!F.IsBlack() && ShaderPdf > 0) {
 							Tr *= F / ShaderPdf;
+							//Tr *= F / INV_4_PI_F;
+							//LightBalance *= 1.f / ShaderPdf;
+						}
 
 						break;
 					}
@@ -1467,6 +1486,14 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 
 	//__syncthreads();
 	pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
+
+	if (pScene->m_AlgorithmType == 22) {
+		if (Tr.c[0] > 1 || Tr.c[1] > 1 || Tr.c[2] > 1)
+			pView->m_FrameEstimateXyza.Set(CColorXyza(Tr.c[0], Tr.c[1], Tr.c[2]), X, Y);
+		else
+			pView->m_FrameEstimateXyza.Set(CColorXyza(0), X, Y);
+	}
+
 	//pView->m_FrameEstimateXyza.Set(CColorXyza(1,0,0), X, Y);
 }
 

@@ -585,6 +585,7 @@ public:
 		}
 		//Pdf = (face_probability / length) * INV_4_PI_F;
 		//Pdf = (face_probability / length) / (PI_F / 2);
+		//Pdf = face_probability * sum (= chance of one face) / area of face (=4*PI/8) -> reduces to (face_probability * 2) / (PI_F * sum)
 		Pdf = (face_probability * 2) / (PI_F * sum);
 
 		return this->F(Wo, Wi);
@@ -802,7 +803,20 @@ public:
 			Wi = Normalize(v0 + S * v1 + T * v2);
 			face_probability = B;
 		}
+
+		//Pdf = (face_probability / 8.0f) * (1.0f / (8 * 4 * PI_F));
+		//Pdf = face_probability * 1/8 (=uniform chance of one face) / area of face (=4*PI/8) -> reduces to face_probability * INV_$_PI_F
+		//Pdf = (face_probability / 8.0f) / ((4.0f * PI_F) / 8.0f);
+
+		// Since face_probability is between 0 and 2, with 1 represeting uniform chance, this works to adjust throughput
+		// to match uniform
 		Pdf = face_probability * INV_4_PI_F;
+
+		// Cancel out the inv_4_pi_f on the color F
+		//Pdf = INV_4_PI_F;
+
+		// Simply return face_probability so we can use it in LightBalance
+		//Pdf = face_probability;
 
 		return this->F(Wo, Wi);
 	}

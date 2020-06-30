@@ -138,6 +138,9 @@ DEV CColorXyz EstimateDirectLightPropertyBased(CScene* pScene, const CVolumeShad
 
 		if (Type == CVolumeShader::Phase)
 			Ld += F * Li * WeightMIS / LightPdf;
+
+		if (Type == CVolumeShader::LightPaths || Type == CVolumeShader::LightPathsOcto || Type == CVolumeShader::LightPathsOctoGradient)
+			Ld += F * Li * WeightMIS / LightPdf;
 	}
 
 	F = Shader.SampleF(Wo, Wi, ShaderPdf, LS.m_BsdfSample);
@@ -156,6 +159,9 @@ DEV CColorXyz EstimateDirectLightPropertyBased(CScene* pScene, const CVolumeShad
 					Ld += F * Li * AbsDot(Wi, N) * WeightMIS / ShaderPdf;
 
 				if (Type == CVolumeShader::Phase)
+					Ld += F * Li * WeightMIS / ShaderPdf;
+
+				if (Type == CVolumeShader::LightPaths || Type == CVolumeShader::LightPathsOcto || Type == CVolumeShader::LightPathsOctoGradient)
 					Ld += F * Li * WeightMIS / ShaderPdf;
 			}
 		}

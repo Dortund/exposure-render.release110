@@ -1,11 +1,11 @@
-function ConvergenceGraph(name, graph_name)
+function ConvergenceGraph2(name, graph_name)
 
-BaseDirectory           = 'C:\Users\nomen\Documents\Thesis\tests\';
+BaseDirectory           = 'C:\Users\nomen\Documents\Thesis\tests\other\';
 Directory               = strcat(BaseDirectory, strcat(name, '\'));
-Techniques              = {'PHASE_FUNCTION_ONLY', 'BRDF_ONLY', 'HYBRID', 'LIGHT_PATHS', 'LIGHT_PATHS_OCTO', 'LIGHT_PATHS_OCTO_GRADIENT'}; %folder name
+Techniques              = {'PHASE_FUNCTION_ONLY_phase', 'LIGHT_PATHS_OCTO_GRADIENT_phase', 'PHASE_FUNCTION_ONLY_octo', 'LIGHT_PATHS_OCTO_GRADIENT_octo', 'PHASE_FUNCTION_ONLY_combined', 'LIGHT_PATHS_OCTO_GRADIENT_combined'}; %folder name
 ID                      = 1;
 TechniqueIDs            = [];
-Series                  = {'PhaseFunctionOnly', 'BRDFOnly', 'Hybrid', 'LightPaths', 'LightPathsOcto', 'LightPathsOctoGradient'}; %graph name
+Series                  = {'PhaseFunction Phase', 'LightPathsOctoGradient Phase', 'PhaseFunction Octo', 'LightPathsOctoGradient Octo', 'PhaseFunction Combined', 'LightPathsOctoGradient Combined'}; %graph name
 SPP                     = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512];%, 1024, 2048];
 MaxSPP                  = 9;%11;
 Errors                  = zeros(1);

@@ -176,9 +176,9 @@ void QRenderThread::StartTesting(QString Directory, bool CurrentOnly) {
 			m_ReferenceItterations = -1;
 		}
 		else {
-			m_TestModi = { PHASE_FUNCTION_ONLY, BRDF_ONLY, HYBRID, LIGHT_PATHS, LIGHT_PATHS_OCTO, LIGHT_PATHS_OCTO_GRADIENT };
+			m_TestModi = { PHASE_FUNCTION_ONLY,/* BRDF_ONLY, HYBRID,*/ LIGHT_PATHS, LIGHT_PATHS_OCTO, LIGHT_PATHS_OCTO_GRADIENT };
 			// We want a reference image from our first run
-			int refItt = 8192;
+			int refItt = 1025;// 8192;
 			m_SaveFrames.append(refItt);
 			m_ReferenceItterations = refItt;
 		}
@@ -280,9 +280,11 @@ void QRenderThread::run()
 				int modus = m_TestModi.first();
 				gTransferFunction.SetScatterType(modus);
 				gScene.m_ScatterType = modus;
+				//gTransferFunction.SetShadingType(modus);
+				//gScene.m_ShadingType = modus;
 				m_TestModi.removeFirst();
 
-				m_SaveFrames.append({ 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048 });
+				m_SaveFrames.append({ 1, 2, 4, 8, 16, 32, 64, 128, 256, 512/*, 1024/*, 2048*/ });
 				QDir(m_TestDir).mkdir(EScatteringTypeNames[modus]);
 				QDir(m_TestDir + "/" + EScatteringTypeNames[modus]).mkdir("images");
 

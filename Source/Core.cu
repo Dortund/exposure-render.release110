@@ -581,6 +581,7 @@ void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& Po
 		case 19:
 		case 20:
 		case 21:
+		case 22:
 		{
 			MultipleScatteringPropertyBased(&Scene, pDevScene, pDevView);
 			break;

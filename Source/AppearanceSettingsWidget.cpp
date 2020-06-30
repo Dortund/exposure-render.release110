@@ -67,6 +67,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_AlgorithmType.addItem("Light Path Values", 19);
 	m_AlgorithmType.addItem("Chosen Light Path", 20);
 	m_AlgorithmType.addItem("Light Path Variance", 21);
+	m_AlgorithmType.addItem("Property Based Final Throughput", 22);
 	m_MainLayout.addWidget(&m_AlgorithmType, i++, 1, 1, 2);
 
 	QObject::connect(&m_AlgorithmType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetAlgorithmType(int)));
@@ -76,6 +77,9 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_ShadingType.addItem("BRDF Only", 0);
 	m_ShadingType.addItem("Phase Function Only", 1);
 	m_ShadingType.addItem("Hybrid", 2);
+	m_ShadingType.addItem("Light Paths", 3);
+	m_ShadingType.addItem("Light Paths Octo", 4);
+	m_ShadingType.addItem("Light Paths Octo Gradient", 5);
 	m_MainLayout.addWidget(&m_ShadingType, i++, 1, 1, 2);
 
 	QObject::connect(&m_ShadingType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetShadingType(int)));
