@@ -16,7 +16,7 @@ Figure                  = figure('Name', name);
 AxisY                   = axes('Parent', Figure, 'YScale', 'log', 'YMinorTick', 'on');
 Markers                 = { 'x', 'v', 'square', '^', '+', '*' }     ;  
 Results                 = cell(1, 1);
-
+%ConvergenceGraph('TD_NoScatter_ShadingTest', 'Scattering Types')
 for i = 1 : length(Series)
     Results(1, i + 1) = Series(i);
 end
