@@ -37,7 +37,8 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_DoToneMap(),
 	m_DoDenoise(),
 	m_DoOffset(),
-	m_MaxBouncesSpinner()
+	m_MaxBouncesSpinner(),
+	m_MakeFloodFillButton("Make New Floodfill")
 {
 	setLayout(&m_MainLayout);
 
@@ -234,6 +235,26 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 
 	QObject::connect(&m_MaxBouncesSpinner, SIGNAL(valueChanged(double)), this, SLOT(OnSetMaxBounces(double)));
 
+	QLabel* lblOpacityWeight = new QLabel("FF Opacity Weight");
+	//lblOpacityWeight->setToolTip("Sets the raymarching starting distance from a scattering point");
+	m_MainLayout.addWidget(lblOpacityWeight, i, 0);
+
+	//m_ScatteringHeadstartSlider.setRange(0, 10.0);
+
+	//m_MainLayout.addWidget(&m_ScatteringHeadstartSlider, i, 1);
+
+	m_OpacityWeightSpinner.setRange(0, 100000000.0);
+	m_OpacityWeightSpinner.setDecimals(0);
+
+	m_MainLayout.addWidget(&m_OpacityWeightSpinner, i++, 2);
+
+	//QObject::connect(&m_ScatteringHeadstartSlider, SIGNAL(valueChanged(double)), &m_ScatteringHeadstartSpinner, SLOT(setValue(double)));
+	//QObject::connect(&m_ScatteringHeadstartSpinner, SIGNAL(valueChanged(double)), &m_ScatteringHeadstartSlider, SLOT(setValue(double)));
+	QObject::connect(&m_OpacityWeightSpinner, SIGNAL(valueChanged(double)), this, SLOT(OnSetOpacityWeight(double)));
+
+	m_MainLayout.addWidget(&m_MakeFloodFillButton, i, 0);
+	QObject::connect(&m_MakeFloodFillButton, SIGNAL(released()), this, SLOT(OnMakeFloodfill()));
+
 
 	QObject::connect(&gStatus, SIGNAL(RenderBegin()), this, SLOT(OnRenderBegin()));
 	QObject::connect(&gTransferFunction, SIGNAL(FunctionChanged()), this, SLOT(OnTransferFunctionChanged()));
@@ -295,6 +316,23 @@ void QAppearanceSettingsWidget::OnTransferFunctionSettingsChanged(void) {
 	m_StepSizeSecondaryRaySpinner.setValue(gTransferFunction.GetSecondarStepSize(), true);
 	m_ScatteringHeadstartSlider.setValue(gTransferFunction.GetScatteringHeadstart(), true);
 	m_ScatteringHeadstartSpinner.setValue(gTransferFunction.GetScatteringHeadstart(), true);
+}
+
+void QAppearanceSettingsWidget::OnMakeFloodfill() {
+	gTransferFunction.setMakeFloodFill(true);
+	m_MakeFloodFillButton.setEnabled(false);
+}
+
+void QAppearanceSettingsWidget::OnSetOpacityWeight(double OpacityWeight)
+{
+	gTransferFunction.SetOpacityWeight(OpacityWeight);
+	m_MakeFloodFillButton.setEnabled(true);
+}
+
+void QAppearanceSettingsWidget::OnSetDirectionWeight(double DirectionWeight)
+{
+	gTransferFunction.SetDirectionWeight(DirectionWeight);
+	m_MakeFloodFillButton.setEnabled(true);
 }
 
 void QAppearanceSettingsWidget::OnSetDensityScale(double DensityScale)

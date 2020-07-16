@@ -63,6 +63,12 @@ public:
 	void						SetSecondaryStepSize(const float& SecondaryStepSize);
 	float						GetScatteringHeadstart(void) const;
 	void						SetScatteringHeadstart(const float& ScatteringHeadstart);
+	float						GetOpacityWeight(void) const;
+	void						SetOpacityWeight(const float& OpacityWeight);
+	float						GetDirectionWeight(void) const;
+	void						SetDirectionWeight(const float& DirectionWeight);
+	bool						GetMakeFloodFill(void) const;
+	void						setMakeFloodFill(const bool& MakeFloodFill);
 
 private slots:
 	void	OnNodeChanged(QNode* pNode);
@@ -85,6 +91,9 @@ private:
 	float		m_PrimaryStepSize;
 	float		m_SecondaryStepSize;
 	float		m_ScatteringHeadstart;
+	float		m_OpacityWeight;
+	float		m_DirectionWeight;
+	bool		m_MakeFloodFill;
 
 	friend class QNode;
 };

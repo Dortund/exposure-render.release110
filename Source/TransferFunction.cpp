@@ -36,7 +36,8 @@ QTransferFunction::QTransferFunction(QObject* pParent, const QString& Name) :
 	m_PostProcessingSteps(31),
 	m_PrimaryStepSize(3.0f),
 	m_SecondaryStepSize(3.0f),
-	m_ScatteringHeadstart(0)
+	m_ScatteringHeadstart(0),
+	m_MakeFloodFill(false)
 {
 }
 
@@ -439,6 +440,50 @@ void QTransferFunction::SetScatteringHeadstart(const float& ScatteringHeadstart)
 
 	emit SettingsChanged();
 }
+
+float QTransferFunction::GetOpacityWeight(void) const
+{
+	return m_OpacityWeight;
+}
+
+void QTransferFunction::SetOpacityWeight(const float& OpacityWeight)
+{
+	if (OpacityWeight == m_OpacityWeight)
+		return;
+
+	m_OpacityWeight = OpacityWeight;
+
+	//emit SettingsChanged();
+}
+
+float QTransferFunction::GetDirectionWeight(void) const
+{
+	return m_DirectionWeight;
+}
+
+void QTransferFunction::SetDirectionWeight(const float& DirectionWeight)
+{
+	if (DirectionWeight == m_DirectionWeight)
+		return;
+
+	m_DirectionWeight = DirectionWeight;
+
+	//emit SettingsChanged();
+}
+
+bool QTransferFunction::GetMakeFloodFill(void) const
+{
+	return m_MakeFloodFill;
+}
+
+void QTransferFunction::setMakeFloodFill(const bool& MakeFloodFill)
+{
+	m_MakeFloodFill = MakeFloodFill;
+
+	if (m_MakeFloodFill)
+		emit SettingsChanged();
+}
+
 
 void QTransferFunction::ReadXML(QDomElement& Parent)
 {

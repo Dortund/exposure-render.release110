@@ -50,6 +50,20 @@ KERNEL void KrnlEstimateCopy(CCudaView* pView)
 
 	pView->m_RunningEstimateXyza.Set(pView->m_FrameEstimateXyza.Get(X, Y), X, Y);
 
+	//TODO FIX BACK - done
+	/*CColorXyza c = pView->m_FrameEstimateXyza.Get(X, Y);
+	if (c.c[0] >= 0.1 || c.c[1] >= 0.1 || c.c[2] >= 0.1) {
+	//	pView->m_RunningEstimateXyza.Set(c, X, Y);
+	//if (pView->m_EstimateRgbaLdr.Get(X, Y).a > 0) {
+		pView->m_RunningEstimateXyza.Set(c, X, Y);
+	}
+	else if (pView->m_RunningEstimateXyza.Get(X, Y) != CColorXyza(0)) {
+
+	}
+	else {
+		pView->m_RunningEstimateXyza.Set(CColorXyza(0), X, Y);
+	}*/
+
 	/*if (pView->m_FrameEstimateXyza.Get(X, Y).c[1] > pView->m_RunningEstimateXyza.Get(X, Y).c[1]) {
 		pView->m_RunningEstimateXyza.Set(pView->m_FrameEstimateXyza.Get(X, Y), X, Y);
 	}*/

@@ -1334,6 +1334,25 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 			}
 			}
 
+
+			// TODO FIX BACK - done
+			/*float temp = 2.0f;
+			if (Lv.c[0] >= temp || Lv.c[1] >= temp || Lv.c[2] >= temp) {
+				if (i > 0) {
+					pView->m_FrameEstimateXyza.Set(CColorXyza((Wi[0] / 2.f) + 0.5, (Wi[1] / 2.f) + 0.5, (Wi[2] / 2.f) + 0.5), X, Y);
+					pView->m_EstimateRgbaLdr.Set(CColorRgbaLdr(0.0f, 0.0f, 0.0f, (ShaderPdf / 2.f) * 255.0f), X, Y);
+					return;
+				}
+				else {
+
+				}
+			}
+			else if (i > 0) {
+				pView->m_FrameEstimateXyza.Set(CColorXyza(0), X, Y);
+				return;
+			}
+			*/
+
 			// Lets see if we can use the same trick for the direction as for calculating the light
 			if (i < pScene->m_MaxBounces - 1) {
 				LS.LargeStep(RNG);

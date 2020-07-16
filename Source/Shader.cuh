@@ -723,10 +723,10 @@ public:
 		gradCE = E - C;
 		gradBH = H - B;
 
-		gradAG = gradAG / 101.f * .99;
-		gradDF = gradDF / 101.f * .99;
-		gradCE = gradCE / 101.f * .99;
-		gradBH = gradBH / 101.f * .99;
+		gradAG = gradAG / 101.f;// *.99;
+		gradDF = gradDF / 101.f;// *.99;
+		gradCE = gradCE / 101.f;// *.99;
+		gradBH = gradBH / 101.f;// *.99;
 
 		A = (1 + gradAG);
 		G = (1 - gradAG);

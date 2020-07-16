@@ -1057,8 +1057,13 @@ void QRenderThread::OnUpdateTransferFunctionSettings(void) {
 	else if (gScene.m_AlgorithmType == 3) {
 		InitOpacityGradient(CScene(gScene));
 	}
-	else if (gScene.m_AlgorithmType == 4) {
+	else if (
+		gScene.m_AlgorithmType == 4 || 
+		gScene.m_AlgorithmType == 5 || 
+		gScene.m_AlgorithmType == 6 || 
+		TransferFunction.GetMakeFloodFill()) {
 		InitFloodFill();
+		TransferFunction.setMakeFloodFill(false);
 	}
 	else if (gScene.m_AlgorithmType == PROPERTY_BASED && m_CurFilterMode != cudaFilterModePoint) {
 		cudaExtent Res;

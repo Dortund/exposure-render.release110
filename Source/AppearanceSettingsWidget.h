@@ -38,6 +38,9 @@ public slots:
 	void OnSetMaxBounces(double nrOfBounces);
 	void OnSetScatteringType(int index);
 	void OnSetScatteringHeadstart(double ScatteringHeadstart);
+	void OnSetOpacityWeight(double OpacityWeight);
+	void OnSetDirectionWeight(double DirectionWeight);
+	void OnMakeFloodfill();
 
 private:
 	QGridLayout		m_MainLayout;
@@ -61,4 +64,7 @@ private:
 	QComboBox		m_ScatterType;
 	QDoubleSlider	m_ScatteringHeadstartSlider;
 	QDoubleSpinner	m_ScatteringHeadstartSpinner;
+	QDoubleSpinner	m_OpacityWeightSpinner;
+	QDoubleSpinner	m_DirectionWeightSpinner;
+	QPushButton		m_MakeFloodFillButton;
 };
