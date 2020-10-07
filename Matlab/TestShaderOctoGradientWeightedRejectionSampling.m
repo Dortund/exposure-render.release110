@@ -14,6 +14,17 @@
 %max value = 101
 %min value = 0
 
+% Uniform chance
+% datapoints = [
+%     1, ...      %A  green
+%     1, ...    %B    magenta
+%     1, ...    %C  cyan
+%     1, ...    %D  red
+%     1, ...    %E    orange
+%     1, ...    %F    blue
+%     1, ...    %G  pink
+%     1];       %H  black
+
 % situation values where floodfill enterted from negative z direction
 % and left side is completly opaque
 datapoints = [
@@ -25,18 +36,19 @@ datapoints = [
     1, ...    %F    blue
     101, ...    %G  pink
     101];       %H  black
+
 %diagonal backward outerpoint
-%{
-datapoints = [
-    0, ...      %A  green
-    1, ...    %B    magenta
-    1, ...    %C  cyan
-    101, ...    %D  red
-    0, ...    %E    orange
-    1, ...    %F    blue
-    1, ...    %G  pink
-    101];       %H  black
+% datapoints = [
+%     0, ...      %A  green
+%     1, ...    %B    magenta
+%     1, ...    %C  cyan
+%     101, ...    %D  red
+%     0, ...    %E    orange
+%     1, ...    %F    blue
+%     1, ...    %G  pink
+%     101];       %H  black
 %diagonal forward outerpoint
+%{
 datapoints = [
     0, ...      %A  green
     101, ...    %B    magenta
@@ -72,8 +84,12 @@ Kd = [1, 1, 1];
 
 cumalative = [0, 0, 0, 0, 0, 0, 0, 0];
 dirs = cell(8,1);
+TriesTotal = zeros(n, 1);
+Pdfs = zeros(n, 1);
 for i = 1:n
-       [F, Wi, Pdf, Face] = OctoGradient(Kd, datapoints);
+       [F, Wi, Pdf, Face, Tries] = OctoGradientWeightedRejectionSampling(Kd, datapoints);
+       TriesTotal(i) = Tries;
+       Pdfs(i) = Pdf;
        for f = 1:8
            if Face(f) == 1
                dirs{f} = [dirs{f}; Wi];
@@ -110,3 +126,9 @@ plot(1:size(cumalative,2),cumalative);
 %Plot chances
 figure;
 plot(1:size(cumalative,2),cumalative/n);
+
+figure;
+histogram(TriesTotal);
+
+figure;
+histogram(Pdfs);

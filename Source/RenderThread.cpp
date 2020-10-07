@@ -172,13 +172,15 @@ void QRenderThread::StartTesting(QString Directory, bool CurrentOnly) {
 		m_TestDir = Directory;
 		m_SaveFrames = {};
 		if (CurrentOnly) {
-			m_TestModi = { gScene.m_ShadingType };
+			m_TestModi = { gScene.m_ScatterType };
 			m_ReferenceItterations = -1;
 		}
 		else {
-			m_TestModi = { PHASE_FUNCTION_ONLY,/* BRDF_ONLY, HYBRID,*/ LIGHT_PATHS, LIGHT_PATHS_OCTO, LIGHT_PATHS_OCTO_GRADIENT };
+			//m_TestModi = { PHASE_FUNCTION_ONLY,/* BRDF_ONLY, HYBRID,*//* LIGHT_PATHS, LIGHT_PATHS_OCTO, LIGHT_PATHS_OCTO_GRADIENT,*/ TEST_SHADER };
+			//m_TestModi = { TEST_SHADER, PHASE_FUNCTION_ONLY };
+			m_TestModi = { PHASE_FUNCTION_ONLY, /*TEST_SHADER, LIGHT_PATHS_OCTO_GRADIENT,*/ONE_DIRECTIONAL/*, REJECTION_SAMPLER*/ };
 			// We want a reference image from our first run
-			int refItt = 1025;// 8192;
+			int refItt = 512;//16385;//8193; //4097;////1025;
 			m_SaveFrames.append(refItt);
 			m_ReferenceItterations = refItt;
 		}
@@ -271,24 +273,34 @@ void QRenderThread::run()
 				PostProcessImage.Reset();
 				DenoiseImage.Reset();
 
-				gScene.SetNoIterations(0);
-				ResetRenderCanvasView();
+				//gScene.SetNoIterations(0);
+				//ResetRenderCanvasView();
+				//gScene.m_DirtyFlags.SetFlag(FilmResolutionDirty);
 
 				m_doTests = true;
 				m_startTesting = false;
 
-				int modus = m_TestModi.first();
-				gTransferFunction.SetScatterType(modus);
-				gScene.m_ScatterType = modus;
+				m_CurrentModi = m_TestModi.first();
+				//m_CurrentModi = 6;
+				if (gTransferFunction.GetScatterType() == m_CurrentModi) {
+					//gScene.m_DirtyFlags.SetFlag(RenderParamsDirty);
+					this->OnUpdateTransferFunctionSettings();
+				}
+				else {
+					gTransferFunction.SetScatterType(m_CurrentModi);
+				}
+				
+				//gScene.m_DirtyFlags.SetFlag(FilmResolutionDirty);
+				//gScene.m_ScatterType = modus;
 				//gTransferFunction.SetShadingType(modus);
 				//gScene.m_ShadingType = modus;
 				m_TestModi.removeFirst();
 
-				m_SaveFrames.append({ 1, 2, 4, 8, 16, 32, 64, 128, 256, 512/*, 1024/*, 2048*/ });
-				QDir(m_TestDir).mkdir(EScatteringTypeNames[modus]);
-				QDir(m_TestDir + "/" + EScatteringTypeNames[modus]).mkdir("images");
+				m_SaveFrames.append({ 1, 2, 4, 8, 16, 32, 64, 128, 256/*, 512, 1024, 2048/*, 4096/*, 8192*/ });
+				QDir(m_TestDir).mkdir(EScatteringTypeNames[m_CurrentModi]);
+				QDir(m_TestDir + "/" + EScatteringTypeNames[m_CurrentModi]).mkdir("images");
 
-				m_SaveBaseName = m_TestDir + "/" + EScatteringTypeNames[modus];
+				m_SaveBaseName = m_TestDir + "/" + EScatteringTypeNames[m_CurrentModi];
 
 				QFile measurements(m_SaveBaseName + "/measurements.csv");
 				if (measurements.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -331,6 +343,7 @@ void QRenderThread::run()
 			
 				gStatus.SetStatisticChanged("Host Memory", "LDR Frame Buffer", QString::number(3 * SceneCopy.m_Camera.m_Film.m_Resolution.GetNoElements() * sizeof(CColorRgbLdr) / MB, 'f', 2), "MB");
 
+				gScene.SetNoIterations(0);
 				SceneCopy.SetNoIterations(0);
 
 
@@ -345,12 +358,13 @@ void QRenderThread::run()
 			}
 
 			// Restart the rendering when when the camera, lights and render params are dirty
-			if (SceneCopy.m_DirtyFlags.HasFlag(CameraDirty | LightsDirty | RenderParamsDirty | TransferFunctionDirty) && !m_doTests)
+			if (SceneCopy.m_DirtyFlags.HasFlag(CameraDirty | LightsDirty | RenderParamsDirty | TransferFunctionDirty))
 			{
 				ResetRenderCanvasView();
 
 				// Reset no. iterations
 				gScene.SetNoIterations(0);
+				SceneCopy.SetNoIterations(0);
 			}
 
 			// At this point, all dirty flags should have been taken care of, since the flags in the original scene are now cleared
@@ -406,15 +420,15 @@ void QRenderThread::run()
 			gFrameBuffer.Set((unsigned char*)m_pRenderImage, SceneCopy.m_Camera.m_Film.GetWidth(), SceneCopy.m_Camera.m_Film.GetHeight());
 
 			if (m_doTests) {
-				int index = m_SaveFrames.indexOf(SceneCopy.GetNoIterations());
-				if (index >= 0)
+				int index = m_SaveFrames.indexOf(gScene.GetNoIterations());
+				if (index >= 0 && SceneCopy.m_ScatterType == m_CurrentModi)
 				{
 					//const QString ImageFilePath = QApplication::applicationDirPath() + "/Output/" + m_SaveBaseName + "_" + QString::number(SceneCopy.GetNoIterations()) + ".png";
 					QString ImageFilePath;
-					if (SceneCopy.GetNoIterations() == m_ReferenceItterations)
-						ImageFilePath = m_TestDir + "/reference-" + QString::number(SceneCopy.GetNoIterations()) + ".png";
+					if (gScene.GetNoIterations() == m_ReferenceItterations)
+						ImageFilePath = m_TestDir + "/reference-" + EScatteringTypeNames[m_CurrentModi] + "-" + QString::number(gScene.GetNoIterations()) + ".png";
 					else
-						ImageFilePath = m_SaveBaseName + "/images/" + QString::number(SceneCopy.GetNoIterations()) + ".png";
+						ImageFilePath = m_SaveBaseName + "/images/" + QString::number(gScene.GetNoIterations()) + ".png";
 
 					//Log("Saving test to: " + ImageFilePath, "conrol");
 					SaveImage((unsigned char*)m_pRenderImage, SceneCopy.m_Camera.m_Film.m_Resolution.GetResX(), SceneCopy.m_Camera.m_Film.m_Resolution.GetResY(), ImageFilePath);
@@ -428,7 +442,7 @@ void QRenderThread::run()
 						HandleCudaError(cudaMemGetInfo(&freeMemory, &totalMemory));
 						QTextStream stream(&measurements);
 						QStringList data = {
-							QString::number(SceneCopy.GetNoIterations()),
+							QString::number(gScene.GetNoIterations()),
 							QString::number(RenderImage.m_TotalTime),
 							QString::number(BlurImage.m_TotalTime),
 							QString::number(PostProcessImage.m_TotalTime),
@@ -683,8 +697,8 @@ bool QRenderThread::Load(QString& FileName)
 
 	// Try to save our own file
 	// adapt path !
-	std::string filePath = "../exposure-render.release110/Source/Examples/tunnelAligned.mhd";
-	std::string filePathRaw = "../exposure-render.release110/Source/Examples/tunnelAligned.raw";
+	std::string filePath = "../exposure-render.release110/Source/Examples/wall.mhd";
+	std::string filePathRaw = "../exposure-render.release110/Source/Examples/wall.raw";
 
 	struct stat buffer;
 	if (!((stat(filePath.c_str(), &buffer) == 0))) {
@@ -736,7 +750,7 @@ bool QRenderThread::Load(QString& FileName)
 				}
 			}
 		}*/
-
+		/*
 		// Tunnel Grid Aligned
 		const int tunnelDiameter = 16;
 		const int tunnelLengths = 32;
@@ -789,7 +803,33 @@ bool QRenderThread::Load(QString& FileName)
 				}
 			}
 		}
-		
+		*/
+
+		const int wallDepth = 20;
+		const int floorHeight = 5;
+		const int floordepth = 30;
+
+		const int depth = 2 * floordepth + wallDepth;
+		const int width = depth;
+		const int height = depth;
+
+		std::unique_ptr<short[]> img(new short[width * height * depth]);
+		for (int row = 0; row < height; row++) {
+			for (int col = 0; col < width; col++) {
+				for (int dep = 0; dep < depth; dep++) {
+					int id = col + row * width + dep * width * height;
+
+					img[id] = 0;
+
+					if (row < floorHeight) {
+						img[id] = 500;
+					}
+					if (dep >= floordepth && dep < floordepth + wallDepth) {
+						img[id] = 1000;
+					}
+				}
+			}
+		}
 
 		// Create an Cornell box image
 		/*const int size = 128;
@@ -1057,14 +1097,6 @@ void QRenderThread::OnUpdateTransferFunctionSettings(void) {
 	else if (gScene.m_AlgorithmType == 3) {
 		InitOpacityGradient(CScene(gScene));
 	}
-	else if (
-		gScene.m_AlgorithmType == 4 || 
-		gScene.m_AlgorithmType == 5 || 
-		gScene.m_AlgorithmType == 6 || 
-		TransferFunction.GetMakeFloodFill()) {
-		InitFloodFill();
-		TransferFunction.setMakeFloodFill(false);
-	}
 	else if (gScene.m_AlgorithmType == PROPERTY_BASED && m_CurFilterMode != cudaFilterModePoint) {
 		cudaExtent Res;
 		Res.width = gScene.m_Resolution[0];
@@ -1079,6 +1111,18 @@ void QRenderThread::OnUpdateTransferFunctionSettings(void) {
 		m_CurFilterMode = cudaFilterModePoint;
 	}
 
+	if (TransferFunction.GetMakeFloodFill()) {
+		cudaExtent ext;
+		ext.width = gScene.m_Resolution[0];
+		ext.height = gScene.m_Resolution[1];
+		ext.depth = gScene.m_Resolution[2];
+
+		int* res = InitFloodFill(TransferFunction.GetOpacityWeight(), TransferFunction.GetDirectionWeight());
+		gTransferFunction.setMakeFloodFill(false);
+		UnbindLightPathsBuffer();
+		BindLightPathsBuffer(res, ext);
+	}
+
 	gScene.m_DirtyFlags.SetFlag(TransferFunctionDirty);
 }
 
@@ -1087,7 +1131,7 @@ void QRenderThread::InitPreCalculated() {
 	InitPreCalculatedCore(SceneCopy, m_pDensityBuffer);
 }
 
-int* QRenderThread::InitFloodFill() {
+int* QRenderThread::InitFloodFill(float OpacityWeight, float DirectionWeight) {
 	
 	// using lambda to compare elements.
 	auto compare = [](Vec4i lhs, Vec4i rhs)
@@ -1190,7 +1234,7 @@ int* QRenderThread::InitFloodFill() {
 								int pos1D = start.x + gScene.m_Resolution.GetResX() * start.y + gScene.m_Resolution.GetResX() * gScene.m_Resolution.GetResY() * start.z;
 								float normalizedDensity = (m_pDensityBuffer[pos1D] - gScene.m_IntensityRange.GetMin()) / gScene.m_IntensityRange.GetRange();
 								float opacity = gScene.m_TransferFunctions.m_Opacity.F(normalizedDensity).r;
-								start.w = (int)(opacity * 100 + 1) * (2 - (maxDot + 1));
+								start.w = (int)(opacity * OpacityWeight + DirectionWeight) * (2 - (maxDot + 1));
 								result[pos1D] = start.w;
 								queue.push(start);
 							}
@@ -1214,7 +1258,7 @@ int* QRenderThread::InitFloodFill() {
 							int pos1D = start.x + gScene.m_Resolution.GetResX() * start.y + gScene.m_Resolution.GetResX() * gScene.m_Resolution.GetResY() * start.z;
 							float normalizedDensity = (m_pDensityBuffer[pos1D] - gScene.m_IntensityRange.GetMin()) / gScene.m_IntensityRange.GetRange();
 							float opacity = gScene.m_TransferFunctions.m_Opacity.F(normalizedDensity).r;
-							start.w = (int)(opacity * 100 + 1);
+							start.w = (int)(opacity * OpacityWeight + DirectionWeight);
 							result[pos1D] = start.w;
 							queue.push(start);
 						}
@@ -1255,7 +1299,7 @@ int* QRenderThread::InitFloodFill() {
 						float opacity = gScene.m_TransferFunctions.m_Opacity.F(normalizedDensity).r;
 
 						// Some function to map opacity to step size. Could emulating stepsizes of woodcock more closely help?
-						newPoint.w += (int)(opacity * 100 + 1);
+						newPoint.w += (int)(opacity * OpacityWeight + DirectionWeight);
 
 						// Store the result in an array
 						result[pos1D] = newPoint.w;
@@ -1391,21 +1435,21 @@ void QRenderThread::OnUpdateLighting(void)
 
 		gScene.m_Lighting.AddLight(AreaLight);
 	}
-
+	/*
 	if (gScene.m_ScatterType == 3) {
 		cudaExtent ext;
 		ext.width = gScene.m_Resolution[0];
 		ext.height = gScene.m_Resolution[1];
 		ext.depth = gScene.m_Resolution[2];
-
-		int* res = InitFloodFill();
+		*/
+		//int* res = InitFloodFill();
 		/*for (int i = 0; i < gScene.m_Resolution.GetNoElements(); i++) {
 		std::cout << "index: " << i << ", result: " + std::to_string(res[i]) << std::endl;
 		}*/
-		UnbindLightPathsBuffer();
-		BindLightPathsBuffer(res, ext);
+		//UnbindLightPathsBuffer();
+		//BindLightPathsBuffer(res, ext);
 		//free(res);
-	}
+	//}
 
 	gScene.m_DirtyFlags.SetFlag(LightsDirty);
 }

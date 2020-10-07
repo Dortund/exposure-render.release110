@@ -82,6 +82,11 @@ public:
 		m_DisplayEstimateRgbLdr.Reset();
 //		m_RandomSeeds1.Reset();
 //		m_RandomSeeds2.Reset();
+
+		//TODO Possibly temporary fix so we can start test iterations with the same seed
+		srand(0);
+		m_RandomSeeds1.Resize(m_Resolution);
+		m_RandomSeeds2.Resize(m_Resolution);
 	}
 
 	void Free(void)

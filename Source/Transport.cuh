@@ -50,12 +50,16 @@ DEV CColorXyz EstimateDirectLight(CScene* pScene, const CVolumeShader::EType& Ty
 		
 		if (Type == CVolumeShader::Brdf)
 			Ld += F * Li * AbsDot(Wi, N) * WeightMIS / LightPdf;
-
-		if (Type == CVolumeShader::Phase)
+		else if (Type == CVolumeShader::Phase)
+			Ld += F * Li * WeightMIS / LightPdf;
+		else
 			Ld += F * Li * WeightMIS / LightPdf;
 	}
 	
-	F = Shader.SampleF(Wo, Wi, ShaderPdf, LS.m_BsdfSample);
+	if (Type == CVolumeShader::OneDirectional || Type == CVolumeShader::LightPathsOctoGradientRejectionSampling)
+		F = Shader.SampleFRejection(Wo, Wi, ShaderPdf, LS.m_BsdfSample, RNG);
+	else
+		F = Shader.SampleF(Wo, Wi, ShaderPdf, LS.m_BsdfSample);
 
 	if (!F.IsBlack() && ShaderPdf > 0.0f)
 	{
@@ -69,8 +73,9 @@ DEV CColorXyz EstimateDirectLight(CScene* pScene, const CVolumeShader::EType& Ty
 
 				if (Type == CVolumeShader::Brdf)
 					Ld += F * Li * AbsDot(Wi, N) * WeightMIS / ShaderPdf;
-
-				if (Type == CVolumeShader::Phase)
+				else if (Type == CVolumeShader::Phase)
+					Ld += F * Li * WeightMIS / ShaderPdf;
+				else
 					Ld += F * Li * WeightMIS / ShaderPdf;
 			}
 		}
@@ -135,15 +140,18 @@ DEV CColorXyz EstimateDirectLightPropertyBased(CScene* pScene, const CVolumeShad
 
 		if (Type == CVolumeShader::Brdf)
 			Ld += F * Li * AbsDot(Wi, N) * WeightMIS / LightPdf;
-
-		if (Type == CVolumeShader::Phase)
+		else if (Type == CVolumeShader::Phase)
 			Ld += F * Li * WeightMIS / LightPdf;
-
-		if (Type == CVolumeShader::LightPaths || Type == CVolumeShader::LightPathsOcto || Type == CVolumeShader::LightPathsOctoGradient)
+		else if (Type == CVolumeShader::LightPaths || Type == CVolumeShader::LightPathsOcto || Type == CVolumeShader::LightPathsOctoGradient)
+			Ld += F * Li * WeightMIS / LightPdf;
+		else
 			Ld += F * Li * WeightMIS / LightPdf;
 	}
 
-	F = Shader.SampleF(Wo, Wi, ShaderPdf, LS.m_BsdfSample);
+	if (Type == CVolumeShader::OneDirectional || Type == CVolumeShader::LightPathsOctoGradientRejectionSampling)
+		F = Shader.SampleFRejection(Wo, Wi, ShaderPdf, LS.m_BsdfSample, RNG);
+	else
+		F = Shader.SampleF(Wo, Wi, ShaderPdf, LS.m_BsdfSample);
 
 	if (!F.IsBlack() && ShaderPdf > 0.0f)
 	{
@@ -157,11 +165,11 @@ DEV CColorXyz EstimateDirectLightPropertyBased(CScene* pScene, const CVolumeShad
 
 				if (Type == CVolumeShader::Brdf)
 					Ld += F * Li * AbsDot(Wi, N) * WeightMIS / ShaderPdf;
-
-				if (Type == CVolumeShader::Phase)
+				else if (Type == CVolumeShader::Phase)
 					Ld += F * Li * WeightMIS / ShaderPdf;
-
-				if (Type == CVolumeShader::LightPaths || Type == CVolumeShader::LightPathsOcto || Type == CVolumeShader::LightPathsOctoGradient)
+				else if (Type == CVolumeShader::LightPaths || Type == CVolumeShader::LightPathsOcto || Type == CVolumeShader::LightPathsOctoGradient)
+					Ld += F * Li * WeightMIS / ShaderPdf;
+				else
 					Ld += F * Li * WeightMIS / ShaderPdf;
 			}
 		}

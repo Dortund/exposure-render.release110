@@ -354,7 +354,12 @@ DEV CColorXyza CumulativeMovingAverage(const CColorXyza& A, const CColorXyza& Ax
 //	if (gNoIterations == 0)
 //		return CColorXyza(0.0f);
 
-	 return A + ((Ax - A) / max((float)N, 1.0f));
+	 //return A + ((Ax - A) / max((float)N, 1.0f));
+	// N = 0: A + ((AX - A) / 1) == ? + ((x - ?) / 1) == x
+	// N = 1: A + ((AX - A) / 1) == x + ((x2 - x) / 1) == x + x2 - x == x2
+	// N = 2: A + ((AX - A) / 2) == x2 + ((x3 - x2) / 2) == x2 + (x3/2) - (x2/2) == (x2 + x3) / 2
+
+	return A + ((Ax - A) / (N+1));
 }
 
 HOD int Index3To1(int x, int y, int z, int sizeX, int sizeY, int sizeZ) {

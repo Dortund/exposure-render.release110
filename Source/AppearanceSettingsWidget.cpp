@@ -69,6 +69,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_AlgorithmType.addItem("Chosen Light Path", 20);
 	m_AlgorithmType.addItem("Light Path Variance", 21);
 	m_AlgorithmType.addItem("Property Based Final Throughput", 22);
+	m_AlgorithmType.addItem("Property Based Clean", 23);
 	m_MainLayout.addWidget(&m_AlgorithmType, i++, 1, 1, 2);
 
 	QObject::connect(&m_AlgorithmType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetAlgorithmType(int)));
@@ -81,6 +82,9 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_ShadingType.addItem("Light Paths", 3);
 	m_ShadingType.addItem("Light Paths Octo", 4);
 	m_ShadingType.addItem("Light Paths Octo Gradient", 5);
+	m_ShadingType.addItem("Test Shader", 6);
+	m_ShadingType.addItem("Light Paths Octo Gradient Rejection Sampling", 7);
+	m_ShadingType.addItem("One Directional", 8);
 	m_MainLayout.addWidget(&m_ShadingType, i++, 1, 1, 2);
 
 	QObject::connect(&m_ShadingType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetShadingType(int)));
@@ -93,6 +97,9 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_ScatterType.addItem("Light Paths", 3);
 	m_ScatterType.addItem("Light Paths Octo", 4);
 	m_ScatterType.addItem("Light Paths Octo Gradient", 5);
+	m_ScatterType.addItem("Test Shader", 6);
+	m_ScatterType.addItem("Light Paths Octo Gradient Rejection Sampling", 7);
+	m_ScatterType.addItem("One Directional", 8);
 	m_ScatterType.setCurrentIndex(2);
 	m_MainLayout.addWidget(&m_ScatterType, i++, 1, 1, 2);
 
@@ -181,16 +188,17 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_ScatteringHeadstartSpinner.setRange(0, 10.0);
 	m_ScatteringHeadstartSpinner.setDecimals(2);
 
+	
 	m_MainLayout.addWidget(&m_ScatteringHeadstartSpinner, i++, 2);
 
 	QObject::connect(&m_ScatteringHeadstartSlider, SIGNAL(valueChanged(double)), &m_ScatteringHeadstartSpinner, SLOT(setValue(double)));
 	QObject::connect(&m_ScatteringHeadstartSpinner, SIGNAL(valueChanged(double)), &m_ScatteringHeadstartSlider, SLOT(setValue(double)));
 	QObject::connect(&m_ScatteringHeadstartSlider, SIGNAL(valueChanged(double)), this, SLOT(OnSetScatteringHeadstart(double)));
 
-	m_MainLayout.addWidget(new QLabel("Random Offset"), i, 0);
+	//m_MainLayout.addWidget(new QLabel("Random Offset"), i, 0);
 
 	m_DoOffset.setChecked(true);
-	m_MainLayout.addWidget(&m_DoOffset, i++, 1);
+	//m_MainLayout.addWidget(&m_DoOffset, i++, 1);
 
 	QObject::connect(&m_DoOffset, SIGNAL(stateChanged(int)), this, SLOT(OnDoOffsetChanged(int)));
 
@@ -236,21 +244,20 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	QObject::connect(&m_MaxBouncesSpinner, SIGNAL(valueChanged(double)), this, SLOT(OnSetMaxBounces(double)));
 
 	QLabel* lblOpacityWeight = new QLabel("FF Opacity Weight");
-	//lblOpacityWeight->setToolTip("Sets the raymarching starting distance from a scattering point");
 	m_MainLayout.addWidget(lblOpacityWeight, i, 0);
-
-	//m_ScatteringHeadstartSlider.setRange(0, 10.0);
-
-	//m_MainLayout.addWidget(&m_ScatteringHeadstartSlider, i, 1);
-
 	m_OpacityWeightSpinner.setRange(0, 100000000.0);
 	m_OpacityWeightSpinner.setDecimals(0);
-
+	m_OpacityWeightSpinner.setValue(100);
 	m_MainLayout.addWidget(&m_OpacityWeightSpinner, i++, 2);
-
-	//QObject::connect(&m_ScatteringHeadstartSlider, SIGNAL(valueChanged(double)), &m_ScatteringHeadstartSpinner, SLOT(setValue(double)));
-	//QObject::connect(&m_ScatteringHeadstartSpinner, SIGNAL(valueChanged(double)), &m_ScatteringHeadstartSlider, SLOT(setValue(double)));
 	QObject::connect(&m_OpacityWeightSpinner, SIGNAL(valueChanged(double)), this, SLOT(OnSetOpacityWeight(double)));
+
+	QLabel* lblDirectionWeight = new QLabel("FF Direction Weight");
+	m_MainLayout.addWidget(lblDirectionWeight, i, 0);
+	m_DirectionWeightSpinner.setRange(0, 100000000.0);
+	m_DirectionWeightSpinner.setDecimals(0);
+	m_DirectionWeightSpinner.setValue(1);
+	m_MainLayout.addWidget(&m_DirectionWeightSpinner, i++, 2);
+	QObject::connect(&m_DirectionWeightSpinner, SIGNAL(valueChanged(double)), this, SLOT(OnSetDirectionWeight(double)));
 
 	m_MainLayout.addWidget(&m_MakeFloodFillButton, i, 0);
 	QObject::connect(&m_MakeFloodFillButton, SIGNAL(released()), this, SLOT(OnMakeFloodfill()));

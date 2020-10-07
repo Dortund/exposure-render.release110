@@ -37,7 +37,9 @@ QTransferFunction::QTransferFunction(QObject* pParent, const QString& Name) :
 	m_PrimaryStepSize(3.0f),
 	m_SecondaryStepSize(3.0f),
 	m_ScatteringHeadstart(0),
-	m_MakeFloodFill(false)
+	m_MakeFloodFill(false),
+	m_OpacityWeight(100),
+	m_DirectionWeight(1)
 {
 }
 
@@ -69,6 +71,9 @@ QTransferFunction& QTransferFunction::operator = (const QTransferFunction& Other
 	m_PrimaryStepSize	= Other.m_PrimaryStepSize;
 	m_SecondaryStepSize = Other.m_SecondaryStepSize;
 	m_ScatteringHeadstart = Other.m_ScatteringHeadstart;
+	m_OpacityWeight = Other.m_OpacityWeight;
+	m_DirectionWeight = Other.m_DirectionWeight;
+	m_MakeFloodFill = Other.m_MakeFloodFill;
 
 	// Update node's range
 	UpdateNodeRanges();

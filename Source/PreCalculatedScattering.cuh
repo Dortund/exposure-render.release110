@@ -811,11 +811,12 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 	CVolumeShader Shader = CVolumeShader(CVolumeShader::Phase, Vec3f(0), Vec3f(0), Vec3f(0), CColorXyz(0), CColorXyz(0), 0.0f, 0.0f);
 	Vec3f gradientNormal = Vec3f(0);
 
-	//pView->m_FrameEstimateXyza.Set(CColorXyza(-log(RNG.Get1())), X, Y);
+	//pView->m_FrameEstimateXyza.Set(CColorXyza(gScatteringHeadstart / 10.f), X, Y);
 	//return;
-
+	int bounces = -1;
 	for (int i = 0; i < pScene->m_MaxBounces; i++)
 	{
+		bounces++;
 		//Vec3f steps = SampleDistanceRMpropertyBased(Re, RNG, Pe);
 		
 		//pView->m_FrameEstimateXyza.Set(CColorXyza(steps, steps / 10.f, steps / 100.f), X, Y);
@@ -1332,6 +1333,11 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 				Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::LightPathsOctoGradient, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
 				break;
 			}
+			case 8:
+			{
+				Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::OneDirectional, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
+				break;
+			}
 			}
 
 
@@ -1472,6 +1478,42 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 
 						break;
 					}
+
+					case 6:
+					{
+						Shader = CVolumeShader(CVolumeShader::Phase, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+
+						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+
+						break;
+					}
+
+					case 7:
+					{
+						Shader = CVolumeShader(CVolumeShader::LightPathsOctoGradientRejectionSampling, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+
+						F = Shader.SampleFRejection(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample, RNG);
+						
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+
+						break;
+					}
+
+					case 8:
+					{
+						Shader = CVolumeShader(CVolumeShader::OneDirectional, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+
+						F = Shader.SampleFRejection(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample, RNG);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+
+						break;
+					}
 				}
 
 				// If F is black or the probability is 0, terminate ray since throughput is now 0;
@@ -1487,6 +1529,7 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 				Re.m_O = Pe;
 				Re.m_D = Wi;
 				Re.m_MinT = gScatteringHeadstart;
+				//Re.m_MinT = 0;
 				Re.m_MaxT = INF_MAX;
 			}
 		}
@@ -1502,6 +1545,15 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 
 	//__syncthreads();
 	pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
+	//if (bounces == 0)
+	//	pView->m_FrameEstimateXyza.Set(CColorXyza(1, 0, 0), X, Y);
+	//else if (bounces == 1)
+	//	pView->m_FrameEstimateXyza.Set(CColorXyza(0, 1, 0), X, Y);
+	//else
+	//	pView->m_FrameEstimateXyza.Set(CColorXyza(0, 0, 1), X, Y);
+	//pView->m_FrameEstimateXyza.Set(CColorXyza(Tr.c[0], Tr.c[1], Tr.c[2]), X, Y);
+	//pView->m_FrameEstimateXyza.Set(CColorXyza((ShaderPdf+1.f)/2.f), X, Y);
+	//pView->m_FrameEstimateXyza.Set(CColorXyza(0.f, 1.f, 0.f), X, Y);
 
 	if (pScene->m_AlgorithmType == 22) {
 		if (Tr.c[0] > 1 || Tr.c[1] > 1 || Tr.c[2] > 1)
@@ -1521,6 +1573,299 @@ void MultipleScatteringPropertyBased(CScene* pScene, CScene* pDevScene, CCudaVie
 	const dim3 KernelGrid((int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResX() / (float)KernelBlock.x), (int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResY() / (float)KernelBlock.y));
 
 	KrnlMultipleScatteringPropertyBased<<<KernelGrid, KernelBlock>>>(pDevScene, pView);
+	cudaThreadSynchronize();
+	HandleCudaKernelError(cudaGetLastError(), "Multiple Scattering");
+}
+
+
+KERNEL void KrnlMultipleScatteringPropertyBasedClean(CScene* pScene, CCudaView* pView)
+{
+	const int X = (blockIdx.x * blockDim.x) + threadIdx.x;
+	const int Y = (blockIdx.y * blockDim.y) + threadIdx.y;
+	const int PID = (Y * gFilmWidth) + X;
+
+	if (X >= gFilmWidth || Y >= gFilmHeight || PID >= gFilmNoPixels)
+		return;
+
+	CRNG RNG(pView->m_RandomSeeds1.GetPtr(X, Y), pView->m_RandomSeeds2.GetPtr(X, Y));
+
+	CColorXyz Lv = SPEC_BLACK, Li = SPEC_BLACK, Tr = SPEC_WHITE;
+
+	CRay Re;
+
+	const Vec2f UV = Vec2f(X, Y) + RNG.Get2();
+
+	pScene->m_Camera.GenerateRay(UV, RNG.Get2(), Re.m_O, Re.m_D);
+
+	Re.m_MinT = 0.0f;
+	Re.m_MaxT = FLT_MAX;
+
+	Vec3f Pe, Pl;
+
+	CLight* pLight = NULL;
+
+	// Variables for new direction
+	Vec3f Wi;
+	float ShaderPdf = 1.0f;
+	CColorXyz F = SPEC_BLACK;
+	CLightingSample LS;
+	CVolumeShader Shader = CVolumeShader(CVolumeShader::Phase, Vec3f(0), Vec3f(0), Vec3f(0), CColorXyz(0), CColorXyz(0), 0.0f, 0.0f);
+	Vec3f gradientNormal = Vec3f(0);
+
+	for (int i = 0; i < pScene->m_MaxBounces; i++)
+	{
+		if (SampleDistanceRMpropertyBased(Re, RNG, Pe))
+		{
+			materialProperties properties;
+			float3 gradient;
+			float3 fractions;
+			sampleProperties(properties, &gradient, &fractions, Pe);
+			float gradientMagnitude = ToVec3f(gradient).Length();
+			Vec3f gradientNormal = ToVec3f(-gradient / gradientMagnitude);
+			if (gradientMagnitude == 0)
+				gradientNormal = Vec3f(1, 1, 1);
+
+			Lv += Tr * properties.emission.ToXYZ();
+
+			// Switch Depending on the shading type
+			switch (pScene->m_ShadingType)
+			{
+				// BRDF Only (Bidirectional Reflectance Distribution Function)
+				case 0:
+				{
+					Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Brdf, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
+					break;
+				}
+
+				// Phase Function Only
+				case 1:
+				{
+					Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Phase, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, false);
+					//pView->m_FrameEstimateXyza.Set(CColorXyza(properties.diffuse.r, properties.diffuse.g, properties.diffuse.b), X, Y);
+					//return;
+					break;
+				}
+
+				// Hybrid (BDRF & Phase Function)
+				case 2:
+				{
+					const float GradMag = gradientMagnitude * gIntensityInvRange;
+					const float PdfBrdf = (1.0f - __expf(-pScene->m_GradientFactor * GradMag));
+					if (RNG.Get1() < PdfBrdf) {
+						Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Brdf, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
+						//pView->m_FrameEstimateXyza.Set(CColorXyza(0,1,0), X, Y);
+						//return;
+					}
+					else {
+						Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Phase, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, false);
+						//pView->m_FrameEstimateXyza.Set(CColorXyza(0,0,1), X, Y);
+						//return;
+					}
+					break;
+				}
+				case 3:
+				{
+					Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::LightPaths, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
+					break;
+				}
+				case 4:
+				{
+					Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::LightPathsOcto, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
+					break;
+				}
+				case 5:
+				{
+					Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::LightPathsOctoGradient, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
+					break;
+				}
+				case 6:
+				{
+					Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::Phase, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
+					break;
+				}
+				case 7:
+				{
+					Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::LightPathsOctoGradientRejectionSampling, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
+					break;
+				}
+				case 8:
+				{
+					Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::OneDirectional, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
+					break;
+				}
+			}
+
+			// Lets see if we can use the same trick for the direction as for calculating the light
+			if (i < pScene->m_MaxBounces - 1) {
+				LS.LargeStep(RNG);
+
+				// Switch Depending on the scattering type
+				switch (pScene->m_ScatterType)
+				{
+					// BRDF Only (Bidirectional Reflectance Distribution Function)
+					case 0:
+					{
+						Shader = CVolumeShader(CVolumeShader::Brdf, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+
+						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F * AbsDot(Wi, gradientNormal) / ShaderPdf;
+
+						break;
+					}
+
+					// Phase Function Only
+					case 1:
+					{
+						Shader = CVolumeShader(CVolumeShader::Phase, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+
+						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+
+						break;
+					}
+
+					// Hybrid (BDRF & Phase Function)
+					case 2:
+					{
+						//const float GradMag = GradientMagnitude(Pe) * gIntensityInvRange;
+						const float GradMag = gradientMagnitude * gIntensityInvRange;
+						const float PdfBrdf = (1.0f - __expf(-pScene->m_GradientFactor * GradMag));
+						if (RNG.Get1() < PdfBrdf) {
+							Shader = CVolumeShader(CVolumeShader::Brdf, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+
+							F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+							if (!F.IsBlack() && ShaderPdf > 0)
+								Tr *= F * AbsDot(Wi, gradientNormal) / ShaderPdf;
+						}
+						else {
+							Shader = CVolumeShader(CVolumeShader::Phase, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+
+							F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+							if (!F.IsBlack() && ShaderPdf > 0)
+								Tr *= F / ShaderPdf;
+						}
+						break;
+					}
+
+					// Scatter following light paths
+					case 3:
+					{
+						Shader = CVolumeShader(CVolumeShader::LightPaths, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+
+						break;
+					}
+
+					// Scatter following light paths Octohedron
+					case 4:
+					{
+						Shader = CVolumeShader(CVolumeShader::LightPathsOcto, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+
+						break;
+					}
+
+					// Scatter following light paths OctohedronGradient
+					case 5:
+					{
+						Shader = CVolumeShader(CVolumeShader::LightPathsOctoGradient, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+						if (!F.IsBlack() && ShaderPdf > 0) {
+							Tr *= F / ShaderPdf;
+						}
+
+						break;
+					}
+
+					case 6:
+					{
+						Shader = CVolumeShader(CVolumeShader::Phase, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+
+						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+
+						break;
+					}
+
+					case 7:
+					{
+						Shader = CVolumeShader(CVolumeShader::LightPathsOctoGradientRejectionSampling, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+
+						F = Shader.SampleFRejection(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample, RNG);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+
+						break;
+					}
+
+					case 8:
+					{
+						Shader = CVolumeShader(CVolumeShader::OneDirectional, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+
+						F = Shader.SampleFRejection(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample, RNG);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+
+						break;
+					}
+				}
+
+				// If F is black or the probability is 0, terminate ray since throughput is now 0;
+				if (F.IsBlack() || ShaderPdf <= 0)
+					break;
+
+				// Russion Roulette to end path
+				if (Terminate(Tr, RNG, 0.5)) {
+					break;
+				}
+
+				// Update ray direction
+				Re.m_O = Pe;
+				Re.m_D = Wi;
+				Re.m_MinT = gScatteringHeadstart;
+				//Re.m_MinT = 0;
+				Re.m_MaxT = INF_MAX;
+			}
+		}
+		else
+		{
+			// If we immediatly miss everything in the volume, use nearestlight to try render lights/background light
+			if (i == 0 && NearestLight(pScene, CRay(Re.m_O, Re.m_D, 0.0f, INF_MAX), Li, Pl, pLight)) {
+				Lv += Tr * Li;
+			}
+			break;
+		}
+	}
+
+	__syncthreads();
+	pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
+}
+
+//void MultipleScattering(CScene* pScene, CScene* pDevScene, int* pSeeds)
+void MultipleScatteringPropertyBasedClean(CScene* pScene, CScene* pDevScene, CCudaView* pView)
+{
+	//const dim3 KernelBlock(KRNL_MS_BLOCK_W, KRNL_MS_BLOCK_H);
+	const dim3 KernelBlock(KRNL_SS_BLOCK_W, KRNL_SS_BLOCK_H);
+	const dim3 KernelGrid((int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResX() / (float)KernelBlock.x), (int)ceilf((float)pScene->m_Camera.m_Film.m_Resolution.GetResY() / (float)KernelBlock.y));
+
+	KrnlMultipleScatteringPropertyBasedClean<<<KernelGrid, KernelBlock>>>(pDevScene, pView);
 	cudaThreadSynchronize();
 	HandleCudaKernelError(cudaGetLastError(), "Multiple Scattering");
 }

@@ -111,6 +111,36 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 
 					break;
 				}
+				case 3:
+				{
+					Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::LightPaths, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
+					break;
+				}
+				case 4:
+				{
+					Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::LightPathsOcto, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
+					break;
+				}
+				case 5:
+				{
+					Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::LightPathsOctoGradient, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
+					break;
+				}
+				case 6:
+				{
+					Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::Phase, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
+					break;
+				}
+				case 7:
+				{
+					Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::LightPathsOctoGradientRejectionSampling, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
+					break;
+				}
+				case 8:
+				{
+					Lv += Tr * UniformSampleOneLight(pScene, CVolumeShader::OneDirectional, D, Normalize(-Re.m_D), Pe, NormalizedGradient(Pe), RNG, true);
+					break;
+				}
 			}
 
 			// Lets see if we can use the same trick for the direction as for calculating the light
@@ -179,7 +209,74 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 					// Scatter following light paths
 					case 3:
 					{
-						//TODO implement
+						Shader = CVolumeShader(CVolumeShader::LightPaths, Pe, D, Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+
+						break;
+					}
+
+					// Scatter following light paths Octohedron
+					case 4:
+					{
+						Shader = CVolumeShader(CVolumeShader::LightPathsOcto, Pe, D, Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+
+						break;
+					}
+
+					// Scatter following light paths OctohedronGradient
+					case 5:
+					{
+						Shader = CVolumeShader(CVolumeShader::LightPathsOctoGradient, Pe, D, Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+						if (!F.IsBlack() && ShaderPdf > 0) {
+							Tr *= F / ShaderPdf;
+						}
+
+						break;
+					}
+
+					case 6:
+					{
+						Shader = CVolumeShader(CVolumeShader::Phase, Pe, D, Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+
+						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+
+						break;
+					}
+
+					case 7:
+					{
+						Shader = CVolumeShader(CVolumeShader::LightPathsOctoGradientRejectionSampling, Pe, D, Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+
+						F = Shader.SampleFRejection(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample, RNG);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+
+						break;
+					}
+
+					case 8:
+					{
+						Shader = CVolumeShader(CVolumeShader::OneDirectional, Pe, D, Normalize(-Re.m_D), GetDiffuse(D).ToXYZ(), GetSpecular(D).ToXYZ(), 2.5f, GetRoughness(D));
+
+						F = Shader.SampleFRejection(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample, RNG);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+						//pView->m_FrameEstimateXyza.Set(CColorXyza(0.f, 1.f, 0.f), X, Y);
+						//return;
 						break;
 					}
 				}
@@ -212,7 +309,7 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 
 	__syncthreads();
 	pView->m_FrameEstimateXyza.Set(CColorXyza(Lv.c[0], Lv.c[1], Lv.c[2]), X, Y);
-	if (pScene->m_AlgorithmType == 5) {
+	/*if (pScene->m_AlgorithmType == 5) {
 		CColorXyz c = Lerp(bouncesDone / (float)pScene->m_MaxBounces, CColorRgbHdr(0, 1, 0), CColorRgbHdr(1, 0, 0)).ToXYZ();
 		pView->m_FrameEstimateXyza.Set(CColorXyza(c.c[0], c.c[1], c.c[2]), X, Y);
 	}
@@ -220,6 +317,7 @@ KERNEL void KrnlMultipleScattering(CScene* pScene, CCudaView* pView)
 		pView->m_FrameEstimateXyza.Set(CColorXyza(Tr.c[0], Tr.c[1], Tr.c[2]), X, Y);
 	if (pScene->m_AlgorithmType == 7)
 		pView->m_FrameEstimateXyza.Set(CColorXyza(order.c[0], order.c[1], order.c[2]), X, Y);
+		*/
 }
 
 //void MultipleScattering(CScene* pScene, CScene* pDevScene, int* pSeeds)

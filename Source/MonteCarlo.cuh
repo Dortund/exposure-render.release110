@@ -404,7 +404,7 @@ HOD inline Vec2f UniformSampleTriangle(const Vec2f& U)
 /**
 	@brief Generates a sample in a sphere
 	@param[in] U Random input
-	@return Sample in a sphere
+	@return Sample on a sphere
 */
 HOD inline Vec3f UniformSampleSphere(const Vec2f& U)
 {

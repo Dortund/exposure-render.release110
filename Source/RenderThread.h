@@ -53,7 +53,7 @@ public:
 
 	bool			Load(QString& FileName);
 	void			InitPreCalculated(void);
-	int*			InitFloodFill(void);
+	int*			InitFloodFill(float OpacityWeight, float DirectionWeight);
 	void			StartTesting(QString Directory, bool CurrentOnly);
 
 	QString			GetFileName(void) const						{	return m_FileName;		}
@@ -86,6 +86,7 @@ public:
 	QString			m_SaveBaseName;
 	QString			m_TestDir;
 	QList<int>		m_TestModi;
+	int				m_CurrentModi;
 	int				m_ReferenceItterations;
 
 public slots:
