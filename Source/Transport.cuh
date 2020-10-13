@@ -123,7 +123,7 @@ DEV CColorXyz EstimateDirectLightPropertyBased(CScene* pScene, const CVolumeShad
 	// Also register the PDF for the light
 	// 'LS' ??
 	Li = Light.SampleL(Pe, Rl, LightPdf, LS);
-
+	
 	CLight* pLight = NULL;
 
 	// Create vector pointing from scattering point to point on light (direction already normalized)
@@ -147,7 +147,7 @@ DEV CColorXyz EstimateDirectLightPropertyBased(CScene* pScene, const CVolumeShad
 		else
 			Ld += F * Li * WeightMIS / LightPdf;
 	}
-
+	
 	if (Type == CVolumeShader::OneDirectional || Type == CVolumeShader::LightPathsOctoGradientRejectionSampling)
 		F = Shader.SampleFRejection(Wo, Wi, ShaderPdf, LS.m_BsdfSample, RNG);
 	else

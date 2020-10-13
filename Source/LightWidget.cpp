@@ -96,6 +96,7 @@ QLightWidget::QLightWidget(QWidget* pParent) :
 	m_MainLayout.addWidget(&m_DistanceSlider, 2, 1);
 	
     m_DistanceSpinner.setRange(0.0, 10.0);
+	m_DistanceSpinner.setSingleStep(0.1);
 	m_DistanceSpinner.setSuffix(" m");
 	m_MainLayout.addWidget(&m_DistanceSpinner, 2, 2);
 	
@@ -113,6 +114,7 @@ QLightWidget::QLightWidget(QWidget* pParent) :
 	m_MainLayout.addWidget(&m_WidthSlider, 3, 1);
 	
 	m_WidthSpinner.setRange(0.01, 10.0);
+	m_WidthSpinner.setSingleStep(0.1f);
 	m_WidthSpinner.setSuffix(" m");
 	m_MainLayout.addWidget(&m_WidthSpinner, 3, 2);
 	

@@ -38,7 +38,10 @@ KERNEL void KrnlToneMap(CCudaView* pView)
 	RgbHdr.g = Clamp(1.0f - expf(-(RgbHdr.g * gInvExposure)), 0.0, 1.0f);
 	RgbHdr.b = Clamp(1.0f - expf(-(RgbHdr.b * gInvExposure)), 0.0, 1.0f);
 
-	pView->m_EstimateRgbaLdr.Set(CColorRgbaLdr(RgbHdr.r * 255.0f, RgbHdr.g * 255.0f, RgbHdr.b * 255.0f, 0), X, Y);
+	if (Color.c[1] <= 1000)
+		pView->m_EstimateRgbaLdr.Set(CColorRgbaLdr(RgbHdr.r * 255.0f, RgbHdr.g * 255.0f, RgbHdr.b * 255.0f, 0), X, Y);
+	else
+		pView->m_EstimateRgbaLdr.Set(CColorRgbaLdr(255.f, 0, 0, 0), X, Y);
 }
 
 void ToneMap(CScene* pScene, CScene* pDevScene, CCudaView* pDevView)

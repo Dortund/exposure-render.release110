@@ -27,7 +27,10 @@ KERNEL void KrnlEstimate(CCudaView* pView)
 	if (X >= gFilmWidth || Y >= gFilmHeight)
 		return;
 
-	pView->m_RunningEstimateXyza.Set(CumulativeMovingAverage(pView->m_RunningEstimateXyza.Get(X, Y), pView->m_FrameEstimateXyza.Get(X, Y), gNoIterations), X, Y);
+	if (pView->m_FrameEstimateXyza.Get(X, Y).c[1] > 1000)
+		pView->m_RunningEstimateXyza.Set(CColorXyza(1000.f), X, Y);
+	else
+		pView->m_RunningEstimateXyza.Set(CumulativeMovingAverage(pView->m_RunningEstimateXyza.Get(X, Y), pView->m_FrameEstimateXyza.Get(X, Y), gNoIterations), X, Y);
 }
 
 void Estimate(CScene* pScene, CScene* pDevScene, CCudaView* pDevView)

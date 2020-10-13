@@ -1832,9 +1832,9 @@ KERNEL void KrnlMultipleScatteringPropertyBasedClean(CScene* pScene, CCudaView* 
 					break;
 
 				// Russion Roulette to end path
-				if (Terminate(Tr, RNG, 0.5)) {
+				/*if (Terminate(Tr, RNG, 0.5)) {
 					break;
-				}
+				}*/
 
 				// Update ray direction
 				Re.m_O = Pe;

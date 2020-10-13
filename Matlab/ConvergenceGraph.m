@@ -1,7 +1,7 @@
 function ConvergenceGraph(name, graph_name)
 
-BaseDirectory           = 'C:\Users\nomen\Documents\Thesis\tests\';
-%BaseDirectory           = 'C:\Users\nomen\Documents\Thesis\tests\MultipleScatteringOld\';
+%BaseDirectory           = 'C:\Users\nomen\Documents\Thesis\tests\';
+BaseDirectory           = 'C:\Users\nomen\Documents\Thesis\tests\debugday\';
 Directory               = strcat(BaseDirectory, strcat(name, '\'));
 Techniques              = {'PHASE_FUNCTION_ONLY', 'BRDF_ONLY', 'HYBRID', 'LIGHT_PATHS', 'LIGHT_PATHS_OCTO', 'LIGHT_PATHS_OCTO_GRADIENT', 'TEST_SHADER', 'REJECTION_SAMPLER', 'ONE_DIRECTIONAL'}; %folder name
 ID                      = 1;

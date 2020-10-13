@@ -178,7 +178,7 @@ void QRenderThread::StartTesting(QString Directory, bool CurrentOnly) {
 		else {
 			//m_TestModi = { PHASE_FUNCTION_ONLY,/* BRDF_ONLY, HYBRID,*//* LIGHT_PATHS, LIGHT_PATHS_OCTO, LIGHT_PATHS_OCTO_GRADIENT,*/ TEST_SHADER };
 			//m_TestModi = { TEST_SHADER, PHASE_FUNCTION_ONLY };
-			m_TestModi = { PHASE_FUNCTION_ONLY, /*TEST_SHADER, LIGHT_PATHS_OCTO_GRADIENT,*/ONE_DIRECTIONAL/*, REJECTION_SAMPLER*/ };
+			m_TestModi = { PHASE_FUNCTION_ONLY, /*TEST_SHADER, LIGHT_PATHS_OCTO_GRADIENT,ONE_DIRECTIONAL,*/ REJECTION_SAMPLER };
 			// We want a reference image from our first run
 			int refItt = 512;//16385;//8193; //4097;////1025;
 			m_SaveFrames.append(refItt);
@@ -288,6 +288,7 @@ void QRenderThread::run()
 				}
 				else {
 					gTransferFunction.SetScatterType(m_CurrentModi);
+					gTransferFunction.SetShadingType(m_CurrentModi);
 				}
 				
 				//gScene.m_DirtyFlags.SetFlag(FilmResolutionDirty);

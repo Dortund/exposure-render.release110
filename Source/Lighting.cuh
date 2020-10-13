@@ -151,7 +151,7 @@ public:
 		{
 			Rl.m_O	= m_P + ((-0.5f + LS.m_LightSample.m_Pos.x) * m_Width * m_U) + ((-0.5f + LS.m_LightSample.m_Pos.y) * m_Height * m_V);
 			Rl.m_D	= Normalize(P - Rl.m_O);
-			L		= Dot(Rl.m_D, m_N) > 0.0f ? Le(Vec2f(0.0f)) : SPEC_BLACK;
+			L = Dot(Rl.m_D, m_N) > 0.0f ? Le(Vec2f(0.0f)) : SPEC_BLACK;
 			Pdf		= AbsDot(Rl.m_D, m_N) > 0.0f ? DistanceSquared(P, Rl.m_O) / (AbsDot(Rl.m_D, m_N) * m_Area) : 0.0f;
 		}
 
@@ -184,7 +184,7 @@ public:
 				return false;
 
 			// Compute hit distance
-			T = (-m_Distance - Dot(R.m_O, m_N)) / DotN;
+			T = Dot((m_P - R.m_O), m_N) / DotN;
 
 			// Intersection is in ray's negative direction
 			if (T < R.m_MinT || T > R.m_MaxT)
@@ -193,7 +193,7 @@ public:
 			// Determine position on light
 			const Vec3f Pl = R(T);
 
-			// Vector from point on area light to center of area light
+			// Vector from center of light to point on light
 			const Vec3f Wl = Pl - m_P;
 
 			// Compute texture coordinates

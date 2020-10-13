@@ -117,6 +117,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 
 	m_DensityScaleSpinner.setRange(0.001, 1000.0);
 	m_DensityScaleSpinner.setDecimals(3);
+	m_DensityScaleSpinner.setSingleStep(10);
 	m_MainLayout.addWidget(&m_DensityScaleSpinner, i++, 2);
 
 	QObject::connect(&m_DensityScaleSlider, SIGNAL(valueChanged(double)), &m_DensityScaleSpinner, SLOT(setValue(double)));
@@ -153,6 +154,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 
 	m_StepSizePrimaryRaySpinner.setRange(stepMin, 10.0);
 	m_StepSizePrimaryRaySpinner.setDecimals(2);
+	m_StepSizePrimaryRaySpinner.setSingleStep(0.1);
 
 	m_MainLayout.addWidget(&m_StepSizePrimaryRaySpinner, i++, 2);
 
@@ -170,6 +172,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 
 	m_StepSizeSecondaryRaySpinner.setRange(stepMin, 10.0);
 	m_StepSizeSecondaryRaySpinner.setDecimals(2);
+	m_StepSizeSecondaryRaySpinner.setSingleStep(0.1);
 
 	m_MainLayout.addWidget(&m_StepSizeSecondaryRaySpinner, i++, 2);
 
@@ -187,6 +190,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 
 	m_ScatteringHeadstartSpinner.setRange(0, 10.0);
 	m_ScatteringHeadstartSpinner.setDecimals(2);
+	m_ScatteringHeadstartSpinner.setSingleStep(0.1);
 
 	
 	m_MainLayout.addWidget(&m_ScatteringHeadstartSpinner, i++, 2);
