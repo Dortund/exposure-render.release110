@@ -115,11 +115,17 @@ public:
 		m_Target		= BoundingBox.GetCenter();
 
 		// Determine light position
-		m_P.x = m_Distance * cosf(m_Phi) * sinf(m_Theta);
+		/*m_P.x = m_Distance * cosf(m_Phi) * sinf(m_Theta);
 		m_P.z = m_Distance * cosf(m_Phi) * cosf(m_Theta);
-		m_P.y = m_Distance * sinf(m_Phi);
+		m_P.y = m_Distance * sinf(m_Phi);*/
 
-		m_P += m_Target;
+		m_P.x = cosf(m_Phi) * sinf(m_Theta);
+		m_P.z = cosf(m_Phi) * cosf(m_Theta);
+		m_P.y = sinf(m_Phi);
+
+		m_N = -Normalize(m_P);
+
+		m_P = m_Target - m_N * m_Distance;
 
 		// Determine area
 		if (m_T == 0)
@@ -137,7 +143,8 @@ public:
 		}
 
 		// Compute orthogonal basis frame
-		m_N = Normalize(m_Target - m_P);
+		//m_N = (m_Target - m_P).Length > 0.01f ? Normalize(m_Target - m_P) : Vec;
+		//m_N = Normalize(m_Target - m_P);
 		m_U	= Normalize(Cross(m_N, Vec3f(0.0f, 1.0f, 0.0f)));
 		m_V	= Normalize(Cross(m_N, m_U));
 	}
@@ -152,6 +159,9 @@ public:
 			Rl.m_O	= m_P + ((-0.5f + LS.m_LightSample.m_Pos.x) * m_Width * m_U) + ((-0.5f + LS.m_LightSample.m_Pos.y) * m_Height * m_V);
 			Rl.m_D	= Normalize(P - Rl.m_O);
 			L = Dot(Rl.m_D, m_N) > 0.0f ? Le(Vec2f(0.0f)) : SPEC_BLACK;
+			//L = CColorXyz((m_N.x + 1) / 2.f, (m_N.y + 1) / 2.f, (m_N.z + 1) / 2.f); //normal
+			//L = CColorXyz((Rl.m_O.x + 1) / 20.f, (Rl.m_O.y + 1) / 20.f, (Rl.m_O.z + 1) / 20.f); //ray origin
+			//L = CColorXyz((m_U.x + 1) / 2.f, (m_U.y + 1) / 2.f, (m_U.z + 1) / 2.f); //m_U
 			Pdf		= AbsDot(Rl.m_D, m_N) > 0.0f ? DistanceSquared(P, Rl.m_O) / (AbsDot(Rl.m_D, m_N) * m_Area) : 0.0f;
 		}
 

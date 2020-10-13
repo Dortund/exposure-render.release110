@@ -92,10 +92,10 @@ QLightWidget::QLightWidget(QWidget* pParent) :
 
 	m_DistanceSlider.setOrientation(Qt::Horizontal);
     m_DistanceSlider.setTickPosition(QDoubleSlider::NoTicks);
-	m_DistanceSlider.setRange(0.0, 10.0);
+	m_DistanceSlider.setRange(-10.0, 10.0);
 	m_MainLayout.addWidget(&m_DistanceSlider, 2, 1);
 	
-    m_DistanceSpinner.setRange(0.0, 10.0);
+    m_DistanceSpinner.setRange(-10.0, 10.0);
 	m_DistanceSpinner.setSingleStep(0.1);
 	m_DistanceSpinner.setSuffix(" m");
 	m_MainLayout.addWidget(&m_DistanceSpinner, 2, 2);

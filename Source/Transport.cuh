@@ -147,7 +147,7 @@ DEV CColorXyz EstimateDirectLightPropertyBased(CScene* pScene, const CVolumeShad
 		else
 			Ld += F * Li * WeightMIS / LightPdf;
 	}
-	
+	//return Ld;
 	if (Type == CVolumeShader::OneDirectional || Type == CVolumeShader::LightPathsOctoGradientRejectionSampling)
 		F = Shader.SampleFRejection(Wo, Wi, ShaderPdf, LS.m_BsdfSample, RNG);
 	else
