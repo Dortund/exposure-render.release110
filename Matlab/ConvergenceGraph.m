@@ -1,14 +1,14 @@
 function ConvergenceGraph(name, graph_name)
 
 %BaseDirectory           = 'C:\Users\nomen\Documents\Thesis\tests\';
-BaseDirectory           = 'C:\Users\nomen\Documents\Thesis\tests\debugday\';
+BaseDirectory           = 'C:\Users\nomen\Documents\Thesis\tests\';
 Directory               = strcat(BaseDirectory, strcat(name, '\'));
 Techniques              = {'PHASE_FUNCTION_ONLY', 'BRDF_ONLY', 'HYBRID', 'LIGHT_PATHS', 'LIGHT_PATHS_OCTO', 'LIGHT_PATHS_OCTO_GRADIENT', 'TEST_SHADER', 'REJECTION_SAMPLER', 'ONE_DIRECTIONAL'}; %folder name
 ID                      = 1;
 TechniqueIDs            = [];
 Series                  = {'PhaseFunctionOnly', 'BRDFOnly', 'Hybrid', 'LightPaths', 'LightPathsOcto', 'LightPathsOctoGradient', 'TestShader', 'RejectionSampler', 'OneDirectional'}; %graph name
-SPP                     = [1, 2, 4, 8, 16, 32, 64, 128, 256];%, 512, 1024, 2048, 4096];%, 8192];
-MaxSPP                  = 9;%12;%9;%11;
+SPP                     = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192];
+MaxSPP                  = 14;%12;%9;%11;
 Errors                  = zeros(1);
 Timings                 = zeros(1);
 ReferenceImageFile      = dir([Directory 'reference*.png']);
@@ -42,7 +42,8 @@ for i = 1 : length(Techniques)
 
             if exist(ImageFileName, 'file')
                 Image       = double(imread(ImageFileName)) / 255.0;
-                Statistics  = CompareImages(Image, ReferenceImage, 1.0);
+                %Statistics  = CompareImages(Image, ReferenceImage, 1.0);
+                Statistics  = CompareImagesWithName(Image, ReferenceImage, 1.0, sprintf('%simages\\diff_%d.png', TechniqueDir, SPP(j)));
                 Error       = Statistics.msesum;
                 
                 if j <= MaxSPP

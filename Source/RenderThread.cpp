@@ -180,7 +180,7 @@ void QRenderThread::StartTesting(QString Directory, bool CurrentOnly) {
 			//m_TestModi = { TEST_SHADER, PHASE_FUNCTION_ONLY };
 			m_TestModi = { PHASE_FUNCTION_ONLY, /*TEST_SHADER, LIGHT_PATHS_OCTO_GRADIENT,ONE_DIRECTIONAL,*/ REJECTION_SAMPLER };
 			// We want a reference image from our first run
-			int refItt = 512;//16385;//8193; //4097;////1025;
+			int refItt = 16385;//16385;//8193; //4097;////1025;
 			m_SaveFrames.append(refItt);
 			m_ReferenceItterations = refItt;
 		}
@@ -297,7 +297,7 @@ void QRenderThread::run()
 				//gScene.m_ShadingType = modus;
 				m_TestModi.removeFirst();
 
-				m_SaveFrames.append({ 1, 2, 4, 8, 16, 32, 64, 128, 256/*, 512, 1024, 2048/*, 4096/*, 8192*/ });
+				m_SaveFrames.append({ 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192/**/ });
 				QDir(m_TestDir).mkdir(EScatteringTypeNames[m_CurrentModi]);
 				QDir(m_TestDir + "/" + EScatteringTypeNames[m_CurrentModi]).mkdir("images");
 
@@ -1160,7 +1160,15 @@ int* QRenderThread::InitFloodFill(float OpacityWeight, float DirectionWeight) {
 		// Setup regarding the current light
 		CLight light = gScene.m_Lighting.m_Lights[lightIndex];
 		std::cout << "LightIndex: " << lightIndex << ", Type: " << light.m_T << std::endl;
-		if (light.m_T == 0) { // Area light
+		if (true) {
+			Vec4i start = Vec4i(63, 25, 63, 0); //-0.3
+			//Vec4i start = Vec4i(63, 51, 63, 0); //-0.1
+			int pos1D = start.x + gScene.m_Resolution.GetResX() * start.y + gScene.m_Resolution.GetResX() * gScene.m_Resolution.GetResY() * start.z;
+			start.w = 0;
+			result[pos1D] = start.w;
+			queue.push(start);
+		}
+		else if (light.m_T == 0) { // Area light
 			// Get the direction from the light center point to the middle of the volume
 			Vec3f dir = Vec3f(0.5) - light.m_P;
 			dir.Normalize();

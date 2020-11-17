@@ -32,7 +32,7 @@ datapoints = [
     101, ...    %C  cyan
     101, ...    %D  red
     1, ...    %E    orange
-    1, ...    %F    blue
+    0, ...    %F    blue
     101, ...    %G  pink
     101];       %H  black
 

@@ -42,7 +42,8 @@ GHDC = (G+H+D+C) / 4;
 ABCD = (A+B+C+D) / 4;
 GHEF = (G+H+E+F) / 4;
 
-p = 1;
+%p = 1;
+p = 0.00387597;
 AEHD = AEHD^p;
 GCBF = GCBF^p;
 ABFE = ABFE^p;

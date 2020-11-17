@@ -425,7 +425,8 @@ void BindConstants(CScene* pScene)
 	float smallestVoxelAxis = fminf(fminf(pScene->m_VoxelSizeWorld.x, pScene->m_VoxelSizeWorld.y), pScene->m_VoxelSizeWorld.z);
 	const float StepSize		= pScene->m_StepSizeFactor * smallestVoxelAxis;
 	const float StepSizeShadow	= pScene->m_StepSizeFactorShadow * smallestVoxelAxis;
-	const float ScatteringHeadstart = pScene->m_ScatteringHeadstart;// *smallestVoxelAxis; TODO: fix back (add *smallestvoxelaxis)
+	const float ScatteringHeadstart = pScene->m_ScatteringHeadstart*smallestVoxelAxis;
+	//std::cout << ScatteringHeadstart << std::endl;
 
 	//TODO remove
 	//std::cout << "StepSize: " << StepSize << ", StepSizeShadow: " << StepSizeShadow << ", GradientDelta: "
@@ -575,6 +576,7 @@ void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& Po
 		}
 
 		case PROPERTY_BASED:
+		case 4:
 		case 9:
 		case 10:
 		case 11:

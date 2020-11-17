@@ -983,21 +983,27 @@ public:
 		B = (1 + gradBH);
 		H = (1 - gradBH);
 
+		//return CColorXyz(G / 2.f, H / 2.f, D / 4.f);
+
 		float AEHD = (A + E + H + D) / 4;
 		float GCBF = (G + C + B + F) / 4;
 		float ABFE = (A + B + F + E) / 4;
 		float GHDC = (G + H + D + C) / 4;
 		float ABCD = (A + B + C + D) / 4;
 		float GHEF = (G + H + E + F) / 4;
-
+		/*
 		AEHD = powf(AEHD, gScatteringHeadstart);
 		GCBF = powf(GCBF, gScatteringHeadstart);
 		ABFE = powf(ABFE, gScatteringHeadstart);
 		GHDC = powf(GHDC, gScatteringHeadstart);
 		ABCD = powf(ABCD, gScatteringHeadstart);
 		GHEF = powf(GHEF, gScatteringHeadstart);
+		*/
+		return CColorXyz(AEHD / 2.f, GCBF / 2.f, ABFE / 2.f);
+		//return CColorXyz(GHDC / 2.f, ABCD / 2.f, GHEF / 2.f);
 		
-		float faces[8][3] = {
+		//0.00387597
+		/*float faces[8][3] = {
 			{GHEF, GCBF, GHDC}, // %G
 			{GHEF, ABFE, GCBF}, // %F
 			{GHEF, AEHD, ABFE}, // %E
@@ -1006,14 +1012,27 @@ public:
 			{ABCD, ABFE, GCBF}, // %B
 			{ABCD, AEHD, ABFE}, // %A
 			{ABCD, GHDC, AEHD}  // %D
+		};*/
+		float faces[8][3] = {
+			{GCBF, GHDC, GHEF}, // %G
+			{GCBF, GHEF, ABFE}, // %F
+			{GCBF, ABFE, ABCD}, // %E
+			{GCBF, ABCD, GHDC}, // %H
+			{AEHD, GHDC, GHEF}, // %C
+			{AEHD, GHEF, ABFE}, // %B
+			{AEHD, ABFE, ABCD}, // %A
+			{AEHD, ABCD, GHDC}  // %D
 		};
 
 		float sum = 0;
 		for (int i = 0; i < 8; i++)
 			sum = sum + ((0.5)*((PI_F - 2.f)*faces[i][0] + faces[i][1] + faces[i][2]));
-
+		CColorXyz Col = CColorXyz(0.5f);
 		bool accepted = false;
 		int tries = 0;
+
+		//return CColorXyz(sum);
+
 		while (!accepted) {
 			tries++;
 
@@ -1022,53 +1041,61 @@ public:
 
 			float z = 1 - 2 * rx;
 			float r = sqrtf(fmaxf(0, 1 - z * z));
-			float phi = 2 * PI_F * ry;
-			float x = r * cosf(phi);
-			float y = r * sinf(phi);
+			float theta = 2 * PI_F * ry;
+			float x = r * cosf(theta);
+			float y = r * sinf(theta);
 
 			float A, B, C;
 			if (z > 0) {
-				if (phi <= HALF_PI_F) {
+				if (theta <= HALF_PI_F) {
 					A = GCBF;
 					B = GHDC;
 					C = GHEF;
+					Col = CColorXyz(1, 1, 1);
 				}
-				else if (phi <= PI_F) {
+				else if (theta <= PI_F) {
 					A = GCBF;
 					B = GHEF;
 					C = ABFE;
+					Col = CColorXyz(0, 1, 1);
 				}
-				else if (phi <= 3 * HALF_PI_F) {
+				else if (theta <= 3 * HALF_PI_F) {
 					A = GCBF;
 					B = ABFE;
 					C = ABCD;
+					Col = CColorXyz(0, 0, 1);
 				}
 				else {
 					A = GCBF;
 					B = ABCD;
 					C = GHDC;
+					Col = CColorXyz(1, 0, 1);
 				}
 			}
 			else {
-				if (phi <= HALF_PI_F) {
+				if (theta <= HALF_PI_F) {
 					A = AEHD;
 					B = GHDC;
 					C = GHEF;
+					Col = CColorXyz(1, 1, 0);
 				}
-				else if (phi <= PI_F) {
+				else if (theta <= PI_F) {
 					A = AEHD;
 					B = GHEF;
 					C = ABFE;
+					Col = CColorXyz(0, 1, 0);
 				}
-				else if (phi <= 3 * HALF_PI_F) {
+				else if (theta <= 3 * HALF_PI_F) {
 					A = AEHD;
 					B = ABFE;
 					C = ABCD;
+					Col = CColorXyz(0, 0, 0);
 				}
 				else {
 					A = AEHD;
 					B = ABCD;
 					C = GHDC;
+					Col = CColorXyz(1, 0, 0);
 				}
 			}
 
@@ -1105,7 +1132,7 @@ public:
 			//accepted = true;
 
 			if (accepted) {
-				Wi = Vec3f(x, z, y);
+				Wi = Vec3f(x, y, z);
 				//Pdf = tries;
 			}
 			else {
@@ -1120,7 +1147,9 @@ public:
 
 		//Pdf = this->Pdf(Wo, Wi);
 
-		return this->F(Wo, Wi);
+		//return this->F(Wo, Wi);
+		//return CColorXyz(0.25, 0.5, 0.75);
+		return Col;
 	}
 
 	DEV float Pdf(const Vec3f& Wo, const Vec3f& Wi)
