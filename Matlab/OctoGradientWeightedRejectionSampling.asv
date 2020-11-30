@@ -209,6 +209,14 @@ while (not(accepted))
     
     maxP = max(f_AEHD, max(f_GCBF, max(f_ABFE, max(f_GHDC, max(f_ABCD, f_GHEF)))));
     accepted = rand() <= ver / maxP;
+    
+    c = 1;
+    while true:
+    acc = rand() <= (ver / sum) / (c*(1/(4*pi)))
+    
+    c = max(c, (ver / sum) / (1/(4*pi));
+    end
+
 end
 
 %Wi = [x, y, z] * Pdf2;

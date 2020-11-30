@@ -999,7 +999,7 @@ public:
 		ABCD = powf(ABCD, gScatteringHeadstart);
 		GHEF = powf(GHEF, gScatteringHeadstart);
 		*/
-		return CColorXyz(AEHD / 2.f, GCBF / 2.f, ABFE / 2.f);
+		//return CColorXyz(AEHD / 2.f, GCBF / 2.f, ABFE / 2.f);
 		//return CColorXyz(GHDC / 2.f, ABCD / 2.f, GHEF / 2.f);
 		
 		//0.00387597
@@ -1031,7 +1031,7 @@ public:
 		bool accepted = false;
 		int tries = 0;
 
-		//return CColorXyz(sum);
+		//return CColorXyz(sum / 50.f);
 
 		while (!accepted) {
 			tries++;
@@ -1041,68 +1041,79 @@ public:
 
 			float z = 1 - 2 * rx;
 			float r = sqrtf(fmaxf(0, 1 - z * z));
+			float phi = acosf(z);
 			float theta = 2 * PI_F * ry;
 			float x = r * cosf(theta);
 			float y = r * sinf(theta);
 
-			float A, B, C;
+			float t_A, t_B, t_C, q;
 			if (z > 0) {
 				if (theta <= HALF_PI_F) {
-					A = GCBF;
-					B = GHDC;
-					C = GHEF;
+					t_A = GCBF;
+					t_B = GHDC;
+					t_C = GHEF;
 					Col = CColorXyz(1, 1, 1);
+					q = 0;
 				}
 				else if (theta <= PI_F) {
-					A = GCBF;
-					B = GHEF;
-					C = ABFE;
+					t_A = GCBF;
+					t_B = GHEF;
+					t_C = ABFE;
 					Col = CColorXyz(0, 1, 1);
+					q = 1;
 				}
 				else if (theta <= 3 * HALF_PI_F) {
-					A = GCBF;
-					B = ABFE;
-					C = ABCD;
+					t_A = GCBF;
+					t_B = ABFE;
+					t_C = ABCD;
 					Col = CColorXyz(0, 0, 1);
+					q = 2;
 				}
 				else {
-					A = GCBF;
-					B = ABCD;
-					C = GHDC;
+					t_A = GCBF;
+					t_B = ABCD;
+					t_C = GHDC;
 					Col = CColorXyz(1, 0, 1);
+					q = 3;
 				}
 			}
 			else {
 				if (theta <= HALF_PI_F) {
-					A = AEHD;
-					B = GHDC;
-					C = GHEF;
+					t_A = AEHD;
+					t_B = GHDC;
+					t_C = GHEF;
 					Col = CColorXyz(1, 1, 0);
+					q = 0;
 				}
 				else if (theta <= PI_F) {
-					A = AEHD;
-					B = GHEF;
-					C = ABFE;
+					t_A = AEHD;
+					t_B = GHEF;
+					t_C = ABFE;
 					Col = CColorXyz(0, 1, 0);
+					q = 1;
 				}
 				else if (theta <= 3 * HALF_PI_F) {
-					A = AEHD;
-					B = ABFE;
-					C = ABCD;
+					t_A = AEHD;
+					t_B = ABFE;
+					t_C = ABCD;
 					Col = CColorXyz(0, 0, 0);
+					q = 2;
 				}
 				else {
-					A = AEHD;
-					B = ABCD;
-					C = GHDC;
+					t_A = AEHD;
+					t_B = ABCD;
+					t_C = GHDC;
 					Col = CColorXyz(1, 0, 0);
+					q = 3;
 				}
 			}
 
-			float party = fmodf(ry, 0.25) * 4;
-			float partx = 1 - fabsf(rx - (1 / 2)) * 2;
-			float hor = (C - B)*party + B;
-			float ver = (hor - A)*partx + A;
+			//float party = fmodf(ry, 0.25) * 4;
+			float party = (ry - q * 0.25) * 4;
+			//float partx = 1 - fabsf(rx - (1 / 2)) * 2;
+			float partx = 1 - fabsf((phi / PI_F) - 0.5f) * 2;
+			float hor = (t_C - t_B)*party + t_B;
+			float ver = (hor - t_A)*partx + t_A;
 			Pdf = ver / sum;
 			
 			/*
@@ -1121,19 +1132,25 @@ public:
 			Pdf = INV_4_PI_F;// / p;
 			*/
 			//S.LargeStep(RNG);
-			accepted = RNG.Get1() <= Pdf;
+			//accepted = RNG.Get1() <= Pdf;
 			float maxP = fmaxf(AEHD, fmaxf(GCBF, fmaxf(ABFE, fmaxf(GHDC, fmaxf(ABCD, GHEF)))));
-			float c = (maxP / sum) / INV_4_PI_F;
-			accepted = RNG.Get1() <= Pdf / (c*INV_4_PI_F);
+			//float c = (maxP / sum) / INV_4_PI_F;
+			//accepted = RNG.Get1() <= Pdf / (c*INV_4_PI_F);
 			// Due to uniform sample as candidate (https://bookdown.org/rdpeng/advstatcomp/rejection-sampling.html)
 			// simplifies to:
 			accepted = RNG.Get1() <= ver / maxP;
 
 			//accepted = true;
-
+			//return CColorXyz(t_A, partx, ver / maxP);
+			//return CColorXyz((partx + 1.f) / 2.f);
+			//return CColorXyz((party + 1.f) / 2.f);
+			//return CColorXyz(party);
+			//return CColorXyz(phi / PI_F);
+			//return CColorXyz((z + 1.f) / 2.f);
 			if (accepted) {
 				Wi = Vec3f(x, y, z);
 				//Pdf = tries;
+				
 			}
 			else {
 				//S.LargeStep(RNG);
@@ -1147,13 +1164,23 @@ public:
 
 		//Pdf = this->Pdf(Wo, Wi);
 
-		//return this->F(Wo, Wi);
+		return this->F(Wo, Wi);
+		
 		//return CColorXyz(0.25, 0.5, 0.75);
-		return Col;
+		//return Col;
+		/*
+		if (Wi.z > 0)
+			return CColorXyz(1.f, 0, 0);
+		else if (Wi.z < 0)
+			return CColorXyz(0.f, 1, 0);
+		else
+			return CColorXyz(0, 0, 1);
+			*/
 	}
 
 	DEV float Pdf(const Vec3f& Wo, const Vec3f& Wi)
 	{
+		//return -1000.0f;
 		float3 mins = floor(make_float3(m_Pe.x, m_Pe.y, m_Pe.z) / gVoxelSizeWorld) * gVoxelSizeWorld;
 		float A, B, C, D, E, F, G, H;
 		A = GetLightPathValue(mins);
@@ -1192,7 +1219,7 @@ public:
 		float GHDC = (G + H + D + C) / 4;
 		float ABCD = (A + B + C + D) / 4;
 		float GHEF = (G + H + E + F) / 4;
-
+		/*
 		AEHD = powf(AEHD, gScatteringHeadstart);
 		GCBF = powf(GCBF, gScatteringHeadstart);
 		ABFE = powf(ABFE, gScatteringHeadstart);
@@ -1206,8 +1233,8 @@ public:
 		GHDC = 1;
 		ABCD = 1;
 		GHEF = 1;
-
-		float faces[8][3] = {
+		*/
+		/*float faces[8][3] = {
 			{GHEF, GCBF, GHDC}, // %G
 			{GHEF, ABFE, GCBF}, // %F
 			{GHEF, AEHD, ABFE}, // %E
@@ -1216,119 +1243,89 @@ public:
 			{ABCD, ABFE, GCBF}, // %B
 			{ABCD, AEHD, ABFE}, // %A
 			{ABCD, GHDC, AEHD}  // %D
+		};*/
+		float faces[8][3] = {
+			{GCBF, GHDC, GHEF}, // %G
+			{GCBF, GHEF, ABFE}, // %F
+			{GCBF, ABFE, ABCD}, // %E
+			{GCBF, ABCD, GHDC}, // %H
+			{AEHD, GHDC, GHEF}, // %C
+			{AEHD, GHEF, ABFE}, // %B
+			{AEHD, ABFE, ABCD}, // %A
+			{AEHD, ABCD, GHDC}  // %D
 		};
 
 		float sum = 0;
 		for (int i = 0; i < 8; i++)
-			sum = sum + (0.5)*((PI_F - 2.f)*faces[i][1] + faces[i][2] + faces[i][3]);
-
+			sum = sum + (0.5)*((PI_F - 2.f)*faces[i][0] + faces[i][1] + faces[i][2]);
 		
 		//r = x2 + y2 + z2 = 1
 		float theta = atanf(Wi.y / Wi.x);
 		float phi = acosf(Wi.z);
 
-		/*float a, b, c;
-		if (Wi.x >= 0) {
-			if (Wi.y >= 0) {
-				if (Wi.z >= 0) {
-					a = GHEF;
-					b = GHDC;
-					c = GCBF;
-				}
-				else {
-					a = GHEF;
-					b = AEHD;
-					c = GHDC;
-				}
-			}
-			else {
-				if (Wi.z >= 0) {
-
-				}
-				else {
-
-				}
-			}
-		}
-		else {
-			if (Wi.y >= 0) {
-				if (Wi.z >= 0) {
-
-				}
-				else {
-
-				}
-			}
-			else {
-				if (Wi.z >= 0) {
-
-				}
-				else {
-
-				}
-			}
-		}*/
-
+		float t_A, t_B, t_C, q;
 		if (Wi.z > 0) {
-			if (phi <= HALF_PI_F) {
-				A = GHEF;
-				C = GCBF;
-				B = GHDC;
-				//Face = [0, 0, 0, 0, 0, 0, 1, 0];
+			if (theta <= HALF_PI_F) {
+				t_A = GCBF;
+				t_B = GHDC;
+				t_C = GHEF;
+				q = 0;
 			}
-			else if (phi <= PI_F) {
-				A = GHEF;
-				C = ABFE;
-				B = GCBF;
-				//Face = [0, 0, 0, 0, 0, 1, 0, 0];
+			else if (theta <= PI_F) {
+				t_A = GCBF;
+				t_B = GHEF;
+				t_C = ABFE;
+				q = 1;
 			}
-			else if (phi <= 3 * HALF_PI_F) {
-				A = GHEF;
-				C = AEHD;
-				B = ABFE;
-				//Face = [0, 0, 0, 0, 1, 0, 0, 0];
+			else if (theta <= 3 * HALF_PI_F) {
+				t_A = GCBF;
+				t_B = ABFE;
+				t_C = ABCD;
+				q = 2;
 			}
 			else {
-				A = GHEF;
-				C = GHDC;
-				B = AEHD;
-				//Face = [0, 0, 0, 0, 0, 0, 0, 1];
+				t_A = GCBF;
+				t_B = ABCD;
+				t_C = GHDC;
+				q = 3;
 			}
 		}
 		else {
-			if (phi <= HALF_PI_F) {
-				A = ABCD;
-				C = GCBF;
-				B = GHDC;
-				//Face = [0, 0, 1, 0, 0, 0, 0, 0];
+			if (theta <= HALF_PI_F) {
+				t_A = AEHD;
+				t_B = GHDC;
+				t_C = GHEF;
+				q = 0;
 			}
-			else if (phi <= PI_F) {
-				A = ABCD;
-				C = ABFE;
-				B = GCBF;
-				//Face = [0, 1, 0, 0, 0, 0, 0, 0];
+			else if (theta <= PI_F) {
+				t_A = AEHD;
+				t_B = GHEF;
+				t_C = ABFE;
+				q = 1;
 			}
-			else if (phi <= 3 * HALF_PI_F) {
-				A = ABCD;
-				C = AEHD;
-				B = ABFE;
-				//Face = [1, 0, 0, 0, 0, 0, 0, 0];
+			else if (theta <= 3 * HALF_PI_F) {
+				t_A = AEHD;
+				t_B = ABFE;
+				t_C = ABCD;
+				q = 2;
 			}
 			else {
-				A = ABCD;
-				C = GHDC;
-				B = AEHD;
-				//Face = [0, 0, 0, 1, 0, 0, 0, 0];
+				t_A = AEHD;
+				t_B = ABCD;
+				t_C = GHDC;
+				q = 3;
 			}
 		}
 
 		float ry = phi / TWO_PI_F;
 		float rx = theta / PI_F;
 
-		float party = fmodf(ry, 0.25) * 4;
-		float partx = 1 - fabsf(rx - (1 / 2)) * 2;
-		float hor = (C - B)*party + B;
-		float ver = (hor - A)*partx + A;
+		//float party = fmodf(ry, 0.25) * 4;
+		float party = (ry - q*0.25) * 4;
+		//float partx = 1 - fabsf(rx - (1 / 2)) * 2;
+		float partx = 1 - fabsf((phi/PI_F) - 0.5f) * 2;
+		float hor = (t_C - t_B)*party + t_B;
+		float ver = (hor - t_A)*partx + t_A;
 		float Pdf = ver / sum;
 
 		return Pdf;
@@ -1352,64 +1349,18 @@ public:
 
 	HOD CColorXyz F(const Vec3f& Wo, const Vec3f& Wi)
 	{
-		if (Wi == Vec3f(0.f, 0.f, -1.f))
-			return m_Kd;
-		else
-			return SPEC_BLACK;
-		//return m_Kd * INV_4_PI_F;
-		//return m_Kd * this->Pdf(Wo, Wi);
+		return m_Kd * INV_4_PI_F;
 	}
 
 	HOD CColorXyz SampleF(const Vec3f& Wo, Vec3f& Wi, float& Pdf, CRNG& RNG)
 	{
-		/*
-		bool accepted = false;
-		while (!accepted) {
-			float rx = RNG.Get1();
-			float ry = RNG.Get1();
+		Wi = UniformSampleSphere(RNG.Get2());
 
-			float z = 1 - 2 * rx;
-			float r = sqrtf(fmaxf(0, 1 - z * z));
-			float phi = 2 * PI_F * ry;
-			float x = r * cosf(phi);
-			float y = r * sinf(phi);
-
-			Wi = Vec3f(x, y, z);
-			if (Wi.z <= 0) {
-				accepted = true;
-			}
-			else {
-				accepted = RNG.Get1() <= 0.5f;
-			}
-		}
-
-		Pdf = this->Pdf(Wo, Wi);
-		*/
-
-		/*
-		float rx = RNG.Get1();
-		float ry = RNG.Get1();
-
-		float z = 1 - 2 * rx;
-		float r = sqrtf(fmaxf(0, 1 - z * z));
-		float phi = 2 * PI_F * ry;
-		float x = r * cosf(phi);
-		float y = r * sinf(phi);
-
-		if (RNG.Get1() <= (1.f / 3.f)) {
-			z = fabsf(z);
+		if (RNG.Get1() <= m_p) {
+			Wi.z = fabsf(Wi.z);
 		}
 		else {
-			z = -1.f * fabsf(z);
-		}
-
-		Wi = Vec3f(x, y, z);
-		*/
-		if (RNG.Get1() <= 0.99) {
-			Wi = Vec3f(0.f, 0.f, -1.f);
-		}
-		else {
-			Wi = UniformSampleSphere(RNG.Get2());
+			Wi.z = fabsf(Wi.z) * -1.f;
 		}
 		Pdf = this->Pdf(Wo, Wi);
 		return F(Wo, Wi);
@@ -1417,19 +1368,16 @@ public:
 
 	HOD float Pdf(const Vec3f& Wo, const Vec3f& Wi)
 	{
-		if (Wi == Vec3f(0.f, 0.f, -1.f))
-			return 0.99;
-		else
-			return 0.01;
-		/*
-		if (Wi.z <= 0)
-			return 1.f / (3 * PI_F);
-		else
-			return 1.f / (6 * PI_F);
-			*/
+		if (Wi.z >= 0) {
+			return m_p / TWO_PI_F;
+		}
+		else {
+			return (1.f - m_p) / TWO_PI_F;
+		}
 	}
 
 	CColorXyz	m_Kd;
+	float m_p = 0.25f;
 };
 
 

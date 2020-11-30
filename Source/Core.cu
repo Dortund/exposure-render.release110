@@ -425,7 +425,7 @@ void BindConstants(CScene* pScene)
 	float smallestVoxelAxis = fminf(fminf(pScene->m_VoxelSizeWorld.x, pScene->m_VoxelSizeWorld.y), pScene->m_VoxelSizeWorld.z);
 	const float StepSize		= pScene->m_StepSizeFactor * smallestVoxelAxis;
 	const float StepSizeShadow	= pScene->m_StepSizeFactorShadow * smallestVoxelAxis;
-	const float ScatteringHeadstart = pScene->m_ScatteringHeadstart*smallestVoxelAxis;
+	const float ScatteringHeadstart = pScene->m_ScatteringHeadstart * smallestVoxelAxis;
 	//std::cout << ScatteringHeadstart << std::endl;
 
 	//TODO remove

@@ -72,10 +72,16 @@ KERNEL void KrnlToneMapCopy(CCudaView* pView)
 	RgbHdr.r = Clamp(RgbHdr.r * gInvExposure, 0.0, 1.0f);
 	RgbHdr.g = Clamp(RgbHdr.g * gInvExposure, 0.0, 1.0f);
 	RgbHdr.b = Clamp(RgbHdr.b * gInvExposure, 0.0, 1.0f);
-
-	// TODO FIX BACK - done
+	Vec3f dir = Vec3f(RgbHdr.r, RgbHdr.g, RgbHdr.b);
+	dir = dir * 2 - 1;
+	dir.Normalize();
 	pView->m_EstimateRgbaLdr.Set(CColorRgbaLdr(RgbHdr.r * 255.0f, RgbHdr.g * 255.0f, RgbHdr.b * 255.0f, 0), X, Y);
-	//pView->m_EstimateRgbaLdr.Set(CColorRgbaLdr(RgbHdr.r * 255.0f, RgbHdr.g * 255.0f, RgbHdr.b * 255.0f, pView->m_EstimateRgbaLdr.Get(X, Y).a), X, Y);
+	/*pView->m_EstimateRgbaLdr.Set(CColorRgbaLdr(
+		(dir.x + 1.f) / 2.f * 255.0f,
+		(dir.y + 1.f) / 2.f * 255.0f,
+		(dir.z + 1.f) / 2.f * 255.0f,
+		0), X, Y);
+		*/
 }
 
 void ToneMapCopy(CScene* pScene, CScene* pDevScene, CCudaView* pDevView)

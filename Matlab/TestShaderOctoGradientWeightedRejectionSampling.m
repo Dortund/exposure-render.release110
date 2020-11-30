@@ -15,6 +15,16 @@
 %min value = 0
 
 % Cornellbox light in middle
+
+datapoints = [
+    101, ...      %A  green
+    0, ...    %B    magenta -> orange??
+    0, ...    %C  cyan  -> black??
+    101, ...    %D  red
+    101, ...    %E    orange -> magenta??
+    0, ...    %F    blue
+    0, ...    %G  pink
+    101];       %H  black -> cyan??
 %{
 datapoints = [
     0, ...      %A  green
@@ -26,6 +36,18 @@ datapoints = [
     101, ...    %G  pink
     101];       %H  black
 %}
+%{
+datapoints = [
+    0, ...      %A  green
+    0, ...    %B    magenta
+    0, ...    %C  cyan
+    0, ...    %D  red
+    101, ...    %E    orange
+    101, ...    %F    blue
+    101, ...    %G  pink
+    101];       %H  black
+%}
+%{
 datapoints = [
     0, ...      %A  green
     0, ...    %B    magenta
@@ -35,7 +57,7 @@ datapoints = [
     1, ...    %F    blue
     101, ...    %G  pink
     101];       %H  black
-
+%}
 % Uniform chance
 % datapoints = [
 %     1, ...      %A  green

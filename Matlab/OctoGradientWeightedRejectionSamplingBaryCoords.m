@@ -1,4 +1,4 @@
-function [p_F, Wi, Pdf, Face, Tries] = OctoGradientWeightedRejectionSampling(Kd, datapoints)
+function [p_F, Wi, Pdf, Face, Tries] = OctoGradientWeightedRejectionSamplingBaryCoords(Kd, datapoints)
 %OCTOGRADIENT Summary of this function goes here
 %   Detailed explanation goes here
 %{
@@ -69,10 +69,10 @@ faces = [
     [f_GCBF, f_GHEF, f_ABFE]; ... %F
     [f_GCBF, f_ABFE, f_ABCD]; ... %E
     [f_GCBF, f_ABCD, f_GHDC]; ... %H
-    [f_AEHD, f_GHDC, f_GHEF]; ... %C
-    [f_AEHD, f_GHEF, f_ABFE]; ... %B
-    [f_AEHD, f_ABFE, f_ABCD]; ... %A
-    [f_AEHD, f_ABCD, f_GHDC]      %D
+    [f_ABCD, f_GHDC, f_GHEF]; ... %C
+    [f_ABCD, f_GHEF, f_ABFE]; ... %B
+    [f_ABCD, f_ABFE, f_ABCD]; ... %A
+    [f_ABCD, f_ABCD, f_GHDC]      %D
     ];
 sum = 0;
 for i = 1:8
@@ -108,71 +108,80 @@ while (not(accepted))
     
     rx = rand();
     ry = rand();
-    
-    %rx = 0.125;
-    %ry = 0.5;
 
-    %z = 1 - 2 * rx;
-    %r = sqrt(max(0, 1 - z*z));
-    theta = acos(1-2*rx);
+    z = 1 - 2 * rx;
+    r = sqrt(max(0, 1 - z*z));
     phi = 2 * pi * ry;
-    %x = r * cos(phi);
-    %y = r * sin(phi);
-    x = sin(theta) * cos(phi);
-    y = sin(theta) * sin(phi);
-    z = cos(theta);
-    q = 0;
+    x = r * cos(phi);
+    y = r * sin(phi);
+    
     if (z > 0)
-        if (phi <= pi/2)
-            p_A = f_GCBF;
-            p_B = f_GHDC;
-            p_C = f_GHEF;
+        if (phi <= pi/2)    
+%             A = GHEF;
+%             C = GCBF;
+%             B = GHDC;
+                p_A = f_GCBF;
+					p_B = f_GHDC;
+					p_C = f_GHEF;
             Face = [0,0,0,0,0,0,1,0];
-            q = 0;
         elseif (phi <= pi)
-            p_A = f_GCBF;
-            p_B = f_GHEF;
-            p_C = f_ABFE;
+%             A = GHEF;
+%             C = ABFE;
+%             B = GCBF;
+p_A = f_GCBF;
+					p_B = f_GHEF;
+					p_C = f_ABFE;
             Face = [0,0,0,0,0,1,0,0];
-            q = 1;
         elseif (phi <= 3*pi/2)
-            p_A = f_GCBF;
-            p_B = f_ABFE;
-            p_C = f_ABCD;
+%             A = GHEF;
+%             C = AEHD;
+%             B = ABFE;
+p_A = f_GCBF;
+					p_B = f_ABFE;
+					p_C = f_ABCD;
             Face = [0,0,0,0,1,0,0,0];
-            q = 2;
         else
-            p_A = f_GCBF;
-            p_B = f_ABCD;
-            p_C = f_GHDC;
+%             A = GHEF;
+%             C = GHDC;
+%             B = AEHD;
+p_A = f_GCBF;
+					p_B = f_ABCD;
+					p_C = f_GHDC;
             Face = [0,0,0,0,0,0,0,1];
-            q = 3;
         end
     else
-        if (phi <= pi/2)
-            p_A = f_AEHD;
-            p_B = f_GHDC;
-            p_C = f_GHEF;
+        if (phi <= pi/2)    
+%             A = ABCD;
+%             C = GCBF;
+%             B = GHDC;
+p_A = f_AEHD;
+					p_B = f_GHDC;
+					p_C = f_GHEF;
             Face = [0,0,1,0,0,0,0,0];
-            q = 0;
         elseif (phi <= pi)
-            p_A = f_AEHD;
-            p_B = f_GHEF;
-            p_C = f_ABFE;
+%             A = ABCD;
+%             C = ABFE;
+%             B = GCBF;
+p_A = f_AEHD;
+					p_B = f_GHEF;
+					p_C = f_ABFE;
             Face = [0,1,0,0,0,0,0,0];
-            q = 1;
         elseif (phi <= 3*pi/2)
-            p_A = f_AEHD;
-            p_B = f_ABFE;
-            p_C = f_ABCD;
+%             A = ABCD;
+%             C = AEHD;
+%             B = ABFE;
+p_A = f_AEHD;
+					p_B = f_ABFE;
+					p_C = f_ABCD;
             Face = [1,0,0,0,0,0,0,0];
-            q = 2;
         else
-            p_A = f_AEHD;
-            p_B = f_ABCD;
-            p_C = f_GHDC;
+%             A = ABCD;
+%             C = GHDC;
+%             B = AEHD;
+p_A = f_AEHD;
+					p_B = f_ABCD;
+					p_C = f_GHDC;
             Face = [0,0,0,1,0,0,0,0];
-            q = 3;
         end
     end
     
@@ -183,10 +192,8 @@ while (not(accepted))
       
     %Pdf = (((C-B)*2*rem(phi, pi/2)/pi) -A)*2*(rx*pi/2)/pi+A;
     %Pdf = (((C-B)*rem(ry, 1/4)*4 + B) - A)*rem(rx, 1/2)*2 + A;
-    %party = rem(ry, 1/4)*4; %rework ry = 0.5 flips to 0, but due to which triangle is selected should be 1
-    party = (ry - 1/4*q) * 4;
-    %partx = 1-abs(rx-(1/2))*2;%rem(rx, 1/2)*2;
-    partx = 1-abs((theta/pi)-(1/2))*2;
+    party = rem(ry, 1/4)*4;
+    partx = 1-abs(rx-(1/2))*2;%rem(rx, 1/2)*2;
     hor = (p_C-p_B)*party+p_B;
     ver = (hor-p_A)*partx+p_A;
     Pdf = ver/sum;
@@ -209,6 +216,7 @@ while (not(accepted))
     
     maxP = max(f_AEHD, max(f_GCBF, max(f_ABFE, max(f_GHDC, max(f_ABCD, f_GHEF)))));
     accepted = rand() <= ver / maxP;
+
 end
 
 %Wi = [x, y, z] * Pdf2;
