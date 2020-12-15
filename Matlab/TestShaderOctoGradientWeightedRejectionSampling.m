@@ -15,7 +15,7 @@
 %min value = 0
 
 % Cornellbox light in middle
-
+%{
 datapoints = [
     101, ...      %A  green
     0, ...    %B    magenta -> orange??
@@ -25,7 +25,7 @@ datapoints = [
     0, ...    %F    blue
     0, ...    %G  pink
     101];       %H  black -> cyan??
-%{
+%}
 datapoints = [
     0, ...      %A  green
     0, ...    %B    magenta
@@ -35,7 +35,7 @@ datapoints = [
     0, ...    %F    blue
     101, ...    %G  pink
     101];       %H  black
-%}
+
 %{
 datapoints = [
     0, ...      %A  green
@@ -137,10 +137,11 @@ for i = 1:n
        [F, Wi, Pdf, Face, Tries] = OctoGradientWeightedRejectionSampling(Kd, datapoints);
        TriesTotal(i) = Tries;
        Pdfs(i) = Pdf;
-       Average = Average + Wi;
+       %Average = Average + Wi;
+       Average = Average + ((((Wi + 1) ./ 2) - Average) / (i+1));
        for f = 1:8
            if Face(f) == 1
-               dirs{f} = [dirs{f}; Wi];
+               dirs{f} = [dirs{f}; Wi * Pdf];
                break;
            end
        end
@@ -149,7 +150,8 @@ for i = 1:n
            i / n;
        end
 end
-Average = Average / n
+Average * 255
+%Average = Average / n
 
 figure;
 colors = {'g','m','c','r',[1,0.5,0],'b',[1,0.5,0.75],'k'};

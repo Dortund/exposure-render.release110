@@ -42,7 +42,7 @@ f_GHDC = (p_G+p_H+p_D+p_C) / 4;
 f_ABCD = (p_A+p_B+p_C+p_D) / 4;
 f_GHEF = (p_G+p_H+p_E+p_F) / 4;
 
-p = 1;
+p = 5;
 %p = 0.00387597;
 f_AEHD = f_AEHD^p;
 f_GCBF = f_GCBF^p;
@@ -123,7 +123,7 @@ while (not(accepted))
     z = cos(theta);
     q = 0;
     if (z > 0)
-        if (phi <= pi/2)
+        if (phi <= 0.5*pi)
             p_A = f_GCBF;
             p_B = f_GHDC;
             p_C = f_GHEF;
@@ -135,7 +135,7 @@ while (not(accepted))
             p_C = f_ABFE;
             Face = [0,0,0,0,0,1,0,0];
             q = 1;
-        elseif (phi <= 3*pi/2)
+        elseif (phi <= 3*(0.5*pi))
             p_A = f_GCBF;
             p_B = f_ABFE;
             p_C = f_ABCD;
@@ -149,7 +149,7 @@ while (not(accepted))
             q = 3;
         end
     else
-        if (phi <= pi/2)
+        if (phi <= 0.5*pi)
             p_A = f_AEHD;
             p_B = f_GHDC;
             p_C = f_GHEF;
@@ -161,7 +161,7 @@ while (not(accepted))
             p_C = f_ABFE;
             Face = [0,1,0,0,0,0,0,0];
             q = 1;
-        elseif (phi <= 3*pi/2)
+        elseif (phi <= 3*(0.5*pi))
             p_A = f_AEHD;
             p_B = f_ABFE;
             p_C = f_ABCD;
@@ -184,9 +184,9 @@ while (not(accepted))
     %Pdf = (((C-B)*2*rem(phi, pi/2)/pi) -A)*2*(rx*pi/2)/pi+A;
     %Pdf = (((C-B)*rem(ry, 1/4)*4 + B) - A)*rem(rx, 1/2)*2 + A;
     %party = rem(ry, 1/4)*4; %rework ry = 0.5 flips to 0, but due to which triangle is selected should be 1
-    party = (ry - 1/4*q) * 4;
+    party = (ry - q * 0.25) * 4;
     %partx = 1-abs(rx-(1/2))*2;%rem(rx, 1/2)*2;
-    partx = 1-abs((theta/pi)-(1/2))*2;
+    partx = 1-abs((theta/pi)-(0.5))*2;
     hor = (p_C-p_B)*party+p_B;
     ver = (hor-p_A)*partx+p_A;
     Pdf = ver/sum;
@@ -212,7 +212,8 @@ while (not(accepted))
 end
 
 %Wi = [x, y, z] * Pdf2;
-Wi = [x, y, z] * Pdf;
+%Wi = [x, y, z] * Pdf;
+Wi = [x, y, z];
     
 
 end

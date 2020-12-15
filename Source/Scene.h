@@ -86,6 +86,7 @@ public:
 	int					m_MaxBounces;
 	int					m_ScatterType;
 	float				m_ScatteringHeadstart;
+	float				m_GradientPower;
 
 	HOD int GetNoIterations(void) const					{ return m_NoIterations;			}
 	HOD void SetNoIterations(const int& NoIterations)	{ m_NoIterations = NoIterations;	}

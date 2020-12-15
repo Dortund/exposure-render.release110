@@ -53,7 +53,8 @@ public:
 
 	bool			Load(QString& FileName);
 	void			InitPreCalculated(void);
-	int*			InitFloodFill(float OpacityWeight, float DirectionWeight);
+	float*			InitFloodFill(float OpacityWeight, float DirectionWeight);
+	float*			InitFloodFillAdvanced(float penaltySpread, float penaltyBounce);
 	void			StartTesting(QString Directory, bool CurrentOnly);
 
 	QString			GetFileName(void) const						{	return m_FileName;		}

@@ -951,6 +951,8 @@ public:
 
 	DEV CColorXyz SampleF(const Vec3f& Wo, Vec3f& Wi, float& Pdf, CBrdfSample& S, CRNG& RNG)
 	{
+		//return CColorXyz(RNG.Get1());
+
 		float3 mins = floor(make_float3(m_Pe.x, m_Pe.y, m_Pe.z) / gVoxelSizeWorld) * gVoxelSizeWorld;
 		float A, B, C, D, E, F, G, H;
 		A = GetLightPathValue(mins);
@@ -969,36 +971,38 @@ public:
 		gradCE = E - C;
 		gradBH = H - B;
 
-		gradAG = gradAG / 101.f;// *.99;
-		gradDF = gradDF / 101.f;// *.99;
-		gradCE = gradCE / 101.f;// *.99;
-		gradBH = gradBH / 101.f;// *.99;
+		gradAG = gradAG / 102.f;// *.99;
+		gradDF = gradDF / 102.f;// *.99;
+		gradCE = gradCE / 102.f;// *.99;
+		gradBH = gradBH / 102.f;// *.99;
 
-		A = (1 + gradAG);
-		G = (1 - gradAG);
-		D = (1 + gradDF);
-		F = (1 - gradDF);
-		C = (1 + gradCE);
-		E = (1 - gradCE);
-		B = (1 + gradBH);
-		H = (1 - gradBH);
+		A = (1.f + gradAG);
+		G = (1.f - gradAG);
+		D = (1.f + gradDF);
+		F = (1.f - gradDF);
+		C = (1.f + gradCE);
+		E = (1.f - gradCE);
+		B = (1.f + gradBH);
+		H = (1.f - gradBH);
 
 		//return CColorXyz(G / 2.f, H / 2.f, D / 4.f);
 
-		float AEHD = (A + E + H + D) / 4;
-		float GCBF = (G + C + B + F) / 4;
-		float ABFE = (A + B + F + E) / 4;
-		float GHDC = (G + H + D + C) / 4;
-		float ABCD = (A + B + C + D) / 4;
-		float GHEF = (G + H + E + F) / 4;
-		/*
-		AEHD = powf(AEHD, gScatteringHeadstart);
-		GCBF = powf(GCBF, gScatteringHeadstart);
-		ABFE = powf(ABFE, gScatteringHeadstart);
-		GHDC = powf(GHDC, gScatteringHeadstart);
-		ABCD = powf(ABCD, gScatteringHeadstart);
-		GHEF = powf(GHEF, gScatteringHeadstart);
-		*/
+		float AEHD = (A + E + H + D) / 4.f;
+		float GCBF = (G + C + B + F) / 4.f;
+		float ABFE = (A + B + F + E) / 4.f;
+		float GHDC = (G + H + D + C) / 4.f;
+		float ABCD = (A + B + C + D) / 4.f;
+		float GHEF = (G + H + E + F) / 4.f;
+		
+		//return CColorXyz(gGradientPower / 2.f);
+		
+		AEHD = powf(AEHD, gGradientPower);
+		GCBF = powf(GCBF, gGradientPower);
+		ABFE = powf(ABFE, gGradientPower);
+		GHDC = powf(GHDC, gGradientPower);
+		ABCD = powf(ABCD, gGradientPower);
+		GHEF = powf(GHEF, gGradientPower);
+		
 		//return CColorXyz(AEHD / 2.f, GCBF / 2.f, ABFE / 2.f);
 		//return CColorXyz(GHDC / 2.f, ABCD / 2.f, GHEF / 2.f);
 		
@@ -1026,7 +1030,7 @@ public:
 
 		float sum = 0;
 		for (int i = 0; i < 8; i++)
-			sum = sum + ((0.5)*((PI_F - 2.f)*faces[i][0] + faces[i][1] + faces[i][2]));
+			sum = sum + ((0.5f)*((PI_F - 2.f)*faces[i][0] + faces[i][1] + faces[i][2]));
 		CColorXyz Col = CColorXyz(0.5f);
 		bool accepted = false;
 		int tries = 0;
@@ -1039,10 +1043,10 @@ public:
 			float rx = RNG.Get1();// S.m_Dir.x;
 			float ry = RNG.Get1();// S.m_Dir.y;
 
-			float z = 1 - 2 * rx;
-			float r = sqrtf(fmaxf(0, 1 - z * z));
+			float z = 1.f - 2.f * rx;
+			float r = sqrtf(fmaxf(0, 1.f - z * z));
 			float phi = acosf(z);
-			float theta = 2 * PI_F * ry;
+			float theta = 2.f * PI_F * ry;
 			float x = r * cosf(theta);
 			float y = r * sinf(theta);
 
@@ -1109,9 +1113,9 @@ public:
 			}
 
 			//float party = fmodf(ry, 0.25) * 4;
-			float party = (ry - q * 0.25) * 4;
+			float party = (ry - q * 0.25f) * 4.f;
 			//float partx = 1 - fabsf(rx - (1 / 2)) * 2;
-			float partx = 1 - fabsf((phi / PI_F) - 0.5f) * 2;
+			float partx = 1.f - fabsf((phi / PI_F) - 0.5f) * 2.f;
 			float hor = (t_C - t_B)*party + t_B;
 			float ver = (hor - t_A)*partx + t_A;
 			Pdf = ver / sum;
@@ -1149,8 +1153,13 @@ public:
 			//return CColorXyz((z + 1.f) / 2.f);
 			if (accepted) {
 				Wi = Vec3f(x, y, z);
+				//Wi.Normalize();
 				//Pdf = tries;
 				
+				//if (Wi.y > 0)
+				//	return CColorXyz(0);
+				//else
+				//	return CColorXyz(1.f);
 			}
 			else {
 				//S.LargeStep(RNG);
@@ -1219,7 +1228,7 @@ public:
 		float GHDC = (G + H + D + C) / 4;
 		float ABCD = (A + B + C + D) / 4;
 		float GHEF = (G + H + E + F) / 4;
-		/*
+		
 		AEHD = powf(AEHD, gScatteringHeadstart);
 		GCBF = powf(GCBF, gScatteringHeadstart);
 		ABFE = powf(ABFE, gScatteringHeadstart);
@@ -1227,23 +1236,6 @@ public:
 		ABCD = powf(ABCD, gScatteringHeadstart);
 		GHEF = powf(GHEF, gScatteringHeadstart);
 
-		AEHD = 1;
-		GCBF = 1;
-		ABFE = 1;
-		GHDC = 1;
-		ABCD = 1;
-		GHEF = 1;
-		*/
-		/*float faces[8][3] = {
-			{GHEF, GCBF, GHDC}, // %G
-			{GHEF, ABFE, GCBF}, // %F
-			{GHEF, AEHD, ABFE}, // %E
-			{GHEF, GHDC, AEHD}, // %H
-			{ABCD, GCBF, GHDC}, // %C
-			{ABCD, ABFE, GCBF}, // %B
-			{ABCD, AEHD, ABFE}, // %A
-			{ABCD, GHDC, AEHD}  // %D
-		};*/
 		float faces[8][3] = {
 			{GCBF, GHDC, GHEF}, // %G
 			{GCBF, GHEF, ABFE}, // %F
@@ -1380,7 +1372,6 @@ public:
 	float m_p = 0.25f;
 };
 
-
 class CIsotropicPhase
 {
 public:
@@ -1502,6 +1493,315 @@ public:
 	CMicrofacet		m_Microfacet;
 };
 
+class CRejectionSamplerAdvancedFloodfill {
+public:
+	DEV CRejectionSamplerAdvancedFloodfill(const Vec3f& Pe, const CColorXyz& Kd) :
+		m_Kd(Kd),
+		m_Pe(Pe)
+	{
+	}
+
+	DEV ~CRejectionSamplerAdvancedFloodfill(void)
+	{
+	}
+
+	DEV CColorXyz F(const Vec3f& Wo, const Vec3f& Wi)
+	{
+		return m_Kd * INV_4_PI_F;
+	}
+
+	DEV CColorXyz SampleF(const Vec3f& Wo, Vec3f& Wi, float& Pdf, CBrdfSample& S, CRNG& RNG)
+	{
+		float3 mins = floor(make_float3(m_Pe.x, m_Pe.y, m_Pe.z) / gVoxelSizeWorld) * gVoxelSizeWorld;
+		float A, B, C, D, E, F, G, H;
+		A = GetLightPathValue(mins);
+		B = GetLightPathValue(mins + gVoxelSizeWorldZ);
+		C = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX);
+		D = GetLightPathValue(mins + gVoxelSizeWorldX);
+
+		E = GetLightPathValue(mins + gVoxelSizeWorldY);
+		F = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldY);
+		G = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX + gVoxelSizeWorldY);
+		H = GetLightPathValue(mins + gVoxelSizeWorldX + gVoxelSizeWorldY);
+
+		float gradAG, gradDF, gradCE, gradBH;
+		gradAG = G - A;
+		gradDF = F - D;
+		gradCE = E - C;
+		gradBH = H - B;
+
+		float maxGradient = fabsf(fmaxf(gradAG, fmaxf(gradDF, fmaxf(gradCE, gradBH))));
+		maxGradient = maxGradient == 0.f ? 1.f : maxGradient;
+		gradAG = gradAG / maxGradient;
+		gradDF = gradDF / maxGradient;
+		gradCE = gradCE / maxGradient;
+		gradBH = gradBH / maxGradient;
+
+		A = (1.f + gradAG);
+		G = (1.f - gradAG);
+		D = (1.f + gradDF);
+		F = (1.f - gradDF);
+		C = (1.f + gradCE);
+		E = (1.f - gradCE);
+		B = (1.f + gradBH);
+		H = (1.f - gradBH);
+
+		float AEHD = (A + E + H + D) / 4.f;
+		float GCBF = (G + C + B + F) / 4.f;
+		float ABFE = (A + B + F + E) / 4.f;
+		float GHDC = (G + H + D + C) / 4.f;
+		float ABCD = (A + B + C + D) / 4.f;
+		float GHEF = (G + H + E + F) / 4.f;
+
+		AEHD = powf(AEHD, gGradientPower);
+		GCBF = powf(GCBF, gGradientPower);
+		ABFE = powf(ABFE, gGradientPower);
+		GHDC = powf(GHDC, gGradientPower);
+		ABCD = powf(ABCD, gGradientPower);
+		GHEF = powf(GHEF, gGradientPower);
+
+		float faces[8][3] = {
+			{GCBF, GHDC, GHEF}, // %G
+			{GCBF, GHEF, ABFE}, // %F
+			{GCBF, ABFE, ABCD}, // %E
+			{GCBF, ABCD, GHDC}, // %H
+			{AEHD, GHDC, GHEF}, // %C
+			{AEHD, GHEF, ABFE}, // %B
+			{AEHD, ABFE, ABCD}, // %A
+			{AEHD, ABCD, GHDC}  // %D
+		};
+
+		float sum = 0;
+		for (int i = 0; i < 8; i++)
+			sum = sum + ((0.5f)*((PI_F - 2.f)*faces[i][0] + faces[i][1] + faces[i][2]));
+
+		bool accepted = false;
+		float t_A, t_B, t_C, q, rx, ry, z, r, phi, theta, x, y, party, partx, hor, ver;
+		float maxP = fmaxf(AEHD, fmaxf(GCBF, fmaxf(ABFE, fmaxf(GHDC, fmaxf(ABCD, GHEF)))));
+
+		while (!accepted) {
+			rx = RNG.Get1();
+			ry = RNG.Get1();
+
+			z = 1.f - 2.f * rx;
+			r = sqrtf(fmaxf(0, 1.f - z * z));
+			phi = acosf(z);
+			theta = 2.f * PI_F * ry;
+			x = r * cosf(theta);
+			y = r * sinf(theta);
+			
+			if (z > 0) {
+				if (theta <= HALF_PI_F) {
+					t_A = GCBF;
+					t_B = GHDC;
+					t_C = GHEF;
+					q = 0;
+				}
+				else if (theta <= PI_F) {
+					t_A = GCBF;
+					t_B = GHEF;
+					t_C = ABFE;
+					q = 1;
+				}
+				else if (theta <= 3 * HALF_PI_F) {
+					t_A = GCBF;
+					t_B = ABFE;
+					t_C = ABCD;
+					q = 2;
+				}
+				else {
+					t_A = GCBF;
+					t_B = ABCD;
+					t_C = GHDC;
+					q = 3;
+				}
+			}
+			else {
+				if (theta <= HALF_PI_F) {
+					t_A = AEHD;
+					t_B = GHDC;
+					t_C = GHEF;
+					q = 0;
+				}
+				else if (theta <= PI_F) {
+					t_A = AEHD;
+					t_B = GHEF;
+					t_C = ABFE;
+					q = 1;
+				}
+				else if (theta <= 3 * HALF_PI_F) {
+					t_A = AEHD;
+					t_B = ABFE;
+					t_C = ABCD;
+					q = 2;
+				}
+				else {
+					t_A = AEHD;
+					t_B = ABCD;
+					t_C = GHDC;
+					q = 3;
+				}
+			}
+
+			party = (ry - q * 0.25f) * 4.f;
+			partx = 1.f - fabsf((phi / PI_F) - 0.5f) * 2.f;
+			hor = (t_C - t_B)*party + t_B;
+			ver = (hor - t_A)*partx + t_A;
+			Pdf = ver / sum;
+			
+			//float c = (maxP / sum) / INV_4_PI_F;
+			//accepted = RNG.Get1() <= Pdf / (c*INV_4_PI_F);
+			// Due to uniform sample as candidate (https://bookdown.org/rdpeng/advstatcomp/rejection-sampling.html)
+			// simplifies to:
+			accepted = RNG.Get1() <= ver / maxP;
+			if (accepted) {
+				Wi = Vec3f(x, y, z);
+			}
+		}
+
+		return this->F(Wo, Wi);
+	}
+
+	DEV float Pdf(const Vec3f& Wo, const Vec3f& Wi)
+	{
+		float3 mins = floor(make_float3(m_Pe.x, m_Pe.y, m_Pe.z) / gVoxelSizeWorld) * gVoxelSizeWorld;
+		float A, B, C, D, E, F, G, H;
+		A = GetLightPathValue(mins);
+		B = GetLightPathValue(mins + gVoxelSizeWorldZ);
+		C = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX);
+		D = GetLightPathValue(mins + gVoxelSizeWorldX);
+
+		E = GetLightPathValue(mins + gVoxelSizeWorldY);
+		F = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldY);
+		G = GetLightPathValue(mins + gVoxelSizeWorldZ + gVoxelSizeWorldX + gVoxelSizeWorldY);
+		H = GetLightPathValue(mins + gVoxelSizeWorldX + gVoxelSizeWorldY);
+
+		float gradAG, gradDF, gradCE, gradBH;
+		gradAG = G - A;
+		gradDF = F - D;
+		gradCE = E - C;
+		gradBH = H - B;
+
+		float maxGradient = fabsf(fmaxf(gradAG, fmaxf(gradDF, fmaxf(gradCE, gradBH))));
+		maxGradient = maxGradient == 0.f ? 1.f : maxGradient;
+		gradAG = gradAG / maxGradient;
+		gradDF = gradDF / maxGradient;
+		gradCE = gradCE / maxGradient;
+		gradBH = gradBH / maxGradient;
+
+		A = (1 + gradAG);
+		G = (1 - gradAG);
+		D = (1 + gradDF);
+		F = (1 - gradDF);
+		C = (1 + gradCE);
+		E = (1 - gradCE);
+		B = (1 + gradBH);
+		H = (1 - gradBH);
+
+		float AEHD = (A + E + H + D) / 4;
+		float GCBF = (G + C + B + F) / 4;
+		float ABFE = (A + B + F + E) / 4;
+		float GHDC = (G + H + D + C) / 4;
+		float ABCD = (A + B + C + D) / 4;
+		float GHEF = (G + H + E + F) / 4;
+		
+		AEHD = powf(AEHD, gScatteringHeadstart);
+		GCBF = powf(GCBF, gScatteringHeadstart);
+		ABFE = powf(ABFE, gScatteringHeadstart);
+		GHDC = powf(GHDC, gScatteringHeadstart);
+		ABCD = powf(ABCD, gScatteringHeadstart);
+		GHEF = powf(GHEF, gScatteringHeadstart);
+
+		float faces[8][3] = {
+			{GCBF, GHDC, GHEF}, // %G
+			{GCBF, GHEF, ABFE}, // %F
+			{GCBF, ABFE, ABCD}, // %E
+			{GCBF, ABCD, GHDC}, // %H
+			{AEHD, GHDC, GHEF}, // %C
+			{AEHD, GHEF, ABFE}, // %B
+			{AEHD, ABFE, ABCD}, // %A
+			{AEHD, ABCD, GHDC}  // %D
+		};
+
+		float sum = 0;
+		for (int i = 0; i < 8; i++)
+			sum = sum + (0.5)*((PI_F - 2.f)*faces[i][0] + faces[i][1] + faces[i][2]);
+
+		//r = x2 + y2 + z2 = 1
+		float theta = atanf(Wi.y / Wi.x);
+		float phi = acosf(Wi.z);
+
+		float t_A, t_B, t_C, q;
+		if (Wi.z > 0) {
+			if (theta <= HALF_PI_F) {
+				t_A = GCBF;
+				t_B = GHDC;
+				t_C = GHEF;
+				q = 0;
+			}
+			else if (theta <= PI_F) {
+				t_A = GCBF;
+				t_B = GHEF;
+				t_C = ABFE;
+				q = 1;
+			}
+			else if (theta <= 3 * HALF_PI_F) {
+				t_A = GCBF;
+				t_B = ABFE;
+				t_C = ABCD;
+				q = 2;
+			}
+			else {
+				t_A = GCBF;
+				t_B = ABCD;
+				t_C = GHDC;
+				q = 3;
+			}
+		}
+		else {
+			if (theta <= HALF_PI_F) {
+				t_A = AEHD;
+				t_B = GHDC;
+				t_C = GHEF;
+				q = 0;
+			}
+			else if (theta <= PI_F) {
+				t_A = AEHD;
+				t_B = GHEF;
+				t_C = ABFE;
+				q = 1;
+			}
+			else if (theta <= 3 * HALF_PI_F) {
+				t_A = AEHD;
+				t_B = ABFE;
+				t_C = ABCD;
+				q = 2;
+			}
+			else {
+				t_A = AEHD;
+				t_B = ABCD;
+				t_C = GHDC;
+				q = 3;
+			}
+		}
+
+		float ry = phi / TWO_PI_F;
+		float rx = theta / PI_F;
+
+		float party = (ry - q * 0.25) * 4;
+		float partx = 1 - fabsf((phi / PI_F) - 0.5f) * 2;
+		float hor = (t_C - t_B)*party + t_B;
+		float ver = (hor - t_A)*partx + t_A;
+		float Pdf = ver / sum;
+
+		return Pdf;
+	}
+
+	Vec3f		m_Pe;
+	CColorXyz	m_Kd;
+};
+
+
 class CVolumeShader
 {
 public:
@@ -1514,7 +1814,8 @@ public:
 		LightPathsOctoGradient,
 		TestShader,
 		LightPathsOctoGradientRejectionSampling,
-		OneDirectional
+		OneDirectional,
+		LightPathsOctoGradientRejectionSamplingAdvanced,
 	};
 
 	DEV CVolumeShader(const EType& Type, const Vec3f& Pe, const Vec3f& N, const Vec3f& Wo, const CColorXyz& Kd, const CColorXyz& Ks, const float& Ior, const float& Exponent) :
@@ -1526,7 +1827,8 @@ public:
 		m_LightPathsOctoGradient(Pe, Kd),
 		m_TestShader(Kd),
 		m_LightPathsOctoGradientRejectionSampling(Pe, Kd),
-		m_OneDirectional(Kd)
+		m_OneDirectional(Kd),
+		m_RejectionAdvancedFloodfill(Pe, Kd)
 	{
 	}
 
@@ -1561,6 +1863,9 @@ public:
 
 			case OneDirectional:
 				return m_OneDirectional.F(Wo, Wi);
+
+			case LightPathsOctoGradientRejectionSamplingAdvanced:
+				return m_RejectionAdvancedFloodfill.F(Wo, Wi);
 		}
 
 		return 1.0f;
@@ -1599,6 +1904,9 @@ public:
 
 			case OneDirectional:
 				return m_OneDirectional.SampleF(Wo, Wi, Pdf, RNG);
+
+			case LightPathsOctoGradientRejectionSamplingAdvanced:
+				return m_RejectionAdvancedFloodfill.SampleF(Wo, Wi, Pdf, S, RNG);
 		}
 	}
 
@@ -1629,6 +1937,9 @@ public:
 
 			case OneDirectional:
 				return m_OneDirectional.Pdf(Wo, Wi);
+
+			case LightPathsOctoGradientRejectionSamplingAdvanced:
+				return m_RejectionAdvancedFloodfill.Pdf(Wo, Wi);
 		}
 
 		return 1.0f;
@@ -1643,4 +1954,5 @@ public:
 	CTestShader			m_TestShader;
 	CRejectionSampler	m_LightPathsOctoGradientRejectionSampling;
 	COneDirectional		m_OneDirectional;
+	CRejectionSamplerAdvancedFloodfill m_RejectionAdvancedFloodfill;
 };

@@ -24,7 +24,7 @@ texture<float4, cudaTextureType1D, cudaReadModeElementType>			gTexEmission;
 texture<uchar4, cudaTextureType2D, cudaReadModeNormalizedFloat>		gTexRunningEstimateRgba;
 texture<float4, cudaTextureType3D, cudaReadModeElementType>			gTexOpacityGradient;
 texture<float, cudaTextureType3D, cudaReadModeNormalizedFloat>		gTexOpacityMagnitudeNormalized;
-texture<int, cudaTextureType3D, cudaReadModeElementType>			gTexLightPaths;
+texture<float, cudaTextureType3D, cudaReadModeElementType>			gTexLightPaths;
 
 cudaArray* gpDensityArray				= NULL;
 cudaArray* gpLightPathsArray			= NULL;
@@ -72,6 +72,7 @@ CD float		gDenoiseLerpC;
 CD float		gNoIterations;
 CD float		gInvNoIterations;
 CD float		gScatteringHeadstart;
+CD float		gGradientPower;
 CD float3		gSpacings;
 
 #define TF_NO_SAMPLES		128
@@ -164,15 +165,15 @@ void UnbindGradientMagnitudeBuffer(void)
 	HandleCudaError(cudaUnbindTexture(gTexGradientMagnitude));
 }
 
-void BindLightPathsBuffer(int* pBuffer, cudaExtent Extent)
+void BindLightPathsBuffer(float* pBuffer, cudaExtent Extent)
 {
-	cudaChannelFormatDesc ChannelDesc = cudaCreateChannelDesc<int>();
+	cudaChannelFormatDesc ChannelDesc = cudaCreateChannelDesc<float>();
 
 	HandleCudaError(cudaMalloc3DArray(&gpLightPathsArray, &ChannelDesc, Extent));
 
 	cudaMemcpy3DParms CopyParams = { 0 };
 
-	CopyParams.srcPtr = make_cudaPitchedPtr(pBuffer, Extent.width * sizeof(int), Extent.width, Extent.height);
+	CopyParams.srcPtr = make_cudaPitchedPtr(pBuffer, Extent.width * sizeof(float), Extent.width, Extent.height);
 	CopyParams.dstArray = gpLightPathsArray;
 	CopyParams.extent = Extent;
 	CopyParams.kind = cudaMemcpyHostToDevice;
@@ -450,6 +451,9 @@ void BindConstants(CScene* pScene)
 	HandleCudaError(cudaMemcpyToSymbol(gStepSizeShadow, &StepSizeShadow, sizeof(float)));
 	HandleCudaError(cudaMemcpyToSymbol(gScatteringHeadstart, &ScatteringHeadstart, sizeof(float)));
 
+	const float GradientPower = pScene->m_GradientPower;
+	HandleCudaError(cudaMemcpyToSymbol(gGradientPower, &GradientPower, sizeof(float)));
+	//std::cout << GradientPower << std::endl;
 
 	const float DensityScale = pScene->m_DensityScale;
 

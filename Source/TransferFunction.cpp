@@ -39,7 +39,8 @@ QTransferFunction::QTransferFunction(QObject* pParent, const QString& Name) :
 	m_ScatteringHeadstart(0),
 	m_MakeFloodFill(false),
 	m_OpacityWeight(100),
-	m_DirectionWeight(1)
+	m_DirectionWeight(1),
+	m_GradientPower(1.f)
 {
 }
 
@@ -71,9 +72,10 @@ QTransferFunction& QTransferFunction::operator = (const QTransferFunction& Other
 	m_PrimaryStepSize	= Other.m_PrimaryStepSize;
 	m_SecondaryStepSize = Other.m_SecondaryStepSize;
 	m_ScatteringHeadstart = Other.m_ScatteringHeadstart;
-	m_OpacityWeight = Other.m_OpacityWeight;
-	m_DirectionWeight = Other.m_DirectionWeight;
-	m_MakeFloodFill = Other.m_MakeFloodFill;
+	m_OpacityWeight		= Other.m_OpacityWeight;
+	m_DirectionWeight	= Other.m_DirectionWeight;
+	m_MakeFloodFill		= Other.m_MakeFloodFill;
+	m_GradientPower		= Other.m_GradientPower;
 
 	// Update node's range
 	UpdateNodeRanges();
@@ -474,6 +476,21 @@ void QTransferFunction::SetDirectionWeight(const float& DirectionWeight)
 	m_DirectionWeight = DirectionWeight;
 
 	//emit SettingsChanged();
+}
+
+float QTransferFunction::GetGradientPower(void) const
+{
+	return m_GradientPower;
+}
+
+void QTransferFunction::SetGradientPower(const float& GradientPower)
+{
+	if (GradientPower == m_GradientPower)
+		return;
+
+	m_GradientPower = GradientPower;
+
+	emit SettingsChanged();
 }
 
 bool QTransferFunction::GetMakeFloodFill(void) const

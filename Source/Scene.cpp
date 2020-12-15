@@ -39,7 +39,8 @@ CScene::CScene(void) :
 	m_PostProcessingSteps(15),
 	m_MaxBounces(1),
 	m_ScatterType(2),
-	m_ScatteringHeadstart(0)
+	m_ScatteringHeadstart(0),
+	m_GradientPower(1.f)
 {
 }
 
@@ -65,7 +66,7 @@ HOD CScene& CScene::operator=(const CScene& Other)
 	m_ShadingType				= Other.m_ShadingType;
 	m_StepSizeFactor			= Other.m_StepSizeFactor;
 	m_StepSizeFactorShadow		= Other.m_StepSizeFactorShadow;
-	m_VoxelSizeWorld				= Other.m_VoxelSizeWorld;
+	m_VoxelSizeWorld			= Other.m_VoxelSizeWorld;
 	m_GradientMagnitudeRange	= Other.m_GradientMagnitudeRange;
 	m_GradientFactor			= Other.m_GradientFactor;
 	m_GradMagMean				= Other.m_GradMagMean;
@@ -74,6 +75,7 @@ HOD CScene& CScene::operator=(const CScene& Other)
 	m_MaxBounces				= Other.m_MaxBounces;
 	m_ScatterType				= Other.m_ScatterType;
 	m_ScatteringHeadstart		= Other.m_ScatteringHeadstart;
+	m_GradientPower				= Other.m_GradientPower;
 
 	return *this;
 }

@@ -1076,6 +1076,7 @@ void QRenderThread::OnUpdateTransferFunctionSettings(void) {
 	gScene.m_StepSizeFactor = TransferFunction.GetPrimaryStepSize();
 	gScene.m_StepSizeFactorShadow = TransferFunction.GetSecondarStepSize();
 	gScene.m_ScatteringHeadstart = TransferFunction.GetScatteringHeadstart();
+	gScene.m_GradientPower = TransferFunction.GetGradientPower();
 
 	if ((gScene.m_AlgorithmType == SINGLE_SCATTERING || gScene.m_AlgorithmType == MULTIPLE_SCATTERING)
 		&& m_CurFilterMode != cudaFilterModeLinear) {
@@ -1117,8 +1118,9 @@ void QRenderThread::OnUpdateTransferFunctionSettings(void) {
 		ext.width = gScene.m_Resolution[0];
 		ext.height = gScene.m_Resolution[1];
 		ext.depth = gScene.m_Resolution[2];
-
-		int* res = InitFloodFill(TransferFunction.GetOpacityWeight(), TransferFunction.GetDirectionWeight());
+		
+		//float* res = InitFloodFill(TransferFunction.GetOpacityWeight(), TransferFunction.GetDirectionWeight());
+		float* res = InitFloodFillAdvanced(TransferFunction.GetOpacityWeight(), TransferFunction.GetDirectionWeight());
 		gTransferFunction.setMakeFloodFill(false);
 		UnbindLightPathsBuffer();
 		BindLightPathsBuffer(res, ext);
@@ -1132,36 +1134,36 @@ void QRenderThread::InitPreCalculated() {
 	InitPreCalculatedCore(SceneCopy, m_pDensityBuffer);
 }
 
-int* QRenderThread::InitFloodFill(float OpacityWeight, float DirectionWeight) {
+float* QRenderThread::InitFloodFill(float OpacityWeight, float DirectionWeight) {
 	
 	// using lambda to compare elements.
-	auto compare = [](Vec4i lhs, Vec4i rhs)
+	auto compare = [](Vec4f lhs, Vec4f rhs)
 	{
 		return lhs.w > rhs.w;
 	};
 
-	int** results;
+	float** results;
 	//results = (int**)malloc(sizeof(int*) * gScene.m_Lighting.m_NoLights);
-	results = (int**)malloc(sizeof(int*) * 1);
+	results = (float**)malloc(sizeof(float*) * 1);
 
 	for (int lightIndex = 0; lightIndex < gScene.m_Lighting.m_NoLights; lightIndex++) {
 		// Make an array to store our results
-		int* result;
-		result = (int*)malloc(gScene.m_Resolution.GetNoElements() * sizeof(int));
+		float* result;
+		result = (float*)malloc(gScene.m_Resolution.GetNoElements() * sizeof(float));
 		for (int i = 0; i < gScene.m_Resolution.GetNoElements(); i++) {
-			result[i] = -1;
+			result[i] = -1.f;
 		}
 		//results[lightIndex] = result;
 		results[0] = result;
 
 		// Make a new priority queue
-		std::priority_queue<Vec4i, std::vector<Vec4i>, decltype(compare)> queue(compare);
+		std::priority_queue<Vec4f, std::vector<Vec4f>, decltype(compare)> queue(compare);
 
 		// Setup regarding the current light
 		CLight light = gScene.m_Lighting.m_Lights[lightIndex];
 		std::cout << "LightIndex: " << lightIndex << ", Type: " << light.m_T << std::endl;
 		if (true) {
-			Vec4i start = Vec4i(63, 25, 63, 0); //-0.3
+			Vec4f start = Vec4f(63, 25, 63, 0); //-0.3
 			//Vec4i start = Vec4i(63, 51, 63, 0); //-0.1
 			int pos1D = start.x + gScene.m_Resolution.GetResX() * start.y + gScene.m_Resolution.GetResX() * gScene.m_Resolution.GetResY() * start.z;
 			start.w = 0;
@@ -1239,11 +1241,11 @@ int* QRenderThread::InitFloodFill(float OpacityWeight, float DirectionWeight) {
 							}
 
 							if (maxDot > threshold) {
-								Vec4i start = Vec4i(x, y, z, 0);
+								Vec4f start = Vec4f(x, y, z, 0);
 								int pos1D = start.x + gScene.m_Resolution.GetResX() * start.y + gScene.m_Resolution.GetResX() * gScene.m_Resolution.GetResY() * start.z;
 								float normalizedDensity = (m_pDensityBuffer[pos1D] - gScene.m_IntensityRange.GetMin()) / gScene.m_IntensityRange.GetRange();
 								float opacity = gScene.m_TransferFunctions.m_Opacity.F(normalizedDensity).r;
-								start.w = (int)(opacity * OpacityWeight + DirectionWeight) * (2 - (maxDot + 1));
+								start.w = (opacity * OpacityWeight + DirectionWeight) * (2 - (maxDot + 1));
 								result[pos1D] = start.w;
 								queue.push(start);
 							}
@@ -1263,11 +1265,11 @@ int* QRenderThread::InitFloodFill(float OpacityWeight, float DirectionWeight) {
 						if (x == 0 || x == gScene.m_Resolution.GetResX() - 1
 							|| y == 0 || y == gScene.m_Resolution.GetResY() - 1
 							|| z == 0 || z == gScene.m_Resolution.GetResZ() - 1) {
-							Vec4i start = Vec4i(x, y, z, 0);
+							Vec4f start = Vec4f(x, y, z, 0);
 							int pos1D = start.x + gScene.m_Resolution.GetResX() * start.y + gScene.m_Resolution.GetResX() * gScene.m_Resolution.GetResY() * start.z;
 							float normalizedDensity = (m_pDensityBuffer[pos1D] - gScene.m_IntensityRange.GetMin()) / gScene.m_IntensityRange.GetRange();
 							float opacity = gScene.m_TransferFunctions.m_Opacity.F(normalizedDensity).r;
-							start.w = (int)(opacity * OpacityWeight + DirectionWeight);
+							start.w = (opacity * OpacityWeight + DirectionWeight);
 							result[pos1D] = start.w;
 							queue.push(start);
 						}
@@ -1282,7 +1284,7 @@ int* QRenderThread::InitFloodFill(float OpacityWeight, float DirectionWeight) {
 		int i = 1;
 
 		while (!queue.empty()) {
-			Vec4i point = queue.top();
+			Vec4f point = queue.top();
 			queue.pop();
 			//std::cout << "Point: " << point.x << ", " << point.y << ", " << point.z << ", " << point.w << ". Result: " << result[pos1D] << std::endl;
 
@@ -1294,7 +1296,7 @@ int* QRenderThread::InitFloodFill(float OpacityWeight, float DirectionWeight) {
 			for (int x = -1; x < 2; x++) {
 				for (int y = -1; y < 2; y++) {
 					for (int z = -1; z < 2; z++) {
-						Vec4i newPoint = Vec4i(point.x + x, point.y + y, point.z + z, point.w);
+						Vec4f newPoint = Vec4f(point.x + x, point.y + y, point.z + z, point.w);
 						int pos1D = newPoint.x + gScene.m_Resolution.GetResX() * newPoint.y + gScene.m_Resolution.GetResX() * gScene.m_Resolution.GetResY() * newPoint.z;
 						//std::cout << "newPoint: " << point.x << ", " << point.y << ", " << point.z << ", " << point.w << ". Result: " << result[pos1D] << std::endl;
 						// Check if we have a usable point. Otherwise continue to the next point
@@ -1307,8 +1309,22 @@ int* QRenderThread::InitFloodFill(float OpacityWeight, float DirectionWeight) {
 						float normalizedDensity = (m_pDensityBuffer[pos1D] - gScene.m_IntensityRange.GetMin()) / gScene.m_IntensityRange.GetRange();
 						float opacity = gScene.m_TransferFunctions.m_Opacity.F(normalizedDensity).r;
 
+						float distanceAdjustment = 1.f;
+						if (fabsf(x) + fabsf(y) + fabsf(z) == 1) {
+							distanceAdjustment = 1.f;
+						 }
+						else if (fabsf(x) + fabsf(y) + fabsf(z) == 2) {
+							distanceAdjustment = sqrtf(2);
+						}
+						else if (fabsf(x) + fabsf(y) + fabsf(z) == 3) {
+							distanceAdjustment = sqrtf(3);
+						}
+						else { // should be 0, equal to the center
+							distanceAdjustment = 0;
+						}
+
 						// Some function to map opacity to step size. Could emulating stepsizes of woodcock more closely help?
-						newPoint.w += (int)(opacity * OpacityWeight + DirectionWeight);
+						newPoint.w += (opacity * OpacityWeight + distanceAdjustment * DirectionWeight);
 
 						// Store the result in an array
 						result[pos1D] = newPoint.w;
@@ -1329,6 +1345,297 @@ int* QRenderThread::InitFloodFill(float OpacityWeight, float DirectionWeight) {
 	return results[0];
 }
 
+struct floodFillValue {
+	Vec3i location;
+	Vec3f origin;
+	float value;
+};
+
+float* QRenderThread::InitFloodFillAdvanced(float penaltySpread, float penaltyBounce) {
+	float OpacityWeight = 0;
+	float DirectionWeight = 0;
+
+	// using lambda to compare elements.
+	auto compare = [](floodFillValue lhs, floodFillValue rhs)
+	{
+		return lhs.value > rhs.value;
+	};
+
+	float** results;
+	//results = (int**)malloc(sizeof(int*) * gScene.m_Lighting.m_NoLights);
+	results = (float**)malloc(sizeof(float*) * 1);
+
+	//for (int lightIndex = 0; lightIndex < gScene.m_Lighting.m_NoLights; lightIndex++) {
+	for (int lightIndex = 0; lightIndex < gScene.m_Lighting.m_NoLights && lightIndex < 1; lightIndex++) {
+		// Make an array to store our results
+		float* result;
+		result = (float*)malloc(gScene.m_Resolution.GetNoElements() * sizeof(float));
+		for (int i = 0; i < gScene.m_Resolution.GetNoElements(); i++) {
+			result[i] = -1.f;
+		}
+		results[lightIndex] = result;
+
+		// Make a new priority queue
+		std::priority_queue<floodFillValue, std::vector<floodFillValue>, decltype(compare)> queue(compare);
+
+		// Setup regarding the current light
+		CLight light = gScene.m_Lighting.m_Lights[lightIndex];
+		std::cout << "LightIndex: " << lightIndex << ", Type: " << light.m_T << std::endl;
+		if (true) {
+			floodFillValue start;
+			start.origin = Vec3f(63, 26, 63); 
+			start.location = Vec3i(63, 25, 63); //-0.3
+			//Vec4i start = Vec4i(63, 51, 63, 0); //-0.1
+			int pos1D = start.location.x + gScene.m_Resolution.GetResX() * start.location.y + gScene.m_Resolution.GetResX() * gScene.m_Resolution.GetResY() * start.location.z;
+			float normalizedDensity = (m_pDensityBuffer[pos1D] - gScene.m_IntensityRange.GetMin()) / gScene.m_IntensityRange.GetRange();
+			start.value = gScene.m_TransferFunctions.m_Opacity.F(normalizedDensity).r;// *gScene.m_DensityScale;
+			result[pos1D] = start.value;
+			queue.push(start);
+		}
+		else if (light.m_T == 0) { // Area light
+			// Get the direction from the light center point to the middle of the volume
+			Vec3f dir = Vec3f(0.5) - light.m_P;
+			dir.Normalize();
+
+			float nearest;
+			float furthest;
+			IntersectBox(light.m_P, dir, &nearest, &furthest);
+
+			Vec3f entryWorld = light.m_P + dir * nearest;
+			Vec3f volExit = light.m_P + dir * furthest;
+
+			Vec3f* points = new Vec3f[4];
+			points[0] = light.m_P + (-light.m_HalfWidth * light.m_U) + (-light.m_HalfHeight * light.m_V);
+			points[1] = light.m_P + (+light.m_HalfWidth * light.m_U) + (-light.m_HalfHeight * light.m_V);
+			points[2] = light.m_P + (+light.m_HalfWidth * light.m_U) + (+light.m_HalfHeight * light.m_V);
+			points[3] = light.m_P + (-light.m_HalfWidth * light.m_U) + (+light.m_HalfHeight * light.m_V);
+			/*
+			Vec4i* pointsVol = new Vec4i[4];
+			for (int i = 0; i < 4; i++) {
+				IntersectBox(points[i], volExit - points[i], &nearest, &furthest);
+				Vec3f entry = points[i] + (volExit - points[i]) * nearest;
+				pointsVol[i] = Vec4i(
+					Clamp(entry.x / gScene.m_VoxelSizeWorld.x, 0, gScene.m_Resolution.GetResX() - 1),
+					Clamp(entry.y / gScene.m_VoxelSizeWorld.y, 0, gScene.m_Resolution.GetResY() - 1),
+					Clamp(entry.z / gScene.m_VoxelSizeWorld.z, 0, gScene.m_Resolution.GetResZ() - 1),
+					0
+				);
+			}*/
+			float threshold = 0.5;
+			for (int x = 0; x < gScene.m_Resolution.GetResX(); x++) {
+				for (int y = 0; y < gScene.m_Resolution.GetResY(); y++) {
+					for (int z = 0; z < gScene.m_Resolution.GetResZ(); z++) {
+						// Check if this is a point along the edge
+						if (x == 0 || x == gScene.m_Resolution.GetResX() - 1
+							|| y == 0 || y == gScene.m_Resolution.GetResY() - 1
+							|| z == 0 || z == gScene.m_Resolution.GetResZ() - 1) {
+
+							Vec3f p = Vec3f(x * gScene.m_VoxelSizeWorld.x, y * gScene.m_VoxelSizeWorld.y, z * gScene.m_VoxelSizeWorld.z);
+							float maxDot = -1;
+							for (int i = 0; i < 4; i++) {
+								Vec3f pToL = points[i] - p;
+								pToL.Normalize();
+								if (x == 0) {
+									maxDot = Fmaxf(maxDot, Vec3f(-1, 0, 0).Dot(pToL));
+									maxDot = Fmaxf(maxDot, Vec3f(-1, 0, 0).Dot(-light.m_N));
+								}
+								if (x == gScene.m_Resolution.GetResX() - 1) {
+									maxDot = Fmaxf(maxDot, Vec3f(1, 0, 0).Dot(pToL));
+									maxDot = Fmaxf(maxDot, Vec3f(1, 0, 0).Dot(-light.m_N));
+								}
+								if (y == 0) {
+									maxDot = Fmaxf(maxDot, Vec3f(0, -1, 0).Dot(pToL));
+									maxDot = Fmaxf(maxDot, Vec3f(0, -1, 0).Dot(-light.m_N));
+								}
+								if (y == gScene.m_Resolution.GetResY() - 1) {
+									maxDot = Fmaxf(maxDot, Vec3f(0, 1, 0).Dot(pToL));
+									maxDot = Fmaxf(maxDot, Vec3f(0, 1, 0).Dot(-light.m_N));
+								}
+								if (z == 0) {
+									maxDot = Fmaxf(maxDot, Vec3f(0, 0, -1).Dot(pToL));
+									maxDot = Fmaxf(maxDot, Vec3f(0, 0, -1).Dot(-light.m_N));
+								}
+								if (z == gScene.m_Resolution.GetResZ() - 1) {
+									maxDot = Fmaxf(maxDot, Vec3f(0, 0, 1).Dot(pToL));
+									maxDot = Fmaxf(maxDot, Vec3f(0, 0, 1).Dot(-light.m_N));
+								}
+
+							}
+
+							if (maxDot > threshold) {
+								Vec4f start = Vec4f(x, y, z, 0);
+								int pos1D = start.x + gScene.m_Resolution.GetResX() * start.y + gScene.m_Resolution.GetResX() * gScene.m_Resolution.GetResY() * start.z;
+								float normalizedDensity = (m_pDensityBuffer[pos1D] - gScene.m_IntensityRange.GetMin()) / gScene.m_IntensityRange.GetRange();
+								float opacity = gScene.m_TransferFunctions.m_Opacity.F(normalizedDensity).r;
+								start.w = (opacity * OpacityWeight + DirectionWeight) * (2 - (maxDot + 1));
+result[pos1D] = start.w;
+//queue.push(start);
+							}
+						}
+					}
+				}
+			}
+		}
+		else if (light.m_T == 1) { // Background light
+			// lets start with background only for now
+			continue;
+
+			for (int x = 0; x < gScene.m_Resolution.GetResX(); x++) {
+				for (int y = 0; y < gScene.m_Resolution.GetResY(); y++) {
+					for (int z = 0; z < gScene.m_Resolution.GetResZ(); z++) {
+						// Check if this is a point along the edge
+						if (x == 0 || x == gScene.m_Resolution.GetResX() - 1
+							|| y == 0 || y == gScene.m_Resolution.GetResY() - 1
+							|| z == 0 || z == gScene.m_Resolution.GetResZ() - 1) {
+							Vec4f start = Vec4f(x, y, z, 0);
+							int pos1D = start.x + gScene.m_Resolution.GetResX() * start.y + gScene.m_Resolution.GetResX() * gScene.m_Resolution.GetResY() * start.z;
+							float normalizedDensity = (m_pDensityBuffer[pos1D] - gScene.m_IntensityRange.GetMin()) / gScene.m_IntensityRange.GetRange();
+							float opacity = gScene.m_TransferFunctions.m_Opacity.F(normalizedDensity).r;
+							start.w = (opacity * OpacityWeight + DirectionWeight);
+							result[pos1D] = start.w;
+							//queue.push(start);
+						}
+					}
+				}
+			}
+		}
+		else { // Unknown type. skip
+		continue;
+		}
+
+
+		//lengths are
+		float minVoxelsize = fminf(fminf(gScene.m_VoxelSizeWorld.x, gScene.m_VoxelSizeWorld.y), gScene.m_VoxelSizeWorld.z);
+		float voxelAxisX = gScene.m_VoxelSizeWorld.x / minVoxelsize;
+		float voxelAxisY = gScene.m_VoxelSizeWorld.y / minVoxelsize;
+		float voxelAxisZ = gScene.m_VoxelSizeWorld.z / minVoxelsize;
+
+		float penalty_Angle = penaltySpread;// 10.f;
+		float penalty_BounceChance = penaltyBounce;// 10000.f;
+
+		float adjustmentDistance = 1.f;
+		float adjustmentAngle = 1.f;
+		float adjustmentBounceChance = 1.f;
+
+		int i = 1;
+
+		while (!queue.empty()) {
+			floodFillValue point = queue.top();
+			queue.pop();
+			//std::cout << "Point: " << point.x << ", " << point.y << ", " << point.z << ", " << point.w << ". Result: " << result[pos1D] << std::endl;
+
+			if (i++ % (gScene.m_Resolution.GetNoElements() / 100) == 0)
+				std::cout << "i: " << i << " of " << gScene.m_Resolution.GetNoElements()
+				<< " = " << ((int)((float)i / gScene.m_Resolution.GetNoElements() * 10000) / 100.0f)
+				<< "%. Point: " << point.location.x << ", " << point.location.y << ", " << point.location.z << ". Value: " << point.value << std::endl;
+
+			for (int x = -1; x < 2; x++) {
+				for (int y = -1; y < 2; y++) {
+					for (int z = -1; z < 2; z++) {
+
+						Vec3i newPoint = Vec3i(point.location.x + x, point.location.y + y, point.location.z + z);
+						int pos1D = newPoint.x + gScene.m_Resolution.GetResX() * newPoint.y + gScene.m_Resolution.GetResX() * gScene.m_Resolution.GetResY() * newPoint.z;
+						//std::cout << "newPoint: " << point.x << ", " << point.y << ", " << point.z << ", " << point.w << ". Result: " << result[pos1D] << std::endl;
+						// Check if we have a usable point. Otherwise continue to the next point
+						if (newPoint.x < 0 || newPoint.x >= gScene.m_Resolution.GetResX()
+							|| newPoint.y < 0 || newPoint.y >= gScene.m_Resolution.GetResY()
+							|| newPoint.z < 0 || newPoint.z >= gScene.m_Resolution.GetResZ()
+							|| result[pos1D] != -1)
+							continue;
+
+						float normalizedDensity = (m_pDensityBuffer[pos1D] - gScene.m_IntensityRange.GetMin()) / gScene.m_IntensityRange.GetRange();
+						float opacity = gScene.m_TransferFunctions.m_Opacity.F(normalizedDensity).r;
+
+						//26 case switch statement?
+
+						if (fabsf(x) + fabsf(y) + fabsf(z) == 1) {
+							if (x == 1 || x == -1) {
+								adjustmentDistance = voxelAxisX;
+							}
+							else if (y == 1 || y == -1) {
+								adjustmentDistance = voxelAxisY;
+							}
+							else {
+								adjustmentDistance = voxelAxisZ;
+							}
+						}
+						else if (fabsf(x) + fabsf(y) + fabsf(z) == 2) {
+							if (fabsf(x) == 1 && fabs(y) == 1) {
+								adjustmentDistance = sqrtf(powf(voxelAxisX, 2) + powf(voxelAxisY, 2));
+							}
+							else if (fabsf(x) == 1 && fabsf(z) == 1) {
+								adjustmentDistance = sqrtf(powf(voxelAxisX, 2) + powf(voxelAxisZ, 2));
+							}
+							else /*fabsf(y) == 1 YY fabs(z) == 1)*/ {
+								adjustmentDistance = sqrtf(powf(voxelAxisY, 2) + powf(voxelAxisZ, 2));
+							}
+							//adjustmentDistance = sqrtf(2);
+						}
+						else if (fabsf(x) + fabsf(y) + fabsf(z) == 3) {
+							adjustmentDistance = sqrtf(powf(voxelAxisX, 2) + powf(voxelAxisY, 2) + powf(voxelAxisZ, 2));
+							//adjustmentDistance = sqrtf(3);
+						}
+						else { // should be 0, equal to the center, should already be skipped
+							adjustmentDistance = 0;
+						}
+
+						Vec3f directionNew = Vec3f(x, y, z);
+						directionNew.Normalize();
+						Vec3f direction = Vec3f(point.location) - point.origin;
+						direction.Normalize();
+						float dotProduct = Dot(direction, directionNew);
+
+						if (dotProduct < 0.1) {
+							// we do not travel sideways or backwards
+							adjustmentAngle = INFINITY;
+						}
+						else if (dotProduct < 0.9f) {
+							// this is forwards diagonal, that's fine, with a penalty
+							adjustmentAngle = (1.f - dotProduct) * penalty_Angle;
+						}
+						else {
+							// straight ahead, no penalty
+							adjustmentAngle = 0.f;
+						}
+
+						//adjustmentBounceChance = Lerp(opacity, penalty_BounceChance,  1.f);
+						adjustmentBounceChance = (1.f - opacity) * penalty_BounceChance;
+
+						floodFillValue newValue;
+
+						// Some function to map opacity to step size. Could emulating stepsizes of woodcock more closely help?
+						//float value = adjustmentDistance * opacity * gScene.m_DensityScale * 
+						float valueSpread = adjustmentDistance * opacity + adjustmentAngle;
+						float valueBounce = adjustmentDistance * opacity + adjustmentBounceChance;
+
+						if (valueSpread <= valueBounce) {
+							newValue.value = point.value + valueSpread;
+							newValue.origin = point.origin;
+						}
+						else {
+							newValue.value = point.value + valueBounce;
+							newValue.origin = point.location;
+						}
+
+						// Store the result in an array
+						result[pos1D] = newValue.value;
+
+						// Add new point to the queue
+						newValue.location = newPoint;
+						queue.push(newValue);
+					}
+				}
+			}
+		}
+	}
+
+	/*for (int i = 0; i < gScene.m_Resolution.GetNoElements(); i++) {
+		//results[0][i] = 999;
+		std::cout << "index: " << i << ", result: " + std::to_string(results[0][i]) << std::endl;
+	}*/
+
+	return results[0];
+}
 /// <summary>
 /// Checks of the ray intersects with the boundingbox of the volume and fills minT and maxT with the correct values
 /// </summary>

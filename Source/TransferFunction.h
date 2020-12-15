@@ -67,6 +67,8 @@ public:
 	void						SetOpacityWeight(const float& OpacityWeight);
 	float						GetDirectionWeight(void) const;
 	void						SetDirectionWeight(const float& DirectionWeight);
+	float						GetGradientPower(void) const;
+	void						SetGradientPower(const float& GradientPower);
 	bool						GetMakeFloodFill(void) const;
 	void						setMakeFloodFill(const bool& MakeFloodFill);
 
@@ -93,6 +95,7 @@ private:
 	float		m_ScatteringHeadstart;
 	float		m_OpacityWeight;
 	float		m_DirectionWeight;
+	float		m_GradientPower;
 	bool		m_MakeFloodFill;
 
 	friend class QNode;

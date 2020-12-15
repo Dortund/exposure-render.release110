@@ -40,6 +40,7 @@ public slots:
 	void OnSetScatteringHeadstart(double ScatteringHeadstart);
 	void OnSetOpacityWeight(double OpacityWeight);
 	void OnSetDirectionWeight(double DirectionWeight);
+	void OnSetGradientPower(double GradientPower);
 	void OnMakeFloodfill();
 
 private:
@@ -66,5 +67,6 @@ private:
 	QDoubleSpinner	m_ScatteringHeadstartSpinner;
 	QDoubleSpinner	m_OpacityWeightSpinner;
 	QDoubleSpinner	m_DirectionWeightSpinner;
+	QDoubleSpinner	m_GradientPower;
 	QPushButton		m_MakeFloodFillButton;
 };

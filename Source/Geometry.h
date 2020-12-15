@@ -724,6 +724,13 @@ public:
 		this->z = xyz;
 	}
 
+	HOD Vec3f(const Vec3i& p)
+	{
+		this->x = p.x;
+		this->y = p.y;
+		this->z = p.z;
+	}
+
 	HOD float operator[](int i) const
 	{
 		return (&x)[i];

@@ -85,6 +85,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_ShadingType.addItem("Test Shader", 6);
 	m_ShadingType.addItem("Light Paths Octo Gradient Rejection Sampling", 7);
 	m_ShadingType.addItem("One Directional", 8);
+	m_ShadingType.addItem("Rejection Adv. Floodfill", 9);
 	m_MainLayout.addWidget(&m_ShadingType, i++, 1, 1, 2);
 
 	QObject::connect(&m_ShadingType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetShadingType(int)));
@@ -100,6 +101,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_ScatterType.addItem("Test Shader", 6);
 	m_ScatterType.addItem("Light Paths Octo Gradient Rejection Sampling", 7);
 	m_ScatterType.addItem("One Directional", 8);
+	m_ScatterType.addItem("Rejection Adv. Floodfill", 9);
 	m_ScatterType.setCurrentIndex(2);
 	m_MainLayout.addWidget(&m_ScatterType, i++, 1, 1, 2);
 
@@ -126,17 +128,17 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 
 	m_GradientFactorLabel.setText("Gradient Factor");
 	m_GradientFactorLabel.setToolTip("Multiplies the gradient with this factor when calculating getting the gradient for hybrid shading");
-	m_MainLayout.addWidget(&m_GradientFactorLabel, i, 0);
+	//m_MainLayout.addWidget(&m_GradientFactorLabel, i, 0);
 	
 	m_GradientFactorSlider.setRange(0.001, 100.0);
 	m_GradientFactorSlider.setValue(100.0);
 
-	m_MainLayout.addWidget(&m_GradientFactorSlider, i, 1);
+	//m_MainLayout.addWidget(&m_GradientFactorSlider, i, 1);
 
 	m_GradientFactorSpinner.setRange(0.001, 100.0);
 	m_GradientFactorSpinner.setDecimals(3);
 
-	m_MainLayout.addWidget(&m_GradientFactorSpinner, i++, 2);
+	//m_MainLayout.addWidget(&m_GradientFactorSpinner, i++, 2);
 
 	QObject::connect(&m_GradientFactorSlider, SIGNAL(valueChanged(double)), &m_GradientFactorSpinner, SLOT(setValue(double)));
 	QObject::connect(&m_GradientFactorSpinner, SIGNAL(valueChanged(double)), &m_GradientFactorSlider, SLOT(setValue(double)));
@@ -263,8 +265,17 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_MainLayout.addWidget(&m_DirectionWeightSpinner, i++, 2);
 	QObject::connect(&m_DirectionWeightSpinner, SIGNAL(valueChanged(double)), this, SLOT(OnSetDirectionWeight(double)));
 
-	m_MainLayout.addWidget(&m_MakeFloodFillButton, i, 0);
+	m_MainLayout.addWidget(&m_MakeFloodFillButton, i++, 0);
 	QObject::connect(&m_MakeFloodFillButton, SIGNAL(released()), this, SLOT(OnMakeFloodfill()));
+
+
+	QLabel* lblGradientPower = new QLabel("Gradient Power");
+	m_MainLayout.addWidget(lblGradientPower, i, 0);
+	m_GradientPower.setRange(0, 50);
+	m_GradientPower.setDecimals(2);
+	m_GradientPower.setValue(1);
+	m_MainLayout.addWidget(&m_GradientPower, i++, 2);
+	QObject::connect(&m_GradientPower, SIGNAL(valueChanged(double)), this, SLOT(OnSetGradientPower(double)));
 
 
 	QObject::connect(&gStatus, SIGNAL(RenderBegin()), this, SLOT(OnRenderBegin()));
@@ -344,6 +355,11 @@ void QAppearanceSettingsWidget::OnSetDirectionWeight(double DirectionWeight)
 {
 	gTransferFunction.SetDirectionWeight(DirectionWeight);
 	m_MakeFloodFillButton.setEnabled(true);
+}
+
+void QAppearanceSettingsWidget::OnSetGradientPower(double GradientPower)
+{
+	gTransferFunction.SetGradientPower(GradientPower);
 }
 
 void QAppearanceSettingsWidget::OnSetDensityScale(double DensityScale)

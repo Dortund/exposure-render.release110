@@ -42,7 +42,7 @@ extern "C" void UnbindTransferFunctionDiffuse(void);
 extern "C" void UnbindTransferFunctionSpecular(void);
 extern "C" void UnbindTransferFunctionRoughness(void);
 extern "C" void UnbindTransferFunctionEmission(void);
-extern "C" void BindLightPathsBuffer(int* pBuffer, cudaExtent Extent);
+extern "C" void BindLightPathsBuffer(float* pBuffer, cudaExtent Extent);
 extern "C" void UnbindLightPathsBuffer(void);
 extern "C" void BindConstants(CScene* pScene);
 extern "C" void Render(CScene& Scene, CTiming& RenderImage, CTiming& BlurImage, CTiming& PostProcessImage, CTiming& DenoiseImage, curandState* pDevStates);
