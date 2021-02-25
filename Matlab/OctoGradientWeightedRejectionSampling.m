@@ -1,4 +1,4 @@
-function [p_F, Wi, Pdf, Face, Tries] = OctoGradientWeightedRejectionSampling(Kd, datapoints)
+function [p_F, Wi, Pdf, Face, Tries, Phi, Theta] = OctoGradientWeightedRejectionSampling(Kd, datapoints)
 %OCTOGRADIENT Summary of this function goes here
 %   Detailed explanation goes here
 %{
@@ -42,7 +42,7 @@ f_GHDC = (p_G+p_H+p_D+p_C) / 4;
 f_ABCD = (p_A+p_B+p_C+p_D) / 4;
 f_GHEF = (p_G+p_H+p_E+p_F) / 4;
 
-p = 5;
+p = 1;
 %p = 0.00387597;
 f_AEHD = f_AEHD^p;
 f_GCBF = f_GCBF^p;
@@ -121,7 +121,7 @@ while (not(accepted))
     x = sin(theta) * cos(phi);
     y = sin(theta) * sin(phi);
     z = cos(theta);
-    q = 0;
+    
     if (z > 0)
         if (phi <= 0.5*pi)
             p_A = f_GCBF;
@@ -209,6 +209,9 @@ while (not(accepted))
     
     maxP = max(f_AEHD, max(f_GCBF, max(f_ABFE, max(f_GHDC, max(f_ABCD, f_GHEF)))));
     accepted = rand() <= ver / maxP;
+    
+    Theta = phi;
+    Phi = theta;
 end
 
 %Wi = [x, y, z] * Pdf2;

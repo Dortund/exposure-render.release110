@@ -142,7 +142,7 @@ DEV CColorXyz EstimateDirectLightPropertyBased(CScene* pScene, const CVolumeShad
 			Ld += F * Li * AbsDot(Wi, N) * WeightMIS / LightPdf;
 		else if (Type == CVolumeShader::Phase)
 			Ld += F * Li * WeightMIS / LightPdf;
-		else if (Type == CVolumeShader::LightPaths || Type == CVolumeShader::LightPathsOcto || Type == CVolumeShader::LightPathsOctoGradient)
+		else if (Type == CVolumeShader::LightPaths || Type == CVolumeShader::LightPathsOcto || Type == CVolumeShader::LightPathsOctoGradient || Type == CVolumeShader::OctoGradientInverse)
 			Ld += F * Li * WeightMIS / LightPdf;
 		else
 			Ld += F * Li * WeightMIS / LightPdf;
@@ -167,7 +167,7 @@ DEV CColorXyz EstimateDirectLightPropertyBased(CScene* pScene, const CVolumeShad
 					Ld += F * Li * AbsDot(Wi, N) * WeightMIS / ShaderPdf;
 				else if (Type == CVolumeShader::Phase)
 					Ld += F * Li * WeightMIS / ShaderPdf;
-				else if (Type == CVolumeShader::LightPaths || Type == CVolumeShader::LightPathsOcto || Type == CVolumeShader::LightPathsOctoGradient)
+				else if (Type == CVolumeShader::LightPaths || Type == CVolumeShader::LightPathsOcto || Type == CVolumeShader::LightPathsOctoGradient || Type == CVolumeShader::OctoGradientInverse)
 					Ld += F * Li * WeightMIS / ShaderPdf;
 				else
 					Ld += F * Li * WeightMIS / ShaderPdf;

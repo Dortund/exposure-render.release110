@@ -1359,6 +1359,11 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 				Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::LightPathsOctoGradientRejectionSamplingAdvanced, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
 				break;
 			}
+			case 10:
+			{
+				Lv += Tr * UniformSampleOneLightPropertyBased(pScene, CVolumeShader::OctoGradientInverse, properties, Normalize(-Re.m_D), Pe, gradientNormal, RNG, true);
+				break;
+			}
 			}
 
 
@@ -1552,6 +1557,17 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 						Shader = CVolumeShader(CVolumeShader::LightPathsOctoGradientRejectionSamplingAdvanced, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
 
 						F = Shader.SampleFRejection(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample, RNG);
+
+						if (!F.IsBlack() && ShaderPdf > 0)
+							Tr *= F / ShaderPdf;
+
+						break;
+					}
+					case 10:
+					{
+						Shader = CVolumeShader(CVolumeShader::OctoGradientInverse, Pe, gradientNormal, Normalize(-Re.m_D), properties.diffuse.ToXYZ(), properties.specular.ToXYZ(), 2.5f, properties.roughness);
+
+						F = Shader.SampleF(Normalize(-Re.m_D), Wi, ShaderPdf, LS.m_BsdfSample);
 
 						if (!F.IsBlack() && ShaderPdf > 0)
 							Tr *= F / ShaderPdf;

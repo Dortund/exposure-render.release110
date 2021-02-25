@@ -55,6 +55,11 @@ public:
 	void			InitPreCalculated(void);
 	float*			InitFloodFill(float OpacityWeight, float DirectionWeight);
 	float*			InitFloodFillAdvanced(float penaltySpread, float penaltyBounce);
+	float*			InitFloodFillAdvancedElectricBoogaloo(float penaltySpread, float penaltyBounce);
+	float			Distance(Vec3f Origin, Vec3f Target);
+	float			GetOpacityAt(Vec3f Point);
+	int				PointToIndex(int x, int y, int z);
+	float			GetOpacity(int index);
 	void			StartTesting(QString Directory, bool CurrentOnly);
 
 	QString			GetFileName(void) const						{	return m_FileName;		}

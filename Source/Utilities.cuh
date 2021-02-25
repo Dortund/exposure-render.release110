@@ -243,7 +243,6 @@ DEV void sampleProperties(materialProperties &properties, float3 *opacityGradien
 	//A is reference
 	float3 mins = floor(coord / gVoxelSizeWorld) * gVoxelSizeWorld;
 	float3 fraction = clamp((coord - mins) / gVoxelSizeWorld, 0, 1);
-	//mins += gVoxelSizeWorld *0.2;
 
 	if (fractions) {
 		fractions->x = fraction.x;

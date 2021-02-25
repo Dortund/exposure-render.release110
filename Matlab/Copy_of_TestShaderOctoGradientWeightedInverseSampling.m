@@ -26,6 +26,8 @@ datapoints = [
     0, ...    %G  pink
     101];       %H  black -> cyan??
 %}
+
+
 datapoints = [
     0, ...      %A  green
     0, ...    %B    magenta
@@ -35,6 +37,19 @@ datapoints = [
     0, ...    %F    blue
     101, ...    %G  pink
     101];       %H  black
+
+
+%{
+datapoints = [
+    0, ...      %A  green
+    0, ...    %B    magenta
+    1, ...    %C  cyan
+    1, ...    %D  red
+    0, ...    %E    orange
+    0, ...    %F    blue
+    1, ...    %G  pink
+    1];       %H  black
+%}
 
 %{
 datapoints = [
@@ -46,7 +61,8 @@ datapoints = [
     101, ...    %F    blue
     101, ...    %G  pink
     101];       %H  black
-%}
+    %}
+
 %{
 datapoints = [
     0, ...      %A  green
@@ -59,15 +75,17 @@ datapoints = [
     101];       %H  black
 %}
 % Uniform chance
-% datapoints = [
-%     1, ...      %A  green
-%     1, ...    %B    magenta
-%     1, ...    %C  cyan
-%     1, ...    %D  red
-%     1, ...    %E    orange
-%     1, ...    %F    blue
-%     1, ...    %G  pink
-%     1];       %H  black
+%{
+ datapoints = [
+     1, ...      %A  green
+     1, ...    %B    magenta
+     1, ...    %C  cyan
+     1, ...    %D  red
+     1, ...    %E    orange
+     1, ...    %F    blue
+     1, ...    %G  pink
+     1];       %H  black
+%}
 
 % situation values where floodfill enterted from negative z direction
 % and left side is completly opaque
@@ -130,13 +148,11 @@ Kd = [1, 1, 1];
 
 cumalative = [0, 0, 0, 0, 0, 0, 0, 0];
 dirs = cell(8,1);
-TriesTotal = zeros(n, 1);
 Pdfs = zeros(n, 1);
 PdfPlot = cell(8,1);
 Average = [0, 0, 0];
 for i = 1:n
-       [F, Wi, Pdf, Face, Tries, Phi, Theta] = OctoGradientWeightedRejectionSampling(Kd, datapoints);
-       TriesTotal(i) = Tries;
+       [F, Wi, Pdf, Face, Phi, Theta] = OctoGradientWeightedInverseSampling(Kd, datapoints);
        Pdfs(i) = Pdf;
        %Average = Average + Wi;
        Average = Average + ((((Wi + 1) ./ 2) - Average) / (i+1));
@@ -190,9 +206,6 @@ xlabel('Phi')
 ylabel('Theta')
 zlabel('Pdf')
 
-figure;
-histogram(TriesTotal);
-
 %plot total directions
 figure;
 plot(1:size(cumalative,2),cumalative);
@@ -200,8 +213,6 @@ plot(1:size(cumalative,2),cumalative);
 %Plot chances
 figure;
 plot(1:size(cumalative,2),cumalative/n);
-
-
 
 figure;
 histogram(Pdfs);

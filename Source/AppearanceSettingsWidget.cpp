@@ -86,6 +86,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_ShadingType.addItem("Light Paths Octo Gradient Rejection Sampling", 7);
 	m_ShadingType.addItem("One Directional", 8);
 	m_ShadingType.addItem("Rejection Adv. Floodfill", 9);
+	m_ShadingType.addItem("Octo Gradient Inverse", 10);
 	m_MainLayout.addWidget(&m_ShadingType, i++, 1, 1, 2);
 
 	QObject::connect(&m_ShadingType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnSetShadingType(int)));
