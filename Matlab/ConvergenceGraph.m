@@ -3,10 +3,10 @@ function ConvergenceGraph(name, graph_name)
 %BaseDirectory           = 'C:\Users\nomen\Documents\Thesis\tests\';
 BaseDirectory           = 'C:\Users\nomen\Documents\Thesis\tests\';
 Directory               = strcat(BaseDirectory, strcat(name, '\'));
-Techniques              = {'PHASE_FUNCTION_ONLY', 'BRDF_ONLY', 'HYBRID', 'LIGHT_PATHS', 'LIGHT_PATHS_OCTO', 'LIGHT_PATHS_OCTO_GRADIENT', 'TEST_SHADER', 'REJECTION_SAMPLER', 'ONE_DIRECTIONAL'}; %folder name
+Techniques              = {'PHASE_FUNCTION_ONLY', 'BRDF_ONLY', 'HYBRID', 'LIGHT_PATHS', 'LIGHT_PATHS_OCTO', 'LIGHT_PATHS_OCTO_GRADIENT', 'TEST_SHADER', 'REJECTION_SAMPLER', 'ONE_DIRECTIONAL', 'OCTO_GRADIENT_INVERSE'}; %folder name
 ID                      = 1;
 TechniqueIDs            = [];
-Series                  = {'PhaseFunctionOnly', 'BRDFOnly', 'Hybrid', 'LightPaths', 'LightPathsOcto', 'LightPathsOctoGradient', 'TestShader', 'RejectionSampler', 'OneDirectional'}; %graph name
+Series                  = {'PhaseFunctionOnly', 'BRDFOnly', 'Hybrid', 'LightPaths', 'LightPathsOcto', 'LightPathsOctoGradient', 'TestShader', 'RejectionSampler', 'OneDirectional', 'OctoGradientInverse'}; %graph name
 SPP                     = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192];
 MaxSPP                  = 14;%12;%9;%11;
 Errors                  = zeros(1);
@@ -15,7 +15,7 @@ ReferenceImageFile      = dir([Directory 'reference*.png']);
 ReferenceImage          = double(imread(strcat(Directory, ReferenceImageFile.name))) / 255.0;
 Figure                  = figure('Name', name);
 AxisY                   = axes('Parent', Figure, 'YScale', 'log', 'YMinorTick', 'on');
-Markers                 = { 'x', 'v', 'square', '^', '+', '*', 'o', 'pentagram', 'diamond'};  
+Markers                 = { 'x', 'v', 'square', '^', '+', '*', 'o', 'pentagram', 'diamond', '^'};  
 Results                 = cell(1, 1);
 %ConvergenceGraph('TD_NoScatter_ShadingTest', 'Scattering Types')
 for i = 1 : length(Series)

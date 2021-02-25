@@ -134,26 +134,31 @@ TriesTotal = zeros(n, 1);
 Pdfs = zeros(n, 1);
 PdfPlot = cell(8,1);
 Average = [0, 0, 0];
+timeAverage = 0;
 for i = 1:n
-       [F, Wi, Pdf, Face, Tries, Phi, Theta] = OctoGradientWeightedRejectionSampling(Kd, datapoints);
-       TriesTotal(i) = Tries;
-       Pdfs(i) = Pdf;
-       %Average = Average + Wi;
-       Average = Average + ((((Wi + 1) ./ 2) - Average) / (i+1));
-       for f = 1:8
-           if Face(f) == 1
-               dirs{f} = [dirs{f}; Wi * Pdf];
-               PdfPlot{f} = [PdfPlot{f}; [Phi, Theta, Pdf]];
-               break;
-           end
+   tic
+   [F, Wi, Pdf, Face, Tries, Phi, Theta] = OctoGradientWeightedRejectionSampling(Kd, datapoints);
+   time = toc;
+   timeAverage = timeAverage + ((time - timeAverage) / (i+1));
+   TriesTotal(i) = Tries;
+   Pdfs(i) = Pdf;
+   %Average = Average + Wi;
+   Average = Average + ((((Wi + 1) ./ 2) - Average) / (i+1));
+   for f = 1:8
+       if Face(f) == 1
+           dirs{f} = [dirs{f}; Wi * Pdf];
+           PdfPlot{f} = [PdfPlot{f}; [Phi, Theta, Pdf]];
+           break;
        end
-       cumalative = cumalative + Face;
-       if rem(i, n / 10) == 0
-           i / n;
-       end
+   end
+   cumalative = cumalative + Face;
+   if rem(i, n / 10) == 0
+       i / n;
+   end
 end
-Average * 255
+%Average * 255
 %Average = Average / n
+timeAverage = timeAverage
 
 figure;
 colors = {'g','m','c','r',[1,0.5,0],'b',[1,0.5,0.75],'k'};

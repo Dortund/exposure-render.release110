@@ -145,16 +145,15 @@ sumFace = (1/2)*((pi-2)*C+A+B);
 
 % inverse integrate (B-A)x+A dx, x=0..x
 if (A ~= B)
-    %xScaled = xrnd * (A+B)/2;
-    %xInv = (A - sqrt(A^2 - 2*A*xScaled + 2*B*xScaled))/(A - B);
     xScaled = xrnd * sumFace;
-    xInv = (-2*pi*B - pi^2*C + 2*pi*C)/(4*(A - B)) + (pi*sqrt(8*A*xScaled + 4*B^2 - 8*B*C + 4*pi*B*C - 8*B*xScaled + 4*C^2 + pi^2*C^2 - 4*pi*C^2))/(4*(A - B));
-    xInv2 = xInv / (pi/2);
-    D = (A-B)*xInv2+B;
+    %xInv = (-2*pi*B - pi^2*C + 2*pi*C)/(4*(A - B)) + (pi*sqrt(8*A*xScaled + 4*B^2 - 8*B*C + 4*pi*B*C - 8*B*xScaled + 4*C^2 + pi^2*C^2 - 4*pi*C^2))/(4*(A - B));
+    xInv = (pi * (sqrt(8 * A*xScaled + (2*B + (pi - 2)*C)^2 - 8*B*xScaled) - 2*B - (pi - 2)*C)) / (4*(A - B));
 else
-    xInv = xrnd;
-    D = A;
+    xInv = xrnd * (pi/2);
 end
+
+D = (A-B)*(xInv/(pi/2))+B;
+
 if (C ~= D)
     yScaled = yrnd * (C+D)/2;
     yInv = (C - sqrt(C^2 - 2*C*yScaled + 2*D*yScaled))/(C - D);
@@ -162,24 +161,20 @@ else
     yInv = yrnd;
 end
 
-%thetaRaw = 0.5 * pi * xInv;
-thetaRaw = xInv;
-theta = thetaRaw + offsetTheta;
+theta = xInv + offsetTheta;
 phi = acos(1 - yInv);
 x = sin(phi) * cos(theta);
 y = sin(phi) * sin(theta);
 z = cos(phi) * offsetPhi;
-
-%Pdf = ((((B-A)*xrnd+A)-C)*yrnd+C)/((1/2)*((pi-2)*C+A+B));
-xPart = thetaRaw / (0.5*pi);
-yPart = phi / (0.5*pi);
-hor = (A-B)*xPart+B;
-P = (hor-C)*yPart+C;
-Pdf = P/sum(8);
 Wi = [x, y, z];
 
+yPart = phi / (0.5*pi);
+P = (D-C)*yPart+C;
+Pdf = P/sum(8);
+
 check = CheckPdf(Wi, datapoints);
-if Pdf ~= check
+%if Pdf ~= check
+if abs(Pdf-check) > 0.00001
     asdf = 9
 end
 
@@ -237,21 +232,17 @@ function Pdf = CheckPdf(Wi, datapoints)
     faces = [
         [f_GCBF, f_GHDC, f_GHEF]; ... %G
         [f_GCBF, f_GHEF, f_ABFE]; ... %F
-        [f_GCBF, f_ABFE, f_ABCD]; ... %E
-        [f_GCBF, f_ABCD, f_GHDC]; ... %H
-        [f_AEHD, f_GHDC, f_GHEF]; ... %C
-        [f_AEHD, f_GHEF, f_ABFE]; ... %B
+        [f_GCBF, f_ABFE, f_ABCD]; ... %B
+        [f_GCBF, f_ABCD, f_GHDC]; ... %C
+        [f_AEHD, f_GHDC, f_GHEF]; ... %H
+        [f_AEHD, f_GHEF, f_ABFE]; ... %E
         [f_AEHD, f_ABFE, f_ABCD]; ... %A
         [f_AEHD, f_ABCD, f_GHDC]      %D
         ];
-    sum = zeros(8,1);
+    
+    sum = 0;
     for i = 1:8
-        sumFace = (1/2)*((pi-2)*faces(i,1)+faces(i,2)+faces(i,3));
-        if i == 1
-            sum(i) = sumFace;
-        else
-            sum(i) = sum(i-1) + sumFace;
-        end
+        sum = sum + (1/2)*((pi-2)*faces(i,1)+faces(i,2)+faces(i,3));
     end
     
     theta = atan(Wi(2) / Wi(1));
@@ -283,12 +274,12 @@ function Pdf = CheckPdf(Wi, datapoints)
     t_B = faces(face+1,2);
     t_C = faces(face+1,1);
 
-    ry = phi / (2*pi);
-    rx = theta / pi;
+    rx = theta / (2*pi);
+    ry = phi / pi;
 
-    party = (ry - mod(face, 4) * 0.25) * 4;
-    partx = 1 - abs(rx - 0.5) * 2;
-    hor = (t_A - t_B)*party + t_B;
-    ver = (hor - t_C)*partx + t_C;
-    Pdf = ver / sum(8);
+    partx = (rx - mod(face, 4) * 0.25) * 4;
+    party = 1 - abs(ry - 0.5) * 2;
+    hor = (t_A - t_B)*partx + t_B;
+    ver = (hor - t_C)*party + t_C;
+    Pdf = ver / sum;
 end

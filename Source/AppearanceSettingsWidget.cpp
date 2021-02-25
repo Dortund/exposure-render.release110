@@ -103,6 +103,7 @@ QAppearanceSettingsWidget::QAppearanceSettingsWidget(QWidget* pParent) :
 	m_ScatterType.addItem("Light Paths Octo Gradient Rejection Sampling", 7);
 	m_ScatterType.addItem("One Directional", 8);
 	m_ScatterType.addItem("Rejection Adv. Floodfill", 9);
+	m_ScatterType.addItem("Octo Gradient Inverse", 10);
 	m_ScatterType.setCurrentIndex(2);
 	m_MainLayout.addWidget(&m_ScatterType, i++, 1, 1, 2);
 

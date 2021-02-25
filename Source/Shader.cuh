@@ -1207,41 +1207,41 @@ public:
 		gradCE = E - C;
 		gradBH = H - B;
 
-		gradAG = gradAG / 101.f;// *.99;
-		gradDF = gradDF / 101.f;// *.99;
-		gradCE = gradCE / 101.f;// *.99;
-		gradBH = gradBH / 101.f;// *.99;
+		gradAG = gradAG / 102.f;// *.99;
+		gradDF = gradDF / 102.f;// *.99;
+		gradCE = gradCE / 102.f;// *.99;
+		gradBH = gradBH / 102.f;// *.99;
 
-		A = (1 + gradAG);
-		G = (1 - gradAG);
-		D = (1 + gradDF);
-		F = (1 - gradDF);
-		C = (1 + gradCE);
-		E = (1 - gradCE);
-		B = (1 + gradBH);
-		H = (1 - gradBH);
+		A = (1.f + gradAG);
+		G = (1.f - gradAG);
+		D = (1.f + gradDF);
+		F = (1.f - gradDF);
+		C = (1.f + gradCE);
+		E = (1.f - gradCE);
+		B = (1.f + gradBH);
+		H = (1.f - gradBH);
 
-		float AEHD = (A + E + H + D) / 4;
-		float GCBF = (G + C + B + F) / 4;
-		float ABFE = (A + B + F + E) / 4;
-		float GHDC = (G + H + D + C) / 4;
-		float ABCD = (A + B + C + D) / 4;
-		float GHEF = (G + H + E + F) / 4;
-		
-		AEHD = powf(AEHD, gScatteringHeadstart);
-		GCBF = powf(GCBF, gScatteringHeadstart);
-		ABFE = powf(ABFE, gScatteringHeadstart);
-		GHDC = powf(GHDC, gScatteringHeadstart);
-		ABCD = powf(ABCD, gScatteringHeadstart);
-		GHEF = powf(GHEF, gScatteringHeadstart);
+		float AEHD = (A + E + H + D) / 4.f;
+		float GCBF = (G + C + B + F) / 4.f;
+		float ABFE = (A + B + F + E) / 4.f;
+		float GHDC = (G + H + D + C) / 4.f;
+		float ABCD = (A + B + C + D) / 4.f;
+		float GHEF = (G + H + E + F) / 4.f;
+
+		AEHD = powf(AEHD, gGradientPower);
+		GCBF = powf(GCBF, gGradientPower);
+		ABFE = powf(ABFE, gGradientPower);
+		GHDC = powf(GHDC, gGradientPower);
+		ABCD = powf(ABCD, gGradientPower);
+		GHEF = powf(GHEF, gGradientPower);
 
 		float faces[8][3] = {
 			{GCBF, GHDC, GHEF}, // %G
 			{GCBF, GHEF, ABFE}, // %F
-			{GCBF, ABFE, ABCD}, // %E
-			{GCBF, ABCD, GHDC}, // %H
-			{AEHD, GHDC, GHEF}, // %C
-			{AEHD, GHEF, ABFE}, // %B
+			{GCBF, ABFE, ABCD}, // %B
+			{GCBF, ABCD, GHDC}, // %C
+			{AEHD, GHDC, GHEF}, // %H
+			{AEHD, GHEF, ABFE}, // %E
 			{AEHD, ABFE, ABCD}, // %A
 			{AEHD, ABCD, GHDC}  // %D
 		};
@@ -1249,74 +1249,53 @@ public:
 		float sum = 0;
 		for (int i = 0; i < 8; i++)
 			sum = sum + (0.5)*((PI_F - 2.f)*faces[i][0] + faces[i][1] + faces[i][2]);
-		
-		//r = x2 + y2 + z2 = 1
+
 		float theta = atanf(Wi.y / Wi.x);
 		float phi = acosf(Wi.z);
 
-		float t_A, t_B, t_C, q;
+		float t_A, t_B, t_C;
+		int face;
+
 		if (Wi.z > 0) {
 			if (theta <= HALF_PI_F) {
-				t_A = GCBF;
-				t_B = GHDC;
-				t_C = GHEF;
-				q = 0;
+				face = 0;
 			}
 			else if (theta <= PI_F) {
-				t_A = GCBF;
-				t_B = GHEF;
-				t_C = ABFE;
-				q = 1;
+				face = 1;
 			}
 			else if (theta <= 3 * HALF_PI_F) {
-				t_A = GCBF;
-				t_B = ABFE;
-				t_C = ABCD;
-				q = 2;
+				face = 2;
 			}
 			else {
-				t_A = GCBF;
-				t_B = ABCD;
-				t_C = GHDC;
-				q = 3;
+				face = 3;
 			}
 		}
 		else {
 			if (theta <= HALF_PI_F) {
-				t_A = AEHD;
-				t_B = GHDC;
-				t_C = GHEF;
-				q = 0;
+				face = 4;
 			}
 			else if (theta <= PI_F) {
-				t_A = AEHD;
-				t_B = GHEF;
-				t_C = ABFE;
-				q = 1;
+				face = 5;
 			}
 			else if (theta <= 3 * HALF_PI_F) {
-				t_A = AEHD;
-				t_B = ABFE;
-				t_C = ABCD;
-				q = 2;
+				face = 6;
 			}
 			else {
-				t_A = AEHD;
-				t_B = ABCD;
-				t_C = GHDC;
-				q = 3;
+				face = 7;
 			}
 		}
 
-		float ry = phi / TWO_PI_F;
-		float rx = theta / PI_F;
+		t_A = faces[face][2];
+		t_B = faces[face][1];
+		t_C = faces[face][0];
 
-		//float party = fmodf(ry, 0.25) * 4;
-		float party = (ry - q*0.25) * 4;
-		//float partx = 1 - fabsf(rx - (1 / 2)) * 2;
-		float partx = 1 - fabsf(rx - 0.5f) * 2;
-		float hor = (t_C - t_B)*party + t_B;
-		float ver = (hor - t_A)*partx + t_A;
+		float rx = theta / TWO_PI_F;
+		float ry = phi / PI_F;
+
+		float partx = (rx - (face % 4) * 0.25f) * 4.f;
+		float party = 1.f - fabsf(ry - 0.5f) * 2.f;
+		float hor = (t_A - t_B)*partx + t_B;
+		float ver = (hor - t_C)*party + t_C;
 		float Pdf = ver / sum;
 
 		return Pdf;
@@ -1881,10 +1860,10 @@ public:
 			if (i == 0)
 				faces[i][4] = faces[i][3];
 			else
-				faces[i][4] = faces[i][3] + faces[i - 1][3];
+				faces[i][4] = faces[i][3] + faces[i - 1][4];
 		}
 
-		float rngFace = RNG[0] * faces[8][4];
+		float rngFace = RNG[0] * faces[7][4];
 		float t_A, t_B, t_C, offsetPhi, offsetTheta;
 		int face = -1;
 
@@ -1905,7 +1884,7 @@ public:
 		}
 		else if (rngFace <= faces[3][4]) { // C
 			offsetPhi = 1;
-			offsetTheta = 3 * HALF_PI_F;
+			offsetTheta = 3.f * HALF_PI_F;
 			face = 3;
 		}
 		else if (rngFace <= faces[4][4]) { // H
@@ -1925,7 +1904,7 @@ public:
 		}
 		else if (rngFace <= faces[7][4]) { // D
 			offsetPhi = -1;
-			offsetTheta = 3 * HALF_PI_F;
+			offsetTheta = 3.f * HALF_PI_F;
 			face = 7;
 		}
 
@@ -1934,35 +1913,34 @@ public:
 		t_C = faces[face][0];
 		float t_D, xInv, yInv, theta, phi, x, y, z, P;
 
-		if (A != B) {
+		if (t_A != t_B) {
 			float xScaled = RNG[1] * faces[face][3];
-
 			xInv = (PI_F * (sqrtf(8.f * t_A*xScaled + powf(2.f*t_B + (PI_F - 2.f)*t_C, 2.f) - 8.f*t_B*xScaled) - 2.f*t_B - (PI_F - 2.f)*t_C)) / (4.f*(t_A - t_B));
-			//float xInv = (-2.f * PI_F*t_B - powf(PI_F, 2.f) * t_C + 2.f * PI_F*t_C) / (4.f * (t_A - t_B)) + (PI_F*sqrtf(8 * A*xScaled + 4 * B ^ 2 - 8 * B*C + 4 * pi*B*C - 8 * B*xScaled + 4 * C ^ 2 + pi ^ 2 * C ^ 2 - 4 * pi*C ^ 2)) / (4 * (A - B));
 		}
 		else {
-			xInv = RNG[1];
+			xInv = RNG[1] * HALF_PI_F;
 		}
 
 		t_D = (t_A - t_B) * (xInv / HALF_PI_F) + t_B;
 
-		if (C != D) {
+		if (t_C != t_D) {
 			float yScaled = RNG[2] * (t_C + t_D) / 2.f;
 			yInv = (t_C - sqrtf(powf(t_C, 2) - 2.f * t_C * yScaled + 2.f * t_D * yScaled)) / (t_C - t_D);
 		} else {
 			yInv = RNG[2];
 		}
-
-		P = (t_D - t_C)*(phi / HALF_PI_F) + t_C;
-
+		
 		theta = xInv + offsetTheta;
-		phi = acos(1.f - yInv);
-		x = sin(phi) * cos(theta);
-		y = sin(phi) * sin(theta);
-		z = cos(phi) * offsetPhi;
+		phi = acosf(1.f - yInv);
+		x = sinf(phi) * cosf(theta);
+		y = sinf(phi) * sinf(theta);
+		z = cosf(phi) * offsetPhi;
 		Wi = Vec3f(x, y, z);
 		
-		return Pdf = P / faces[8][4];
+		P = (t_D - t_C)*(phi / HALF_PI_F) + t_C;
+		Pdf = P / faces[7][4];
+
+		return this->F(Wo, Wi);
 	}
 
 	DEV float Pdf(const Vec3f& Wo, const Vec3f& Wi)
@@ -2067,13 +2045,13 @@ public:
 		t_B = faces[face][1];
 		t_C = faces[face][0];
 
-		float ry = phi / TWO_PI_F;
-		float rx = theta / PI_F;
+		float rx = theta / TWO_PI_F;
+		float ry = phi / PI_F;
 
-		float party = (ry - (face % 4) * 0.25) * 4.f;
-		float partx = 1 - fabsf(rx - 0.5f) * 2.f;
-		float hor = (t_A - t_B)*party + t_B;
-		float ver = (hor - t_C)*partx + t_C;
+		float partx = (rx - (face % 4) * 0.25f) * 4.f;
+		float party = 1.f - fabsf(ry - 0.5f) * 2.f;
+		float hor = (t_A - t_B)*partx + t_B;
+		float ver = (hor - t_C)*party + t_C;
 		float Pdf = ver / sum;
 
 		return Pdf;

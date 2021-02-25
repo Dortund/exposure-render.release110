@@ -145,16 +145,14 @@ sumFace = (1/2)*((pi-2)*C+A+B);
 
 % inverse integrate (B-A)x+A dx, x=0..x
 if (A ~= B)
-    %xScaled = xrnd * (A+B)/2;
-    %xInv = (A - sqrt(A^2 - 2*A*xScaled + 2*B*xScaled))/(A - B);
     xScaled = xrnd * sumFace;
     xInv = (-2*pi*B - pi^2*C + 2*pi*C)/(4*(A - B)) + (pi*sqrt(8*A*xScaled + 4*B^2 - 8*B*C + 4*pi*B*C - 8*B*xScaled + 4*C^2 + pi^2*C^2 - 4*pi*C^2))/(4*(A - B));
-    xInv2 = xInv / (pi/2);
-    D = (A-B)*xInv2+B;
 else
     xInv = xrnd;
-    D = A;
 end
+
+D = (A-B)*(xInv/(pi/2))+B;
+
 if (C ~= D)
     yScaled = yrnd * (C+D)/2;
     yInv = (C - sqrt(C^2 - 2*C*yScaled + 2*D*yScaled))/(C - D);
@@ -178,8 +176,8 @@ P = (hor-C)*yPart+C;
 Pdf = P/sum(8);
 Wi = [x, y, z];
 
-check = 
-if Pdf ~= CheckPdf(Wi, datapoints)
+check = CheckPdf(Wi, datapoints);
+if Pdf ~= check
     asdf = 9
 end
 
@@ -196,7 +194,7 @@ Theta = theta;
 
 end
 
-function [Pdf] = CheckPdf(Wi, datapoints)
+function Pdf = CheckPdf(Wi, datapoints)
    % Calculate gradients between opposing faces
     gradAG = datapoints(7) - datapoints(1);
     gradDF = datapoints(6) - datapoints(4);
@@ -290,5 +288,5 @@ function [Pdf] = CheckPdf(Wi, datapoints)
     partx = 1 - abs(rx - 0.5) * 2;
     hor = (t_A - t_B)*party + t_B;
     ver = (hor - t_C)*partx + t_C;
-    Pdf = ver / sum;
+    Pdf = ver / sum(8);
 end

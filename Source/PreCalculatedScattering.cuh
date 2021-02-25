@@ -1572,6 +1572,12 @@ KERNEL void KrnlMultipleScatteringPropertyBased(CScene* pScene, CCudaView* pView
 						if (!F.IsBlack() && ShaderPdf > 0)
 							Tr *= F / ShaderPdf;
 
+						//if (ShaderPdf < 0.001) {
+						//	pView->m_FrameEstimateXyza.Set(CColorXyza(F.c[0], F.c[1], F.c[2]), X, Y);
+							//pView->m_FrameEstimateXyza.Set(CColorXyza(0, 1, 0), X, Y);
+							//return;
+						//}
+
 						break;
 					}
 				}
