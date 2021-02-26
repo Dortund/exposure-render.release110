@@ -288,7 +288,7 @@ void QRenderThread::run()
 				}
 				else {
 					gTransferFunction.SetScatterType(m_CurrentModi);
-					//gTransferFunction.SetShadingType(m_CurrentModi);
+					gTransferFunction.SetShadingType(m_CurrentModi);
 				}
 				
 				//gScene.m_DirtyFlags.SetFlag(FilmResolutionDirty);

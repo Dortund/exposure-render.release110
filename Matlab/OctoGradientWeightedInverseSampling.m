@@ -162,26 +162,44 @@ else
 end
 
 theta = xInv + offsetTheta;
-phi = acos(1 - yInv);
+phi2 = acos(1 - yInv);
+if offsetPhi == -1
+    phi = pi - phi2;
+else
+    phi = phi2;
+end
 x = sin(phi) * cos(theta);
 y = sin(phi) * sin(theta);
-z = cos(phi) * offsetPhi;
+z = cos(phi);% * offsetPhi;
 Wi = [x, y, z];
 
-yPart = phi / (0.5*pi);
+yPart = phi2 / (0.5*pi);
 P = (D-C)*yPart+C;
 Pdf = P/sum(8);
 
 check = CheckPdf(Wi, datapoints);
 %if Pdf ~= check
-if abs(Pdf-check) > 0.00001
+thetaBack1 = atan(Wi(2) / Wi(1));
+if Wi(1) < 0
+    thetaBack = thetaBack1 + pi;
+elseif Wi(2) < 0
+    thetaBack = 2*pi + thetaBack1;
+else
+    thetaBack = thetaBack1;
+end
+
+phiBack = acos(Wi(3));
+
+%if abs(theta-thetaBack) > 0.00001
+%if abs(phi-phiBack) > 0.00001
+if abs(check-Pdf) > 0.00001
     asdf = 9
 end
 
 if offsetPhi == 1
-    Phi = phi;
+    Phi = phi2;
 else
-    Phi = pi - phi;
+    Phi = pi - phi2;
 end
 Theta = theta;
     
@@ -246,6 +264,14 @@ function Pdf = CheckPdf(Wi, datapoints)
     end
     
     theta = atan(Wi(2) / Wi(1));
+    if Wi(1) < 0
+        theta = theta + pi;
+    elseif Wi(2) < 0
+        theta = 2*pi + theta;
+    else
+        theta = theta;
+    end
+    
     phi = acos(Wi(3));
 
     if Wi(3) > 0 

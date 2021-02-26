@@ -1251,6 +1251,11 @@ public:
 			sum = sum + (0.5)*((PI_F - 2.f)*faces[i][0] + faces[i][1] + faces[i][2]);
 
 		float theta = atanf(Wi.y / Wi.x);
+		if (Wi.x < 0)
+			theta += PI_F;
+		else if (Wi.y < 0)
+			theta += 2 * PI_F;
+
 		float phi = acosf(Wi.z);
 
 		float t_A, t_B, t_C;
@@ -2007,6 +2012,11 @@ public:
 			sum = sum + (0.5)*((PI_F - 2.f)*faces[i][0] + faces[i][1] + faces[i][2]);
 
 		float theta = atanf(Wi.y / Wi.x);
+		if (Wi.x < 0)
+			theta += PI_F;
+		else if (Wi.y < 0)
+			theta += 2 * PI_F;
+
 		float phi = acosf(Wi.z);
 
 		float t_A, t_B, t_C;
